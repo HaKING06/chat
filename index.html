@@ -236,16 +236,25 @@
         }
 
         function initApp() {
-            document.getElementById('login-overlay').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('login-overlay').style.display = 'none';
-                document.getElementById('app-layout').style.display = 'flex';
-            }, 400);
+            // DİKKAT: Buraya Render'ın verdiği canlı sunucu linkini yazmalısın!
+            // Örnek: socket = io('https://chat-backend-xyz.onrender.com');
+            socket = io('https://chat-backend-qmzo.onrender.com'); 
 
-            // BACKEND URL BURAYA YAZILACAK
-            socket = io('https://chat-backend-qmzo.onrender.com');
-
-            socket.emit('joinRoom', { name: myName, isAdmin: isAdmin });
+            // Sunucuya giriş isteği at ve cevabı bekle
+            socket.emit('joinRoom', { name: myName, isAdmin: isAdmin, password: myPassword }, (response) => {
+                if (response && !response.success) {
+                    // Şifre yanlışsa uyarı ver ve bağlantıyı kopar
+                    alert(response.message);
+                    socket.disconnect(); 
+                } else {
+                    // Şifre doğruysa ekranı değiştir (Giriş başarılı)
+                    document.getElementById('login-overlay').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('login-overlay').style.display = 'none';
+                        document.getElementById('app-layout').style.display = 'flex';
+                    }, 400);
+                }
+            });
 
             // Kullanıcı Listesi Güncellemesi (Sol Menü)
             socket.on('updateUserList', (users) => {
@@ -280,6 +289,10 @@
                 }
             });
         }
+
+
+
+        
 
         function renderMessage(data) {
             const isMe = data.name === myName && data.isAdmin === isAdmin;
