@@ -16,6 +16,9 @@
             --accent-glow: rgba(10, 132, 255, 0.2);
             --danger: #ff453a;
             --success: #32d74b;
+            --admin-gold: #ffd60a;
+            --mod-purple: #bf5af2; /* Moderatör için özel mor tonu */
+            --mod-glow: rgba(191, 90, 242, 0.2);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -27,7 +30,6 @@
             font-size: 14px; -webkit-font-smoothing: antialiased;
         }
 
-        /* GİRİŞ EKRANI */
         #login-overlay { 
             position: fixed; inset: 0; z-index: 100; 
             background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
@@ -49,16 +51,16 @@
         .login-card button { 
             width: 100%; padding: 14px; border-radius: 14px; border: none; 
             background: var(--text-primary); color: #000; font-weight: 600; 
-            font-size: 1rem; cursor: pointer; transition: 0.2s; margin-bottom: 20px; 
+            font-size: 1rem; cursor: pointer; transition: 0.2s; margin-bottom: 15px; 
         }
-        .admin-toggle { font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; }
+        .admin-toggle { font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; margin-top: 10px; display: inline-block;}
+        
         #admin-section { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--glass-border); }
-        .admin-btn { background: transparent !important; color: var(--accent) !important; border: 1px solid var(--accent) !important; margin-bottom: 0 !important;}
+        .admin-btn { background: transparent !important; color: var(--accent) !important; border: 1px solid var(--accent) !important; margin-bottom: 10px !important;}
+        .mod-btn { background: transparent !important; color: var(--mod-purple) !important; border: 1px solid var(--mod-purple) !important; margin-bottom: 0 !important;}
 
-        /* ANA UYGULAMA */
         #app-layout { display: none; width: 100%; height: 100%; background: var(--bg-base); position: relative; }
 
-        /* Sol Menü (Desktop & Mobil Çekmece) */
         .sidebar { 
             width: 280px; background: rgba(20, 20, 22, 0.95); border-right: 1px solid var(--glass-border); 
             display: flex; flex-direction: column; backdrop-filter: blur(20px); z-index: 50;
@@ -81,13 +83,21 @@
             background: linear-gradient(90deg, var(--accent-glow) 0%, transparent 100%);
             border-left: 3px solid var(--accent);
         }
+        .user-item.is-mod {
+            background: linear-gradient(90deg, var(--mod-glow) 0%, transparent 100%);
+            border-left: 3px solid var(--mod-purple);
+        }
+
         .user-info { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
         .status-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; }
         .is-admin .status-dot { background: var(--accent); }
+        .is-mod .status-dot { background: var(--mod-purple); }
+        
         .admin-badge { background: var(--accent); color: white; font-size: 0.6rem; font-weight: 700; padding: 2px 5px; border-radius: 4px; }
+        .mod-badge { background: var(--mod-purple); color: white; font-size: 0.6rem; font-weight: 700; padding: 2px 5px; border-radius: 4px; }
+        
         .edit-icon { cursor: pointer; color: var(--text-secondary); font-size: 0.9rem; padding: 4px; background: rgba(255,255,255,0.1); border-radius: 6px; }
 
-        /* Sohbet Alanı */
         .chat-area { flex: 1; display: flex; flex-direction: column; position: relative; height: 100%; overflow: hidden; }
         
         .chat-header { 
@@ -97,7 +107,6 @@
         }
         .chat-header h1 { font-size: 1rem; font-weight: 500; }
         
-        /* Mobil Menü Butonu */
         .mobile-menu-btn { 
             display: none; background: rgba(255,255,255,0.1); border: none; color: white; 
             padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; 
@@ -105,7 +114,6 @@
 
         #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
 
-        /* Mesaj Kartları */
         .message-card { 
             display: flex; flex-direction: column; padding: 12px 16px; 
             border-radius: 14px; background: var(--glass-bg); 
@@ -116,6 +124,7 @@
         .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
         .sender-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
         .sender-name.admin { color: var(--accent); }
+        .sender-name.mod { color: var(--mod-purple); }
         .time-stamp { font-size: 0.7rem; color: var(--text-secondary); }
 
         .msg-content { 
@@ -130,11 +139,9 @@
         }
         .copy-btn:hover { color: var(--text-primary); }
         .delete-btn:hover { color: var(--danger); }
-        .action-icon { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; }
 
         .sys-msg { text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin: 15px 0; }
 
-        /* KUSURSUZ MOBIL GİRDİ ALANI (Safe Area Destekli) */
         .input-container { 
             padding: 12px 16px; 
             padding-bottom: max(16px, env(safe-area-inset-bottom)); 
@@ -158,7 +165,6 @@
             font-weight: 600; font-size: 0.9rem; cursor: pointer; padding: 4px 6px; 
         }
 
-        /* RESPONSIVE (MOBİL ÖZEL AYARLAR) */
         @media (max-width: 768px) {
             .mobile-menu-btn { display: block; }
             .sidebar { 
@@ -166,7 +172,7 @@
                 transform: translateX(-100%); transition: transform 0.3s ease; 
             }
             .sidebar.mobile-open { transform: translateX(0); }
-            .msg-actions { opacity: 1; } /* Mobilde butonlar her zaman görünsün */
+            .msg-actions { opacity: 1; }
             #messages { padding: 15px; }
         }
     </style>
@@ -183,14 +189,16 @@
             <div class="admin-toggle" onclick="toggleAdmin()">Yetkili Girişi</div>
             
             <div id="admin-section">
-                <input type="password" id="adminPassword" placeholder="Şifre" autocomplete="off">
-                <button onclick="joinAsAdmin()" class="admin-btn">Sisteme Gir</button>
+                <input type="password" id="adminPassword" placeholder="Kurucu Şifresi" autocomplete="off" style="margin-bottom: 10px;">
+                <button onclick="joinAsAdmin()" class="admin-btn">Kurucu Gir</button>
+                
+                <input type="password" id="modPassword" placeholder="Moderatör Şifresi" autocomplete="off" style="margin-bottom: 10px;">
+                <button onclick="joinAsMod()" class="mod-btn">Moderatör Gir</button>
             </div>
         </div>
     </div>
 
     <div id="app-layout">
-        <!-- Sol Menü (Mobilde Çekmece Olarak Açılır) -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <span>Kişiler</span>
@@ -203,7 +211,7 @@
             <header class="chat-header">
                 <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">Kişiler</button>
                 <h1>Workspace</h1>
-                <div style="width: 50px;"></div> <!-- Başlığı ortalamak için boşluk -->
+                <div style="width: 50px;"></div>
             </header>
             
             <div id="messages" onclick="closeSidebarOnMobile()"></div>
@@ -221,7 +229,7 @@
     <script>
         let socket;
         let myName = '';
-        let isAdmin = false;
+        let userRole = 'user'; // 'user', 'admin', 'mod'
         let myPassword = '';
         let mySessionId = '';
 
@@ -250,14 +258,12 @@
         }
 
         function toggleMobileSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('mobile-open');
+            document.getElementById('sidebar').classList.toggle('mobile-open');
         }
 
         function closeSidebarOnMobile() {
-            const sidebar = document.getElementById('sidebar');
             if(window.innerWidth <= 768) {
-                sidebar.classList.remove('mobile-open');
+                document.getElementById('sidebar').classList.remove('mobile-open');
             }
         }
 
@@ -265,7 +271,7 @@
             const name = document.getElementById('username').value.trim();
             if (!name) return;
             myName = name;
-            isAdmin = false;
+            userRole = 'user';
             initApp();
         }
 
@@ -273,16 +279,30 @@
             const pass = document.getElementById('adminPassword').value;
             if (!pass) return;
             myName = 'Halit';
-            isAdmin = true;
+            userRole = 'admin';
+            myPassword = pass;
+            initApp();
+        }
+
+        function joinAsMod() {
+            const pass = document.getElementById('modPassword').value;
+            if (!pass) return;
+            userRole = 'mod';
             myPassword = pass;
             initApp();
         }
 
         function initApp() {
-            // BURAYA RENDER CANLI LİNKİNİ YAZMALISIN (Örn: https://xxx.onrender.com)
-            socket = io('https://chat-backend-qmzo.onrender.com'); 
+            socket = io('https://chat-backend-qmzo.onrender.com'); // Kendi Render linkin
 
-            socket.emit('joinRoom', { name: myName, isAdmin: isAdmin, password: myPassword }, (response) => {
+            const payload = {
+                name: myName,
+                isAdmin: userRole === 'admin',
+                isMod: userRole === 'mod',
+                password: myPassword
+            };
+
+            socket.emit('joinRoom', payload, (response) => {
                 if (!response.success) {
                     document.getElementById('login-error').innerText = response.message;
                     socket.disconnect(); 
@@ -307,19 +327,32 @@
                 listDiv.innerHTML = '';
                 
                 users.forEach(u => {
-                    if(u.name === myName && u.isAdmin === isAdmin) mySessionId = u.id;
+                    const isMe = (u.name === myName && u.role === userRole);
+                    if(isMe) mySessionId = u.id;
 
-                    const adminClass = u.isAdmin ? 'is-admin' : '';
-                    const badgeHTML = u.isAdmin ? `<span class="admin-badge">KURUCU</span>` : '';
-                    let editIconHTML = (isAdmin && !u.isAdmin) 
+                    const isAdminRole = u.role === 'admin';
+                    const isModRole = u.role === 'mod';
+                    
+                    let roleClass = '';
+                    let badgeHTML = '';
+                    if (isAdminRole) { roleClass = 'is-admin'; badgeHTML = `<span class="admin-badge">KURUCU</span>`; }
+                    if (isModRole) { roleClass = 'is-mod'; badgeHTML = `<span class="mod-badge">MOD</span>`; }
+
+                    // Nick değiştirme yetkisi SADECE HALİT'te (admin) var, Modlarda YOK!
+                    let editIconHTML = (userRole === 'admin' && !isAdminRole && !isModRole) 
                         ? `<span class="edit-icon" onclick="renameUserModal('${u.id}', '${u.name}')">✎</span>` : '';
 
                     const el = document.createElement('div');
-                    el.className = `user-item ${adminClass}`;
+                    el.className = `user-item ${roleClass}`;
+                    
+                    let nameColor = 'var(--text-primary)';
+                    if (isAdminRole) nameColor = 'var(--accent)';
+                    if (isModRole) nameColor = 'var(--mod-purple)';
+
                     el.innerHTML = `
                         <div class="user-info">
                             <div class="status-dot"></div>
-                            <span style="font-weight: ${u.isAdmin ? '600' : '400'}; color: ${u.isAdmin ? 'var(--accent)' : 'var(--text-primary)'}">
+                            <span style="font-weight: ${isAdminRole || isModRole ? '600' : '400'}; color: ${nameColor}">
                                 ${u.name}
                             </span>
                             ${badgeHTML}
@@ -366,20 +399,27 @@
 
         function renderMessage(data) {
             const isOwner = data.senderId === mySessionId;
-            const isMe = data.name === myName && data.isAdmin === isAdmin;
+            const isMe = (data.name === myName && data.role === userRole);
             
             const wrapper = document.createElement('div');
             wrapper.className = `message-card ${isMe ? 'my-msg' : ''}`;
             wrapper.id = `msg-${data.id}`;
 
-            let deleteHTML = (isAdmin || isOwner) ? 
-                `<button class="action-btn delete-btn" onclick="deleteMsg('${data.id}')">Sil</button>` : '';
+            // Silme yetkisi: Kurucu (admin), Moderatör (mod) veya mesajın sahibi
+            const canDelete = (userRole === 'admin' || userRole === 'mod' || isOwner);
+            let deleteHTML = canDelete ? `<button class="action-btn delete-btn" onclick="deleteMsg('${data.id}')">Sil</button>` : '';
 
-            let adminTag = data.isAdmin ? `<span style="background:var(--accent); color:#fff; font-size:0.6rem; padding:1px 5px; border-radius:4px; margin-left:4px;">KURUCU</span>` : '';
+            let roleTag = '';
+            if (data.role === 'admin') roleTag = `<span style="background:var(--accent); color:#fff; font-size:0.6rem; padding:1px 5px; border-radius:4px; margin-left:4px;">KURUCU</span>`;
+            if (data.role === 'mod') roleTag = `<span style="background:var(--mod-purple); color:#fff; font-size:0.6rem; padding:1px 5px; border-radius:4px; margin-left:4px;">MOD</span>`;
+
+            let nameClass = '';
+            if (data.role === 'admin') nameClass = 'admin';
+            if (data.role === 'mod') nameClass = 'mod';
 
             wrapper.innerHTML = `
                 <div class="msg-header">
-                    <span class="sender-name ${data.isAdmin ? 'admin' : ''}">${data.name} ${adminTag}</span>
+                    <span class="sender-name ${nameClass}">${data.name} ${roleTag}</span>
                     <span class="time-stamp">${data.time}</span>
                 </div>
                 <div class="msg-content">${escapeHTML(data.message)}</div>
@@ -397,7 +437,7 @@
             const input = document.getElementById('messageInput');
             const msg = input.value.trim();
             if (msg) {
-                socket.emit('sendMessage', { name: myName, message: msg, isAdmin: isAdmin });
+                socket.emit('sendMessage', { message: msg });
                 input.value = '';
                 input.style.height = 'auto';
                 input.focus();
