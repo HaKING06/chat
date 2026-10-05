@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Workspace</title>
+    <style>
+        /* Modern Vercel/Linear Tarzı Koyu Tema */
+        :root {
+            --bg-dark: #09090b;
+            --bg-panel: #18181b;
+            --border-color: #27272a;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --brand-color: #3b82f6;
+            --brand-hover: #2563eb;
+            --admin-gold: #fbbf24;
+            --danger: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ----- GİRİŞ EKRANI (MODAL) ----- */
+        #login-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.15), var(--bg-dark) 80%);
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(8px); transition: opacity 0.4s ease;
+        }
+        .login-card {
+            background: var(--bg-panel); border: 1px solid var(--border-color);
+            padding: 40px; border-radius: 16px; width: 100%; max-width: 380px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        .login-card h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 24px; letter-spacing: -0.5px; }
+        
+        .input-group { margin-bottom: 16px; text-align: left; }
+        .input-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .login-card input {
+            width: 100%; padding: 12px 16px; border-radius: 8px;
+            background: var(--bg-dark); border: 1px solid var(--border-color);
+            color: white; font-size: 1rem; outline: none; transition: 0.2s;
+        }
+        .login-card input:focus { border-color: var(--brand-color); }
+        
+        .login-card button {
+            width: 100%; padding: 12px; border-radius: 8px; border: none;
+            background: var(--text-main); color: var(--bg-dark);
+            font-weight: 600; font-size: 1rem; cursor: pointer; transition: 0.2s;
+            margin-bottom: 20px;
+        }
+        .login-card button:hover { background: #d4d4d8; }
+        
+        .admin-toggle { font-size: 0.85rem; color: var(--text-muted); cursor: pointer; text-decoration: underline; }
+        #admin-section { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color); }
+        .admin-btn { background: rgba(239, 68, 68, 0.1) !important; color: var(--danger) !important; border: 1px solid var(--danger) !important; margin-bottom: 0 !important; }
+        .admin-btn:hover { background: var(--danger) !important; color: white !important; }
+
+        /* ----- ANA UYGULAMA DÜZENİ ----- */
+        #app-layout { display: none; width: 100%; height: 100%; }
+
+        /* Sol Menü (Sidebar) */
+        .sidebar {
+            width: 260px; background: var(--bg-panel); border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; padding: 20px;
+        }
+        .sidebar-header { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 15px; }
+        #online-users { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        
+        .user-item { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+        .status-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px rgba(34, 197, 94, 0.6); }
+
+        /* Ana Chat Alanı */
+        .chat-area { flex: 1; display: flex; flex-direction: column; position: relative; }
+        .chat-header {
+            padding: 20px; border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(9, 9, 11, 0.8); backdrop-filter: blur(10px); z-index: 10;
+        }
+        .chat-header h1 { font-size: 1.1rem; font-weight: 600; }
+
+        #messages { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 24px; scroll-behavior: smooth; }
+
+        /* Mesaj Tasarımı */
+        .message-wrapper { display: flex; gap: 16px; max-width: 85%; animation: slideIn 0.3s ease; }
+        .message-wrapper.me { align-self: flex-end; flex-direction: row-reverse; }
+        
+        .avatar {
+            width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 1.1rem; flex-shrink: 0;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white;
+        }
+        .avatar.admin-avatar { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+        
+        .msg-body { display: flex; flex-direction: column; gap: 4px; }
+        .msg-info { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+        .message-wrapper.me .msg-info { justify-content: flex-end; }
+        
+        .msg-name { font-weight: 600; color: var(--text-main); }
+        .msg-name.admin { color: var(--admin-gold); }
+        .msg-time { color: var(--text-muted); font-size: 0.75rem; }
+        
+        .msg-content {
+            background: var(--bg-panel); border: 1px solid var(--border-color);
+            padding: 12px 16px; border-radius: 0 12px 12px 12px;
+            font-family: 'Consolas', 'Courier New', monospace; font-size: 0.95rem;
+            line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+        }
+        .message-wrapper.me .msg-content { border-radius: 12px 0 12px 12px; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); }
+
+        .sys-msg { text-align: center; font-size: 0.8rem; color: var(--text-muted); margin: 10px 0; }
+
+        .delete-text { color: var(--text-muted); font-size: 0.75rem; cursor: pointer; text-decoration: underline; margin-left: 10px; }
+        .delete-text:hover { color: var(--danger); }
+
+        /* Girdi Alanı */
+        .input-container { padding: 20px 30px; background: var(--bg-dark); }
+        .input-box {
+            display: flex; gap: 12px; background: var(--bg-panel); border: 1px solid var(--border-color);
+            padding: 10px; border-radius: 12px; transition: 0.2s;
+        }
+        .input-box:focus-within { border-color: var(--brand-color); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        
+        .input-box textarea {
+            flex: 1; background: transparent; border: none; color: white;
+            padding: 10px; resize: none; font-family: inherit; font-size: 0.95rem;
+            min-height: 24px; max-height: 150px; outline: none;
+        }
+        .send-btn {
+            background: var(--text-main); color: var(--bg-dark); border: none;
+            padding: 0 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
+        }
+        .send-btn:hover { background: #d4d4d8; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Mobil Uyum */
+        @media (max-width: 768px) {
+            .sidebar { display: none; } /* Mobilde yan menüyü gizle */
+            #messages { padding: 15px; }
+            .message-wrapper { max-width: 95%; }
+            .input-container { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- GİRİŞ EKRANI -->
+    <div id="login-overlay">
+        <div class="login-card">
+            <h2>Çalışma Alanı</h2>
+            
+            <div class="input-group">
+                <label>Görünen Adın</label>
+                <input type="text" id="username" placeholder="Örn: Ahmet" autocomplete="off" spellcheck="false">
+            </div>
+            <button onclick="joinChat()">Odaya Katıl</button>
+            
+            <div class="admin-toggle" onclick="toggleAdmin()">Kurucu Girişi Yap</div>
+            
+            <div id="admin-section">
+                <div class="input-group">
+                    <label>Yönetici Şifresi</label>
+                    <input type="password" id="adminPassword" placeholder="Şifre" autocomplete="off">
+                </div>
+                <button onclick="joinAsAdmin()" class="admin-btn">Giriş Yap</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ANA UYGULAMA -->
+    <div id="app-layout">
+        <!-- Yan Menü (Sadece PC'de görünür) -->
+        <aside class="sidebar">
+            <div class="sidebar-header">Aktif Geliştiriciler</div>
+            <div id="online-users">
+                <!-- Kullanıcılar buraya JS ile eklenecek -->
+            </div>
+        </aside>
+
+        <!-- Sohbet Alanı -->
+        <main class="chat-area">
+            <header class="chat-header">
+                <h1>Live CodeRoom</h1>
+            </header>
+            
+            <div id="messages">
+                <div class="sys-msg">Oda şifrelemesi aktif değildir. Bağlantı kuruldu.</div>
+            </div>
+            
+            <div class="input-container">
+                <div class="input-box">
+                    <textarea id="messageInput" placeholder="Kod veya mesaj yazın... (Göndermek için Enter)" spellcheck="false"></textarea>
+                    <button class="send-btn" onclick="sendMessage()">Gönder</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        let socket;
+        let myName = '';
+        let isAdmin = false;
+        let myPassword = '';
+
+        function toggleAdmin() {
+            const adminSec = document.getElementById('admin-section');
+            adminSec.style.display = adminSec.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function joinChat() {
+            const name = document.getElementById('username').value.trim();
+            if (!name) return;
+            myName = name;
+            isAdmin = false;
+            initApp();
+        }
+
+        function joinAsAdmin() {
+            const pass = document.getElementById('adminPassword').value.trim();
+            if (!pass) return;
+            myName = 'Halit';
+            isAdmin = true;
+            myPassword = pass;
+            initApp();
+        }
+
+        function initApp() {
+            document.getElementById('login-overlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('app-layout').style.display = 'flex';
+            }, 400);
+
+            // BACKEND URL BURAYA YAZILACAK
+            socket = io('https://chat-backend-qmzo.onrender.com');
+
+            socket.emit('joinRoom', { name: myName, isAdmin: isAdmin });
+
+            // Kullanıcı Listesi Güncellemesi (Sol Menü)
+            socket.on('updateUserList', (users) => {
+                const listDiv = document.getElementById('online-users');
+                listDiv.innerHTML = '';
+                users.forEach(u => {
+                    const el = document.createElement('div');
+                    el.className = 'user-item';
+                    el.innerHTML = `
+                        <div class="status-dot"></div>
+                        <span style="color: ${u.isAdmin ? 'var(--admin-gold)' : 'var(--text-main)'}; font-weight: ${u.isAdmin ? '600' : 'normal'}">
+                            ${u.name} ${u.isAdmin ? '(Yönetici)' : ''}
+                        </span>
+                    `;
+                    listDiv.appendChild(el);
+                });
+            });
+
+            socket.on('receiveMessage', (data) => renderMessage(data));
+
+            socket.on('systemMessage', (msg) => {
+                const div = document.createElement('div');
+                div.className = 'sys-msg'; div.innerText = msg;
+                document.getElementById('messages').appendChild(div);
+                scrollToBottom();
+            });
+
+            socket.on('messageDeleted', (msgId) => {
+                const el = document.getElementById(`msg-${msgId}`);
+                if (el) {
+                    el.querySelector('.msg-content').innerHTML = '<span style="color:var(--text-muted); font-style:italic">Bu mesaj silindi.</span>';
+                }
+            });
+        }
+
+        function renderMessage(data) {
+            const isMe = data.name === myName && data.isAdmin === isAdmin;
+            const initial = data.name.charAt(0).toUpperCase();
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = `message-wrapper ${isMe ? 'me' : ''}`;
+            wrapper.id = `msg-${data.id}`;
+
+            let deleteHTML = isAdmin ? `<span class="delete-text" onclick="deleteMsg('${data.id}')">Sil</span>` : '';
+
+            wrapper.innerHTML = `
+                <div class="avatar ${data.isAdmin ? 'admin-avatar' : ''}">${initial}</div>
+                <div class="msg-body">
+                    <div class="msg-info">
+                        <span class="msg-name ${data.isAdmin ? 'admin' : ''}">${data.name}</span>
+                        <span class="msg-time">${data.time} ${deleteHTML}</span>
+                    </div>
+                    <div class="msg-content">${escapeHTML(data.message)}</div>
+                </div>
+            `;
+            
+            document.getElementById('messages').appendChild(wrapper);
+            scrollToBottom();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const msg = input.value.trim();
+            if (msg) {
+                socket.emit('sendMessage', { name: myName, message: msg, isAdmin: isAdmin });
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function deleteMsg(id) {
+            if(confirm('Mesajı kalıcı olarak silmek istiyor musun?')) {
+                socket.emit('deleteMessage', { msgId: id, password: myPassword });
+            }
+        }
+
+        function scrollToBottom() {
+            const m = document.getElementById('messages');
+            m.scrollTop = m.scrollHeight;
+        }
+
+        document.getElementById('messageInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+    </script>
+</body>
+</html>
