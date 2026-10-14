@@ -32,7 +32,7 @@
 
         #login-overlay { 
             position: fixed; inset: 0; z-index: 100; 
-            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
             display: flex; align-items: center; justify-content: center; padding: 20px;
         }
         .login-card { 
@@ -48,7 +48,7 @@
             color: var(--text-primary); font-size: 1rem; outline: none; transition: 0.3s; 
         }
         .login-card input:focus { background: rgba(255,255,255,0.1); border-color: var(--accent); }
-        #login-error { color: var(--danger); font-size: 0.8rem; height: 20px; margin-bottom: 10px; font-weight: 500; }
+        #login-error { color: var(--danger); font-size: 0.8rem; min-height: 20px; margin-bottom: 10px; font-weight: 500; }
         
         .login-card button { 
             width: 100%; padding: 14px; border-radius: 14px; border: none; 
@@ -208,16 +208,16 @@
             <h2>Giriş Yap</h2>
             <input type="text" id="username" placeholder="Adınız" autocomplete="off" spellcheck="false" oninput="clientSideValidation()">
             <div id="login-error"></div>
-            <button onclick="startConnection('user')" id="joinBtn">Devam Et</button>
+            <button onclick="handleLoginClick('user')" id="joinBtn">Devam Et</button>
             
             <div class="admin-toggle" onclick="toggleAdmin()">Yetkili Girişi</div>
             
             <div id="admin-section">
                 <input type="password" id="adminPassword" placeholder="Kurucu Şifresi" autocomplete="off" style="margin-bottom: 10px;">
-                <button onclick="startConnection('admin')" class="admin-btn">Kurucu Gir</button>
+                <button onclick="handleLoginClick('admin')" class="admin-btn">Kurucu Gir</button>
                 
                 <input type="password" id="modPassword" placeholder="Moderatör Şifresi" autocomplete="off" style="margin-bottom: 10px;">
-                <button onclick="startConnection('mod')" class="mod-btn">Moderatör Gir</button>
+                <button onclick="handleLoginClick('mod')" class="mod-btn">Moderatör Gir</button>
             </div>
         </div>
     </div>
@@ -249,7 +249,6 @@
         </main>
     </div>
 
-    <!-- Güncel Socket.io v4.7.5 CDN Kütüphanesi -->
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
     <script>
         let socket = null;
@@ -262,16 +261,16 @@
             const input = document.getElementById('username');
             const errorDiv = document.getElementById('login-error');
             const btn = document.getElementById('joinBtn');
-            const val = input.value;
+            const val = input.value.trim();
             errorDiv.innerText = '';
             btn.disabled = false;
             btn.style.opacity = '1';
 
             if(val.length > 0 && val.length < 3) {
-                errorDiv.innerText = 'En az 3 harf olmalı.';
+                errorDiv.innerText = 'En az 3 karakter olmalı.';
                 btn.disabled = true; btn.style.opacity = '0.5';
             } else if (!/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]*$/.test(val)) {
-                errorDiv.innerText = 'Sayı veya özel işaret kullanılamaz.';
+                errorDiv.innerText = 'Sadece harf kullanabilirsiniz.';
                 btn.disabled = true; btn.style.opacity = '0.5';
             }
         }
@@ -298,48 +297,61 @@
             spinner.style.display = show ? 'flex' : 'none';
         }
 
-        function startConnection(type) {
-            document.getElementById('login-error').innerText = '';
+        function handleLoginClick(type) {
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.innerText = '';
 
             if (type === 'user') {
-                const name = document.getElementById('username').value.trim();
-                if (!name) return;
-                myName = name;
+                const nameInput = document.getElementById('username').value.trim();
+                if (!nameInput) { errorDiv.innerText = 'Lütfen bir ad girin.'; return; }
+                if (nameInput.length < 3) { errorDiv.innerText = 'İsim en az 3 karakter olmalıdır.'; return; }
+                myName = nameInput;
                 userRole = 'user';
                 myPassword = '';
             } else if (type === 'admin') {
                 const pass = document.getElementById('adminPassword').value;
-                if (!pass) return;
+                if (!pass) { errorDiv.innerText = 'Lütfen kurucu şifresini girin.'; return; }
                 myName = 'Halit';
                 userRole = 'admin';
                 myPassword = pass;
             } else if (type === 'mod') {
                 const pass = document.getElementById('modPassword').value;
-                if (!pass) return;
+                if (!pass) { errorDiv.innerText = 'Lütfen moderatör şifresini girin.'; return; }
                 userRole = 'mod';
                 myPassword = pass;
             }
 
-            showLoading(true, "Sunucuya bağlanılıyor, lütfen bekleyin...");
+            connectToServer();
+        }
+
+        function connectToServer() {
+            showLoading(true, "Sunucuya bağlanılıyor (Render uyanıyor olabilir)...");
 
             if (socket) {
                 socket.disconnect();
             }
 
-            // Doğrudan güncel CDN ile bağlantı ve otomatik protokol yönetimi
-            socket = io('https://chat-backend-93n1.onrender.com', {
-                transports: ['websocket', 'polling'],
-                reconnection: true,
-                reconnectionAttempts: 5
+            socket = io('https://chat-backend-qmzo.onrender.com', {
+                transports: ['polling', 'websocket'],
+                secure: true,
+                reconnectionAttempts: 5,
+                timeout: 45000
             });
 
+            let isHandled = false;
+
             socket.on('connect_error', (err) => {
+                if (isHandled) return;
+                isHandled = true;
                 showLoading(false);
-                document.getElementById('login-error').innerText = 'Bağlantı kurulamadı. Sunucu kapalı veya erişilemiyor.';
-                console.error("Socket bağlantı hatası:", err);
+                document.getElementById('login-error').innerText = 'Sunucuya bağlanılamadı. Linki kontrol edin veya tekrar deneyin.';
+                socket.disconnect();
             });
 
             socket.on('connect', () => {
+                // Önce tüm socket dinleyicilerini eksiksiz kuruyoruz ki hiçbir event kaçmasın
+                setupSocketListeners();
+
                 showLoading(true, "Odaya giriş yapılıyor...");
 
                 const payload = {
@@ -350,6 +362,8 @@
                 };
 
                 socket.emit('joinRoom', payload, (response) => {
+                    if (isHandled) return;
+                    isHandled = true;
                     showLoading(false);
 
                     if (!response.success) {
@@ -361,10 +375,20 @@
                         setTimeout(() => {
                             document.getElementById('login-overlay').style.display = 'none';
                             document.getElementById('app-layout').style.display = 'flex';
-                        }, 500);
+                        }, 300);
                     }
                 });
             });
+        }
+
+        function setupSocketListeners() {
+            // Çift dinleyici (duplicate listener) oluşmasını önlemek için ön temizlik
+            socket.off('kicked');
+            socket.off('forceNameChange');
+            socket.off('updateUserList');
+            socket.off('receiveMessage');
+            socket.off('systemMessage');
+            socket.off('messageDeleted');
 
             socket.on('kicked', () => {
                 alert('Kurucu tarafından odadan atıldınız.');
