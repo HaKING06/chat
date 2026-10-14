@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Workspace</title>
     
+    <!-- Highlight.js Tema -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+
     <style>
         :root {
             --bg-base: #000000;
@@ -146,10 +149,32 @@
         .sender-name.mod { color: var(--mod-purple); }
         .time-stamp { font-size: 0.7rem; color: var(--text-secondary); }
 
+        /* Alıntı / Yanıt Kutusu Tasarımı */
+        .reply-quote {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid var(--accent);
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .reply-quote-name { font-weight: 600; color: var(--text-primary); }
+
         .msg-content { 
             font-family: 'SF Mono', 'Menlo', monospace; font-size: 0.9rem; 
             line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: rgba(255,255,255,0.9);
         }
+        
+        .msg-content pre {
+            background: rgba(15, 15, 17, 0.9) !important;
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 10px;
+            margin: 6px 0;
+            overflow-x: auto;
+        }
+        .msg-content code { font-family: 'SF Mono', 'Menlo', monospace; font-size: 0.85rem; }
 
         .msg-actions { display: flex; gap: 12px; margin-top: 8px; }
         .action-btn { 
@@ -157,18 +182,39 @@
             font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 500;
         }
         .copy-btn:hover { color: var(--text-primary); }
+        .reply-btn:hover { color: var(--accent); }
         .delete-btn:hover { color: var(--danger); }
 
         .sys-msg { text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin: 15px 0; }
 
+        #typing-indicator {
+            padding: 0 20px 6px 20px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            height: 18px;
+        }
+
+        #reply-preview {
+            display: none;
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border-top: 1px solid var(--glass-border);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            justify-content: space-between;
+            align-items: center;
+        }
+        #reply-preview span { color: var(--accent); font-weight: 600; }
+        .cancel-reply { cursor: pointer; color: var(--danger); font-size: 0.8rem; font-weight: 600; }
+
         .input-container { 
-            padding: 12px 16px; 
-            padding-bottom: max(16px, env(safe-area-inset-bottom)); 
             background: rgba(0,0,0,0.9); 
             border-top: 1px solid var(--glass-border);
             backdrop-filter: blur(20px);
             z-index: 20;
         }
+        .input-box-wrapper { padding: 12px 16px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
         .input-box { 
             display: flex; gap: 10px; background: rgba(28, 28, 30, 0.9); border: 1px solid var(--glass-border); 
             border-radius: 16px; padding: 10px 14px; align-items: flex-end;
@@ -179,10 +225,19 @@
             max-height: 120px; outline: none; line-height: 1.4;
         }
         .input-box textarea::placeholder { color: var(--text-secondary); }
-        .send-btn { 
-            background: transparent; color: var(--accent); border: none; 
-            font-weight: 600; font-size: 0.9rem; cursor: pointer; padding: 4px 6px; 
+        
+        .input-actions-group { display: flex; align-items: center; gap: 8px; }
+        .code-btn { 
+            background: rgba(255, 255, 255, 0.08); color: var(--text-primary); border: none; 
+            font-weight: 600; font-size: 0.8rem; cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: 0.2s;
         }
+        .code-btn:hover { background: rgba(255, 255, 255, 0.15); color: var(--accent); }
+        
+        .send-btn { 
+            background: var(--accent); color: white; border: none; 
+            font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: 0.2s;
+        }
+        .send-btn:hover { opacity: 0.9; }
 
         @media (max-width: 768px) {
             .mobile-menu-btn { display: block; }
@@ -191,7 +246,6 @@
                 transform: translateX(-100%); transition: transform 0.3s ease; 
             }
             .sidebar.mobile-open { transform: translateX(0); }
-            .msg-actions { opacity: 1; }
             #messages { padding: 15px; }
         }
     </style>
@@ -240,22 +294,36 @@
             
             <div id="messages" onclick="closeSidebarOnMobile()"></div>
             
+            <div id="typing-indicator"></div>
+
             <div class="input-container">
-                <div class="input-box">
-                    <textarea id="messageInput" placeholder="Mesaj yazın..." rows="1" spellcheck="false" oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
-                    <button class="send-btn" onclick="sendMessage()">Gönder</button>
+                <div id="reply-preview">
+                    <div>Yanıtlanan: <span id="reply-to-name"></span> - <span id="reply-to-text"></span></div>
+                    <div class="cancel-reply" onclick="cancelReply()">İptal</div>
+                </div>
+                <div class="input-box-wrapper">
+                    <div class="input-box">
+                        <textarea id="messageInput" placeholder="Mesaj yazın..." rows="1" spellcheck="false" oninput="handleTypingInput(this)"></textarea>
+                        <div class="input-actions-group">
+                            <button class="code-btn" title="Kod Bloğu Ekle" onclick="sendAsCode()">&lt;/&gt;</button>
+                            <button class="send-btn" onclick="sendMessage()">Gönder</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>
         let socket = null;
         let myName = '';
         let userRole = 'user'; 
         let myPassword = '';
         let mySessionId = '';
+        let activeReplyData = null; 
+        let typingTimer = null;
 
         function clientSideValidation() {
             const input = document.getElementById('username');
@@ -327,9 +395,7 @@
         function connectToServer() {
             showLoading(true, "Sunucuya bağlanılıyor (Render uyanıyor olabilir)...");
 
-            if (socket) {
-                socket.disconnect();
-            }
+            if (socket) socket.disconnect();
 
             socket = io('https://chat-backend-qmzo.onrender.com', {
                 transports: ['polling', 'websocket'],
@@ -340,7 +406,7 @@
 
             let isHandled = false;
 
-            socket.on('connect_error', (err) => {
+            socket.on('connect_error', () => {
                 if (isHandled) return;
                 isHandled = true;
                 showLoading(false);
@@ -349,19 +415,10 @@
             });
 
             socket.on('connect', () => {
-                // Önce tüm socket dinleyicilerini eksiksiz kuruyoruz ki hiçbir event kaçmasın
                 setupSocketListeners();
-
                 showLoading(true, "Odaya giriş yapılıyor...");
 
-                const payload = {
-                    name: myName,
-                    isAdmin: userRole === 'admin',
-                    isMod: userRole === 'mod',
-                    password: myPassword
-                };
-
-                socket.emit('joinRoom', payload, (response) => {
+                socket.emit('joinRoom', { name: myName, isAdmin: userRole === 'admin', isMod: userRole === 'mod', password: myPassword }, (response) => {
                     if (isHandled) return;
                     isHandled = true;
                     showLoading(false);
@@ -382,23 +439,16 @@
         }
 
         function setupSocketListeners() {
-            // Çift dinleyici (duplicate listener) oluşmasını önlemek için ön temizlik
             socket.off('kicked');
             socket.off('forceNameChange');
             socket.off('updateUserList');
             socket.off('receiveMessage');
             socket.off('systemMessage');
             socket.off('messageDeleted');
+            socket.off('displayTyping');
 
-            socket.on('kicked', () => {
-                alert('Kurucu tarafından odadan atıldınız.');
-                location.reload();
-            });
-
-            socket.on('forceNameChange', (newName) => {
-                myName = newName;
-                alert("Yönetici tarafından adınız '" + newName + "' olarak değiştirildi.");
-            });
+            socket.on('kicked', () => { alert('Kurucu tarafından odadan atıldınız.'); location.reload(); });
+            socket.on('forceNameChange', (newName) => { myName = newName; alert("Adınız '" + newName + "' olarak değiştirildi."); });
 
             socket.on('updateUserList', (users) => {
                 const listDiv = document.getElementById('online-users');
@@ -412,36 +462,28 @@
                     const isAdminRole = u.role === 'admin';
                     const isModRole = u.role === 'mod';
                     
-                    let roleClass = '';
-                    let badgeHTML = '';
+                    let roleClass = '', badgeHTML = '';
                     if (isAdminRole) { roleClass = 'is-admin'; badgeHTML = `<span class="admin-badge">KURUCU</span>`; }
                     if (isModRole) { roleClass = 'is-mod'; badgeHTML = `<span class="mod-badge">MOD</span>`; }
 
                     let adminActionsHTML = '';
                     if (userRole === 'admin' && !isAdminRole) {
                         const muteLabel = u.isMuted ? '🔊' : '🔇';
-                        const muteTitle = u.isMuted ? 'Sesi Aç' : 'Sustur';
                         adminActionsHTML = `
                             <div class="admin-actions">
                                 <span class="icon-btn" title="İsim Değiştir" onclick="renameUserModal('${u.id}', '${u.name}')">✎</span>
-                                <span class="icon-btn mute" title="${muteTitle}" onclick="toggleMuteUser('${u.id}')">${muteLabel}</span>
-                                <span class="icon-btn kick" title="Odadan At" onclick="kickUser('${u.id}', '${u.name}')">✕</span>
+                                <span class="icon-btn mute" title="Sustur" onclick="toggleMuteUser('${u.id}')">${muteLabel}</span>
+                                <span class="icon-btn kick" title="At" onclick="kickUser('${u.id}', '${u.name}')">✕</span>
                             </div>
                         `;
                     }
 
                     const el = document.createElement('div');
                     el.className = `user-item ${roleClass}`;
-                    
-                    let nameColor = 'var(--text-primary)';
-                    if (isAdminRole) nameColor = 'var(--accent)';
-                    if (isModRole) nameColor = 'var(--mod-purple)';
-                    if (u.isMuted) nameColor = 'var(--text-secondary)';
-
                     el.innerHTML = `
                         <div class="user-info">
                             <div class="status-dot"></div>
-                            <span style="font-weight: ${isAdminRole || isModRole ? '600' : '400'}; color: ${nameColor}">
+                            <span style="font-weight: ${isAdminRole || isModRole ? '600' : '400'}; color: ${isAdminRole ? 'var(--accent)' : isModRole ? 'var(--mod-purple)' : 'var(--text-primary)'}">
                                 ${u.name} ${u.isMuted ? '(Susturuldu)' : ''}
                             </span>
                             ${badgeHTML}
@@ -466,8 +508,44 @@
                 if (el) {
                     el.querySelector('.msg-content').innerHTML = '<span style="color: var(--text-secondary); font-style: italic;">Bu mesaj silindi.</span>';
                     el.querySelector('.msg-actions').style.display = 'none';
+                    const quote = el.querySelector('.reply-quote');
+                    if(quote) quote.remove();
                 }
             });
+
+            socket.on('displayTyping', (data) => {
+                const typingDiv = document.getElementById('typing-indicator');
+                if (data.isTyping) {
+                    typingDiv.innerText = `${data.name} yazıyor...`;
+                } else {
+                    typingDiv.innerText = '';
+                }
+            });
+        }
+
+        function handleTypingInput(textarea) {
+            textarea.style.height = '';
+            textarea.style.height = textarea.scrollHeight + 'px';
+
+            socket.emit('typing', { isTyping: true });
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                socket.emit('typing', { isTyping: false });
+            }, 1500);
+        }
+
+        // Yanıtla (Alıntı) İşlemi - Güvenli Parametre Aktarımı
+        function prepareReply(id, name, text) {
+            activeReplyData = { id, name, text };
+            document.getElementById('reply-to-name').innerText = name;
+            document.getElementById('reply-to-text').innerText = text.length > 30 ? text.substring(0, 30) + '...' : text;
+            document.getElementById('reply-preview').style.display = 'flex';
+            document.getElementById('messageInput').focus();
+        }
+
+        function cancelReply() {
+            activeReplyData = null;
+            document.getElementById('reply-preview').style.display = 'none';
         }
 
         function renameUserModal(targetId, currentName) {
@@ -515,27 +593,83 @@
             if (data.role === 'admin') nameClass = 'admin';
             if (data.role === 'mod') nameClass = 'mod';
 
+            let replyHTML = '';
+            if (data.replyTo) {
+                replyHTML = `
+                    <div class="reply-quote">
+                        <div class="reply-quote-name">${escapeHTML(data.replyTo.name)}</div>
+                        <div>${escapeHTML(data.replyTo.text)}</div>
+                    </div>
+                `;
+            }
+
+            // Yanıt butonuna veriyi güvenli aktarmak için base64 veya escape edilmiş string yerine data- attribute kullanıyoruz
             wrapper.innerHTML = `
                 <div class="msg-header">
                     <span class="sender-name ${nameClass}">${data.name} ${roleTag}</span>
                     <span class="time-stamp">${data.time}</span>
                 </div>
-                <div class="msg-content">${escapeHTML(data.message)}</div>
+                ${replyHTML}
+                <div class="msg-content">${formatMessageContent(data.message)}</div>
                 <div class="msg-actions">
                     <button class="action-btn copy-btn" onclick="copyMsg(this)">Kopyala</button>
+                    <button class="action-btn reply-btn" onclick="triggerReply('${data.id}', '${encodeURIComponent(data.name)}', '${encodeURIComponent(data.message)}')">Yanıtla</button>
                     ${deleteHTML}
                 </div>
             `;
             
             document.getElementById('messages').appendChild(wrapper);
+            
+            wrapper.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+
             scrollToBottom();
         }
 
+        // Yanıt tetikleyici (parametre bozulmalarını önlemek için decode edilir)
+        function triggerReply(id, encodedName, encodedText) {
+            prepareReply(id, decodeURIComponent(encodedName), decodeURIComponent(encodedText));
+        }
+
+        function formatMessageContent(text) {
+            const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
+            let formatted = escapeHTML(text);
+
+            formatted = formatted.replace(codeBlockRegex, (match, lang, code) => {
+                return `<pre><code class="${lang}">${code.trim()}</code></pre>`;
+            });
+
+            return formatted;
+        }
+
+        // Normal Gönder Butonu
         function sendMessage() {
+            dispatchMessage(document.getElementById('messageInput').value);
+        }
+
+        // </&gt; Kod Butonu: Metni otomatik 3 ters tırnak içine alır
+        function sendAsCode() {
             const input = document.getElementById('messageInput');
-            const msg = input.value.trim();
+            const val = input.value.trim();
+            if (!val) return;
+            const codeWrapped = "```\n" + val + "\n```";
+            dispatchMessage(codeWrapped);
+        }
+
+        function dispatchMessage(msgText) {
+            const msg = msgText.trim();
             if (msg) {
-                socket.emit('sendMessage', { message: msg });
+                socket.emit('typing', { isTyping: false });
+                
+                let replyPayload = null;
+                if (activeReplyData) {
+                    replyPayload = { name: activeReplyData.name, text: activeReplyData.text };
+                    cancelReply();
+                }
+
+                socket.emit('sendMessage', { message: msg, replyTo: replyPayload });
+                const input = document.getElementById('messageInput');
                 input.value = '';
                 input.style.height = 'auto';
                 input.focus();
