@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Workspace</title>
+    <title>Sohbet</title>
+    <link id="page-favicon" rel="icon" type="image/svg+xml">
     
     <!-- Highlight.js Tema -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -288,7 +289,7 @@
         <main class="chat-area">
             <header class="chat-header">
                 <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">Kişiler</button>
-                <h1>Workspace</h1>
+                <h1>Sohbet</h1>
                 <div style="width: 50px;"></div>
             </header>
             
@@ -324,6 +325,8 @@
         let mySessionId = '';
         let activeReplyData = null; 
         let typingTimer = null;
+        let isAuthenticated = false;
+        let unreadMessageCount = 0;
 
         function clientSideValidation() {
             const input = document.getElementById('username');
@@ -368,6 +371,7 @@
         function handleLoginClick(type) {
             const errorDiv = document.getElementById('login-error');
             errorDiv.innerText = '';
+            isAuthenticated = false;
 
             if (type === 'user') {
                 const nameInput = document.getElementById('username').value.trim();
@@ -389,7 +393,22 @@
                 myPassword = pass;
             }
 
+            requestNotificationPermission();
             connectToServer();
+        }
+
+        function handleLoginKeydown(event, loginType) {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            handleLoginClick(loginType);
+        }
+
+        function requestNotificationPermission() {
+            if (!('Notification' in window) || Notification.permission !== 'default') return;
+
+            Notification.requestPermission().catch((error) => {
+                console.error('Tarayıcı bildirim izni alınamadı:', error);
+            });
         }
 
         function connectToServer() {
@@ -428,6 +447,7 @@
                         socket.disconnect(); 
                     } else {
                         myName = response.formattedName;
+                        isAuthenticated = true;
                         document.getElementById('login-overlay').style.opacity = '0';
                         setTimeout(() => {
                             document.getElementById('login-overlay').style.display = 'none';
@@ -527,6 +547,7 @@
             textarea.style.height = '';
             textarea.style.height = textarea.scrollHeight + 'px';
 
+            if (!isAuthenticated || !socket || !socket.connected) return;
             socket.emit('typing', { isTyping: true });
             clearTimeout(typingTimer);
             typingTimer = setTimeout(() => {
@@ -576,7 +597,11 @@
 
         function renderMessage(data) {
             const isOwner = data.senderId === mySessionId;
-            const isMe = (data.name === myName && data.role === userRole);
+            const isMe = isOwner;
+
+            if (!isMe) {
+                addMessageNotification(data);
+            }
             
             const wrapper = document.createElement('div');
             wrapper.className = `message-card ${isMe ? 'my-msg' : ''}`;
@@ -627,6 +652,52 @@
             scrollToBottom();
         }
 
+        function addMessageNotification(data) {
+            if (!document.hidden && document.hasFocus()) return;
+
+            unreadMessageCount += 1;
+            updateTabNotification();
+
+            if ('Notification' in window && Notification.permission === 'granted' && (document.hidden || !document.hasFocus())) {
+                const preview = String(data.message || '').replace(/\s+/g, ' ').trim();
+                try {
+                    const notification = new Notification(`${data.name} yeni bir mesaj gönderdi`, {
+                        body: preview.length > 120 ? `${preview.substring(0, 117)}...` : preview,
+                        tag: `chat-message-${data.id}`
+                    });
+                    notification.onclick = () => {
+                        window.focus();
+                        markNotificationsRead();
+                        notification.close();
+                    };
+                } catch (error) {
+                    console.error('Tarayıcı bildirimi gösterilemedi:', error);
+                }
+            }
+        }
+
+        function updateTabNotification() {
+            const favicon = document.getElementById('page-favicon');
+            document.title = unreadMessageCount ? `(${unreadMessageCount}) Sohbet` : 'Sohbet';
+
+            const count = unreadMessageCount > 99 ? '99+' : String(unreadMessageCount);
+            const badge = unreadMessageCount
+                ? `<circle cx="25" cy="7" r="7" fill="#ff453a"/><text x="25" y="10" text-anchor="middle" font-size="${count.length > 2 ? 5 : 7}" font-family="Arial" font-weight="bold" fill="white">${count}</text>`
+                : '';
+            const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="2" y="2" width="28" height="28" rx="8" fill="#0a84ff"/><path d="M8 10h16v12H8z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/><path d="m9 11 7 6 7-6" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${badge}</svg>`;
+            favicon.href = `data:image/svg+xml,${encodeURIComponent(icon)}`;
+        }
+
+        function markNotificationsRead() {
+            unreadMessageCount = 0;
+            updateTabNotification();
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) markNotificationsRead();
+        });
+        window.addEventListener('focus', markNotificationsRead);
+
         // Yanıt tetikleyici (parametre bozulmalarını önlemek için decode edilir)
         function triggerReply(id, encodedName, encodedText) {
             prepareReply(id, decodeURIComponent(encodedName), decodeURIComponent(encodedText));
@@ -658,6 +729,11 @@
         }
 
         function dispatchMessage(msgText) {
+            if (!isAuthenticated || !socket || !socket.connected) {
+                document.getElementById('login-error').innerText = 'Mesaj göndermek için önce giriş yapmalısınız.';
+                return;
+            }
+
             const msg = msgText.trim();
             if (msg) {
                 socket.emit('typing', { isTyping: false });
@@ -691,6 +767,10 @@
                 sendMessage();
             }
         });
+
+        document.getElementById('username').addEventListener('keydown', (event) => handleLoginKeydown(event, 'user'));
+        document.getElementById('adminPassword').addEventListener('keydown', (event) => handleLoginKeydown(event, 'admin'));
+        document.getElementById('modPassword').addEventListener('keydown', (event) => handleLoginKeydown(event, 'mod'));
 
         function escapeHTML(str) {
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
