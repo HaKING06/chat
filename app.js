@@ -451,12 +451,12 @@
       else row.append(el("span", "role-badge mod", "MOD"));
       $("moderators-list").append(row);
     }
-    $("staff-storage-badge").textContent = result.canManage
-      ? "CANLI YÖNETİM AÇIK"
-      : "PUSH İLE GÜNCELLENİR";
-    $("staff-storage-note").textContent = result.note;
+    $("staff-storage-badge").hidden = true;
+    $("staff-storage-note").textContent = result.canManage
+      ? "Moderatör ekleyebilir veya yetkisini kaldırabilirsin."
+      : "Canlı düzenleme için kalıcı kayıt alanı gerekli.";
     $("moderator-form").hidden = !result.canManage;
-    $("staff-repository-help").hidden = result.canManage;
+    $("staff-repository-help").hidden = true;
   }
   $("moderators-button").addEventListener("click", () => {
     if (state.user?.role !== "admin") return;
@@ -512,7 +512,6 @@
   $("profile-button").addEventListener("click", () =>
     state.user ? logout() : openLogin(),
   );
-  $("hero-join").addEventListener("click", openLogin);
   document
     .querySelectorAll("[data-close]")
     .forEach((b) =>
@@ -556,7 +555,7 @@
   document.querySelectorAll("dialog").forEach((dialog) => {
     const heading = dialog.querySelector("h2");
     if (heading) {
-      heading.id = dialog.id + "-title";
+      if (!heading.id) heading.id = dialog.id + "-title";
       dialog.setAttribute("aria-labelledby", heading.id);
     }
   });
@@ -583,11 +582,10 @@
     cancelEdit();
     $("chat-view").hidden = view !== "chat";
     $("games-view").hidden = view !== "games";
-    $("hero").hidden = view === "games";
     $("header-title").textContent =
       view === "games" ? "oyun-alanı" : channels[channel][0];
     $("channel-title").textContent = channels[channel][0];
-    $("channel-description").textContent = channels[channel][1];
+    $("channel-description").textContent = "";
     document.querySelectorAll(".nav-item").forEach((node) => {
       const active =
         view === "games"
@@ -614,7 +612,7 @@
   document
     .querySelector('[data-view="games"]')
     .addEventListener("click", () => navigate("games"));
-  $("open-games").addEventListener("click", () => navigate("games"));
+  $("open-games")?.addEventListener("click", () => navigate("games"));
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
     $("theme-button").textContent = theme === "dark" ? "☼" : "☾";
@@ -683,36 +681,14 @@
       );
       row.append(info);
       if (state.user && rank[state.user.role] > rank[user.role]) {
-        const controls = el("details", "user-moderation");
-        controls.dataset.userId = user.id;
-        controls.open = expanded.has(user.id);
-        const summary = el("summary", "", "⋯");
-        summary.setAttribute("aria-label", user.name + " için moderasyon");
-        controls.append(summary);
-        const actions = el("div", "moderation-controls");
-        actions.append(
-          button(user.isMuted ? "Sesi aç" : "Sustur", "", () =>
-            act("moderate", { action: "mute", targetId: user.id }),
+        row.append(
+          button(
+            "⋯",
+            "user-actions-trigger",
+            () => openUserActions(user),
+            user.name + " için işlemler",
           ),
-          button("Çıkar", "", () => {
-            if (confirm(user.name + " odadan çıkarılsın mı?"))
-              act("moderate", { action: "kick", targetId: user.id });
-          }),
         );
-        if (state.user.role === "admin")
-          actions.append(
-            button("Ad değiştir", "", () => {
-              const name = prompt("Yeni takma ad:", user.name);
-              if (name)
-                act("moderate", {
-                  action: "rename",
-                  targetId: user.id,
-                  newName: name,
-                });
-            }),
-          );
-        controls.append(actions);
-        row.append(controls);
       }
       $("online-users").append(row);
     }
@@ -720,6 +696,40 @@
     $("people-toggle").textContent = state.showAll
       ? "Daha az göster ↑"
       : "Tümünü göster (" + sorted.length + ") ↓";
+  }
+  function openUserActions(user) {
+    if (!state.user || rank[state.user.role] <= rank[user.role]) return;
+    const dialog = $("user-actions-dialog");
+    $("user-actions-name").textContent = user.name;
+    const actions = $("user-actions-list");
+    actions.replaceChildren();
+    actions.append(
+      button(user.isMuted ? "Sesi aç" : "Sustur", "user-menu-action", () => {
+        dialog.close();
+        act("moderate", { action: "mute", targetId: user.id });
+      }),
+    );
+    if (state.user.role === "admin")
+      actions.append(
+        button("Ad değiştir", "user-menu-action", () => {
+          dialog.close();
+          const name = prompt("Yeni takma ad:", user.name);
+          if (name)
+            act("moderate", {
+              action: "rename",
+              targetId: user.id,
+              newName: name,
+            });
+        }),
+      );
+    actions.append(
+      button("Odadan çıkar", "user-menu-action user-menu-danger", () => {
+        dialog.close();
+        if (confirm(user.name + " odadan çıkarılsın mı?"))
+          act("moderate", { action: "kick", targetId: user.id });
+      }),
+    );
+    showDialog("user-actions-dialog");
   }
   $("people-toggle").addEventListener("click", () => {
     state.showAll = !state.showAll;
@@ -1068,7 +1078,7 @@
     showDialog("code-dialog");
   }
   for (const id of ["code-button", "share-code-rail"])
-    $(id).addEventListener("click", openCode);
+    $(id)?.addEventListener("click", openCode);
   $("code-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!requireUser()) return;

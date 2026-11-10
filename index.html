@@ -33,6 +33,7 @@
     <link rel="stylesheet" href="/vendor/highlight.css" />
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/staff.css" />
+    <link rel="stylesheet" href="/simplify.css" />
     <script src="/config.js" defer></script>
     <script src="/vendor/socket.io.min.js" defer></script>
     <script src="/vendor/highlight.min.js" defer></script>
@@ -53,21 +54,18 @@
           <span class="version">v2.0</span>
         </div>
         <nav class="navigation" aria-label="Kanallar">
-          <p class="nav-label">BİRLİKTE DAHA İYİ</p>
+          <p class="nav-label">KANALLAR</p>
           <button class="nav-item active" data-channel="general">
-            <span class="nav-symbol">#</span
-            ><span>genel-sohbet<small>Bir selamla başlar.</small></span
+            <span class="nav-symbol">#</span><span>genel-sohbet</span
             ><i class="nav-dot"></i>
           </button>
           <button class="nav-item" data-channel="code">
-            <span class="nav-symbol">&lt;/&gt;</span
-            ><span>kod-paylaşımı<small>Birlikte üretelim.</small></span>
+            <span class="nav-symbol">&lt;/&gt;</span><span>kod-paylaşımı</span>
           </button>
           <button class="nav-item" data-channel="help">
-            <span class="nav-symbol">?</span
-            ><span>yardımlaşma<small>Takıldığın yeri sor.</small></span>
+            <span class="nav-symbol">?</span><span>yardımlaşma</span>
           </button>
-          <p class="nav-label second-label">BİRAZ MOLA</p>
+          <p class="nav-label second-label">OYUN</p>
           <button class="nav-item" data-view="games">
             <span class="nav-symbol game-symbol">×○</span
             ><span>oyun-alanı<small>XOX · İnsan veya bot</small></span
@@ -75,14 +73,7 @@
           </button>
         </nav>
         <div class="sidebar-note">
-          <span class="note-icon">✳</span
-          ><strong>Küçük bir fikir,<br />büyük bir başlangıç.</strong>
-          <p>
-            Kodunu paylaş. Birine yardım et.<br />Topluluğun bir parçası ol.
-          </p>
-          <button class="text-link" id="guide-button">
-            Topluluk rehberi <span>↗</span>
-          </button>
+          <button class="text-link" id="guide-button">Topluluk rehberi</button>
         </div>
         <div class="sidebar-bottom">
           <div class="avatar my-avatar" id="profile-avatar">?</div>
@@ -137,58 +128,6 @@
           </div>
         </header>
         <main id="main" tabindex="-1">
-          <section class="community-hero" id="hero">
-            <div class="hero-copy">
-              <div class="eyebrow"><span></span> MERHABA, DİJİTAL KOMŞU.</div>
-              <h1>
-                Bir fikrin varsa,<br /><em>yerin burada.</em
-                ><span class="hero-asterisk">✳</span>
-              </h1>
-              <p>
-                Biraz sohbet, biraz kod, bolca paylaşım.<br />Birlikte öğrenen
-                insanların buluşma noktası.
-              </p>
-              <div class="hero-bottom">
-                <button class="button primary" id="hero-join">
-                  Kendine bir yer aç <span>↗</span></button
-                ><span class="hero-footnote"
-                  >Kayıt yok. Sadece bir takma ad.</span
-                >
-              </div>
-            </div>
-            <div class="hero-art" aria-hidden="true">
-              <div class="orbit orbit-one"></div>
-              <div class="orbit orbit-two"></div>
-              <div class="art-code">
-                <div class="art-dots">
-                  <i></i><i></i><i></i><span>hello-community.js</span>
-                </div>
-                <div class="art-code-body">
-                  <span class="code-muted">01</span>
-                  <span class="code-purple">const</span> community = {<br /><span
-                    class="code-muted"
-                    >02</span
-                  >
-                  &nbsp; curiosity:
-                  <span class="code-lime">Infinity</span>,<br /><span
-                    class="code-muted"
-                    >03</span
-                  >
-                  &nbsp; together: <span class="code-lime">true</span
-                  ><br /><span class="code-muted">04</span> };<br /><span
-                    class="code-muted"
-                    >05</span
-                  >
-                  <span class="code-purple">say</span>(<span class="code-lime"
-                    >'Merhaba dünya!'</span
-                  >);
-                </div>
-              </div>
-              <div class="art-sticker">&lt; birlikte /&gt;</div>
-              <div class="art-chat">İyi ki geldin. <span>✦</span></div>
-              <span class="art-plus">+</span>
-            </div>
-          </section>
           <div class="content-grid">
             <section
               class="conversation"
@@ -281,8 +220,8 @@
                         id="emoji-button"
                         aria-label="Emoji ekle"
                       >
-                        ☺</button
-                      ><span class="composer-hint">Saygılı ol. Kendin ol.</span>
+                        ☺
+                      </button>
                     </div>
                     <button
                       type="submit"
@@ -310,7 +249,6 @@
             >
               <div class="section-heading">
                 <div>
-                  <div class="eyebrow">BİR OYUNLUK ARA</div>
                   <h2 id="games-title">Sıra sende.</h2>
                   <p>Bir arkadaşını bekle ya da yenilmez bota meydan oku.</p>
                 </div>
@@ -381,25 +319,6 @@
                   Tümünü göster ↓
                 </button>
               </section>
-              <section class="idea-card">
-                <span class="idea-star">✳</span
-                ><span class="eyebrow">PAYLAŞTIKÇA ÇOĞALIR</span>
-                <h3>O küçük kod,<br />birinin büyük<br />çözümü olabilir.</h3>
-                <p>İşe yarayan bir fonksiyon mu yazdın? Toplulukla paylaş.</p>
-                <button class="text-link" id="share-code-rail">
-                  Kodunu paylaş <span>↗</span></button
-                ><span class="idea-decoration" aria-hidden="true">{ }</span>
-              </section>
-              <section class="quick-game">
-                <div class="quick-game-heading">
-                  <span>×○</span><span class="tag">MOLA ZAMANI</span>
-                </div>
-                <h3>İki satır kod,<br />bir tur XOX.</h3>
-                <p>Bir rakip bul ya da bota meydan oku.</p>
-                <button class="button secondary" id="open-games">
-                  Oyun alanına git <span>↗</span>
-                </button>
-              </section>
               <footer class="rail-footer">
                 <span>© 2026 Haking Chat</span
                 ><button id="rules-footer">Topluluk rehberi</button
@@ -408,7 +327,7 @@
                   target="_blank"
                   rel="noopener noreferrer"
                   >haking.tr ↗</a
-                ><span class="made-with">İnsanlar, fikirler ve biraz kod.</span>
+                >
               </footer>
             </aside>
           </div>
@@ -425,8 +344,8 @@
         >
           ×</button
         ><img src="/assets/mark.svg" alt="" width="52" height="52" />
-        <div class="eyebrow">TOPLULUĞA HOŞ GELDİN</div>
-        <h2>Bir merhaba de.</h2>
+
+        <h2>Sohbete katıl</h2>
         <p>
           Hesap oluşturman gerekmiyor.<br />Kendine bir takma ad seç, sohbete
           katıl.
@@ -475,8 +394,8 @@
         >
           ×
         </button>
-        <div class="eyebrow">BİRLİKTE ÜRETELİM</div>
-        <h2>Kodun konuşsun.</h2>
+
+        <h2>Kod paylaş</h2>
         <p>Okunabilir, kopyalanabilir bir kod parçası paylaş.</p>
         <div class="code-fields">
           <label
@@ -526,7 +445,7 @@
       >
         ×
       </button>
-      <div class="eyebrow">BİRLİKTE YAŞAMA KILAVUZU</div>
+
       <h2>İyi bir topluluk,<br />hepimizle başlar.</h2>
       <div class="guide-item">
         <span>01</span>
@@ -587,17 +506,12 @@
       >
         ×
       </button>
-      <div class="eyebrow">KURUCUYA ÖZEL · YETKİLİLER</div>
-      <h2 id="moderators-title">Topluluğun<br />güven ekibi.</h2>
-      <p>
-        Kimlerin moderatör olduğunu ve çevrimiçi durumlarını buradan
-        görebilirsin.
-      </p>
+
+      <h2 id="moderators-title">Moderatörler</h2>
       <div class="staff-owner">
         <span class="staff-emblem" aria-hidden="true">✦</span>
         <div>
-          <strong id="staff-owner-name">Halit</strong
-          ><small>Kurucu · Tüm yönetim yetkileri</small>
+          <strong id="staff-owner-name">Halit</strong><small>Kurucu</small>
         </div>
         <span class="role-badge">KURUCU</span>
       </div>
@@ -636,15 +550,7 @@
           Moderatör ekle <span>+</span>
         </button>
       </form>
-      <div id="staff-repository-help" class="staff-repository-help" hidden>
-        <h3>İleride yeni moderatör eklemek</h3>
-        <p>
-          Backend klasöründe <code>npm run staff:add</code> komutuyla ad ve
-          parola belirlenir. <code>config/staff.json</code> dosyası güncellenir;
-          GitHub'a push edildiğinde yeni moderatör giriş yapabilir. Silmek için
-          <code>npm run staff:remove</code>.
-        </p>
-      </div>
+      <div id="staff-repository-help" hidden></div>
     </dialog>
     <dialog id="admin-dialog" class="modal">
       <button
@@ -654,7 +560,7 @@
       >
         ×
       </button>
-      <div class="eyebrow">KURUCU ALANI</div>
+
       <h2>Topluluk yönetimi</h2>
       <p>Seçili kanaldaki tüm mesajları temizlemek geri alınamaz.</p>
       <button class="button danger" id="clear-channel">
@@ -662,6 +568,21 @@
       </button>
       <h3 class="audit-title">Son yönetim işlemleri</h3>
       <div id="audit-list" class="audit-list"></div>
+    </dialog>
+    <dialog
+      id="user-actions-dialog"
+      class="modal user-actions-modal"
+      aria-labelledby="user-actions-name"
+    >
+      <button
+        class="modal-close icon-button"
+        data-close="user-actions-dialog"
+        aria-label="Pencereyi kapat"
+      >
+        ×
+      </button>
+      <h2 id="user-actions-name">Kullanıcı</h2>
+      <div id="user-actions-list"></div>
     </dialog>
     <dialog
       id="people-dialog"

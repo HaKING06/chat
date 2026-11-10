@@ -1,0 +1,194 @@
+/* Focused chat layout: controls and content, without promotional panels. */
+.space-label,
+.brand small,
+.nav-label,
+.nav-item small,
+.breadcrumb-root,
+.slash,
+#channel-description,
+.channel-hash + .tag,
+.online-label,
+.composer-footer > span:first-child {
+  display: none;
+}
+.sidebar-note {
+  margin-top: auto;
+  padding-top: 0;
+  margin-bottom: 22px;
+}
+.navigation {
+  padding-top: 18px;
+}
+.brand {
+  padding-bottom: 22px;
+}
+main {
+  padding-top: 22px;
+}
+.content-grid,
+.is-member .content-grid {
+  margin-top: 0;
+}
+.content-grid {
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 22px;
+}
+.right-rail {
+  border: 0;
+  padding: 0;
+}
+.rail-footer {
+  padding: 0 8px;
+  font-size: 11px;
+}
+.conversation {
+  min-height: calc(100dvh - 130px);
+}
+.section-heading {
+  padding-top: 18px;
+  padding-bottom: 14px;
+}
+.title-row .tag {
+  display: none;
+}
+.is-member main {
+  padding-top: 18px;
+}
+.messages .empty-state h3 {
+  font-size: 18px;
+}
+.empty-state .empty-mark {
+  display: none;
+}
+.staff-modal h2 {
+  font-size: 25px;
+  line-height: 1.2;
+}
+.staff-modal > .eyebrow {
+  display: none;
+}
+.staff-owner {
+  padding: 12px 14px;
+  margin: 18px 0;
+}
+.staff-emblem {
+  width: 34px;
+  height: 34px;
+  font-size: 20px;
+}
+.staff-owner small {
+  margin-top: 2px;
+}
+.staff-list-heading {
+  margin: 20px 0 10px;
+}
+.staff-entry {
+  padding: 13px 14px;
+}
+.staff-storage-note {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 16px 0 0;
+}
+.staff-storage-note p {
+  font-size: 12px;
+  margin: 0;
+}
+.staff-modal {
+  max-width: 470px;
+}
+.user-row {
+  flex-wrap: nowrap !important;
+  gap: 10px;
+}
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+.user-actions-trigger {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 23px;
+  border-radius: 8px;
+  line-height: 1;
+}
+.user-actions-trigger:hover {
+  border-color: var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+}
+.user-actions-modal {
+  max-width: 340px;
+  padding: 26px;
+}
+.user-actions-modal h2 {
+  font-size: 20px;
+  padding-right: 25px;
+  margin-bottom: 20px;
+  overflow-wrap: anywhere;
+}
+#user-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.user-menu-action {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  text-align: left;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 13px 15px;
+  color: var(--text);
+  font-size: 14px;
+}
+.user-menu-action:hover {
+  border-color: var(--muted);
+}
+.user-menu-danger {
+  color: var(--danger);
+  margin-top: 5px;
+}
+.user-menu-danger:hover {
+  border-color: var(--danger);
+}
+@media (max-width: 1000px) {
+  .content-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 570px) {
+  main {
+    padding-top: 12px;
+  }
+  .is-member main {
+    padding-top: 10px;
+  }
+  .conversation {
+    min-height: calc(100dvh - 100px);
+  }
+  .staff-modal h2 {
+    font-size: 24px;
+  }
+  .staff-modal {
+    padding: 27px 22px;
+  }
+  .section-heading {
+    padding-top: 16px;
+  }
+  .composer-footer {
+    justify-content: flex-end;
+  }
+  .topbar .button.small {
+    gap: 6px;
+  }
+}
