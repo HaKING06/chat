@@ -1,0 +1,1359 @@
+"use strict";
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const channels = {
+    general: ["genel-sohbet", "Günün nasıl geçiyor? Sohbete bir yerden katıl."],
+    code: [
+      "kod-paylaşımı",
+      "Küçük bir fonksiyon, büyük bir çözüm. Kodunu toplulukla paylaş.",
+    ],
+    help: ["yardımlaşma", "Takıldığın yeri anlat. Birlikte bir çözüm bulalım."],
+  };
+  const roles = { user: "Topluluk üyesi", mod: "Moderatör", admin: "Kurucu" };
+  const rank = { user: 0, mod: 1, admin: 2 };
+  const emojis = ["👍", "❤️", "🔥", "😂", "🎉", "👀"];
+  const state = {
+    socket: null,
+    user: null,
+    credentials: null,
+    channel: "general",
+    view: "chat",
+    messages: new Map(),
+    users: [],
+    games: [],
+    game: null,
+    reply: null,
+    editing: null,
+    codeOnly: false,
+    pins: false,
+    showAll: false,
+    typing: new Map(),
+    joining: false,
+    authAttempt: 0,
+    stopped: false,
+    pendingGame: false,
+  };
+  function el(tag, cls, text) {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+  function button(text, cls, handler, label) {
+    const node = el("button", cls, text);
+    node.type = "button";
+    if (label) node.setAttribute("aria-label", label);
+    node.addEventListener("click", handler);
+    return node;
+  }
+  function toast(message, error = false) {
+    const node = el("div", "toast" + (error ? " error" : ""), message);
+    $("toast-stack").append(node);
+    setTimeout(() => node.remove(), 5500);
+    while ($("toast-stack").children.length > 4)
+      $("toast-stack").firstChild.remove();
+  }
+  function showDialog(id) {
+    const d = $(id);
+    if (!d.open) d.showModal();
+  }
+  function openLogin() {
+    $("login-error").textContent = "";
+    showDialog("login-dialog");
+  }
+  function requireUser() {
+    if (state.user && state.socket?.connected) return true;
+    openLogin();
+    return false;
+  }
+  function emit(event, data = {}) {
+    return new Promise((resolve) => {
+      if (!state.socket?.connected)
+        return resolve({
+          success: false,
+          message: "Bağlantı yok. Yeniden bağlanmayı bekle.",
+        });
+      state.socket.timeout(12000).emit(event, data, (err, result) =>
+        resolve(
+          err
+            ? {
+                success: false,
+                message: "Sunucu yanıt vermedi. Tekrar dene.",
+              }
+            : result || {
+                success: false,
+                message: "Geçersiz sunucu yanıtı.",
+              },
+        ),
+      );
+    });
+  }
+  async function act(event, data) {
+    const result = await emit(event, data);
+    if (!result.success) toast(result.message, true);
+    return result;
+  }
+  function connection(status) {
+    const box = $("connection-status");
+    box.className = "connection " + status;
+    box.lastElementChild.textContent =
+      status === "online"
+        ? "Bağlı"
+        : status === "connecting"
+          ? "Bağlanıyor"
+          : "Çevrimdışı";
+  }
+  function avatar(name) {
+    let hash = 0;
+    for (const c of name) hash = (hash + c.codePointAt(0)) % 5;
+    return el(
+      "div",
+      "avatar color-" + hash,
+      name
+        .trim()
+        .split(/\s+/)
+        .map((w) => Array.from(w)[0])
+        .slice(0, 2)
+        .join("")
+        .toLocaleUpperCase("tr"),
+    );
+  }
+  function setMemberUI() {
+    document.body.classList.toggle("is-member", !!state.user);
+    $("profile-name").textContent = state.user?.name || "Henüz tanışmadık";
+    $("profile-role").textContent = state.user
+      ? roles[state.user.role] + (state.user.isMuted ? " · Susturuldu" : "")
+      : "Bir merhaba de.";
+    $("profile-avatar").textContent = state.user
+      ? Array.from(state.user.name)[0].toLocaleUpperCase("tr")
+      : "?";
+    $("profile-button").textContent = state.user ? "⏻" : "↗";
+    $("profile-button").setAttribute(
+      "aria-label",
+      state.user ? "Oturumu kapat" : "Giriş yap",
+    );
+    $("join-top").textContent = state.user
+      ? state.user.role === "admin"
+        ? "Yönetim ⌘"
+        : "Çıkış yap ↗"
+      : "Sohbete katıl ↗";
+    $("join-top").classList.toggle("admin-open", state.user?.role === "admin");
+    $("moderators-button").hidden = state.user?.role !== "admin";
+    const enabled =
+      !!state.user && !!state.socket?.connected && !state.user.isMuted;
+    $("message-input").disabled = !enabled;
+    $("send-button").disabled = !enabled;
+    $("message-input").placeholder = state.user?.isMuted
+      ? "Mesaj gönderme iznin şu an kapalı."
+      : state.user
+        ? "#" + channels[state.channel][0] + " kanalına bir şeyler yaz…"
+        : "Sohbete katılmak için giriş yap…";
+  }
+  async function authenticate() {
+    if (!state.credentials || state.joining) return;
+    state.joining = true;
+    const attempt = ++state.authAttempt;
+    const result = await emit("joinRoom", state.credentials);
+    if (attempt !== state.authAttempt) return;
+    state.joining = false;
+    $("login-submit").disabled = false;
+    $("login-submit").textContent = "Sohbete katıl ↗";
+    if (!result.success) {
+      $("login-error").textContent = result.message;
+      state.credentials = null;
+      state.user = null;
+      setMemberUI();
+      if (!$("login-dialog").open) showDialog("login-dialog");
+      return;
+    }
+    state.user = result.user;
+    state.messages = new Map((result.history || []).map((m) => [m.id, m]));
+    state.users = result.users || [];
+    state.games = result.games || [];
+    $("staff-password").value = "";
+    $("login-dialog").close();
+    setMemberUI();
+    renderUsers();
+    renderMessages(true);
+    renderLobby();
+    toast("Hoş geldin, " + state.user.name + ". İyi ki geldin!");
+    try {
+      localStorage.setItem("haking.nickname", state.user.name);
+    } catch {}
+  }
+  function setupSocket() {
+    if (state.socket) {
+      state.socket.removeAllListeners();
+      state.socket.disconnect();
+      state.joining = false;
+      state.authAttempt++;
+    }
+    if (typeof window.io !== "function") {
+      $("login-error").textContent =
+        "Sohbet bileşeni yüklenemedi. Sayfayı yenile.";
+      return;
+    }
+    connection("connecting");
+    state.socket = window.io(window.HAKING_CONFIG.backendUrl, {
+      autoConnect: false,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1500,
+      reconnectionDelayMax: 10000,
+      timeout: 60000,
+    });
+    const socket = state.socket;
+    socket.on("connect", () => {
+      connection("online");
+      if (state.credentials) authenticate();
+    });
+    socket.on("connect_error", () => {
+      connection("offline");
+      $("login-error").textContent =
+        "Sunucuya ulaşılamadı. Ücretsiz sunucunun uyanması biraz sürebilir; bağlantı tekrar deneniyor.";
+      $("login-submit").disabled = false;
+      $("login-submit").textContent = "Tekrar dene ↗";
+    });
+    socket.on("disconnect", (reason) => {
+      state.authAttempt++;
+      state.joining = false;
+      connection("offline");
+      state.user = null;
+      state.game = null;
+      state.users = [];
+      state.games = [];
+      state.typing.clear();
+      for (const id of ["moderators-dialog", "admin-dialog"])
+        if ($(id).open) $(id).close();
+      setMemberUI();
+      renderUsers();
+      renderGame();
+      renderLobby();
+      renderTyping();
+      if (!state.stopped) {
+        toast(
+          reason === "io server disconnect"
+            ? "Oturum sona erdi. Yeniden giriş yapabilirsin."
+            : "Bağlantı kesildi. Otomatik yeniden bağlanılıyor.",
+          true,
+        );
+        if (reason === "io server disconnect") state.credentials = null;
+      }
+    });
+    socket.on("updateUserList", (users) => {
+      state.users = users;
+      if (state.user) {
+        const current = users.find((u) => u.id === state.user.id);
+        if (current) state.user = current;
+      }
+      setMemberUI();
+      renderUsers();
+      if ($("moderators-dialog").open) loadModerators();
+    });
+    socket.on("receiveMessage", (m) => {
+      const nearBottom =
+        $("messages").scrollHeight -
+          $("messages").scrollTop -
+          $("messages").clientHeight <
+        100;
+      state.messages.set(m.id, m);
+      while (state.messages.size > 300)
+        state.messages.delete(state.messages.keys().next().value);
+      renderMessages(nearBottom || m.senderId === state.user?.id);
+    });
+    socket.on("messageUpdated", (m) => {
+      state.messages.set(m.id, m);
+      renderMessages();
+    });
+    socket.on("messageDeleted", (id) => {
+      state.messages.delete(id);
+      if (state.reply === id) cancelReply();
+      if (state.editing === id) cancelEdit();
+      renderMessages();
+    });
+    socket.on("channelCleared", (data) => {
+      for (const [id, m] of state.messages)
+        if (m.channel === data.channel) state.messages.delete(id);
+      renderMessages();
+    });
+    socket.on("systemMessage", (message) => {
+      if (state.user) toast(message);
+    });
+    socket.on("displayTyping", (data) => {
+      if (data.isTyping)
+        state.typing.set(data.id, { ...data, until: Date.now() + 4000 });
+      else state.typing.delete(data.id);
+      renderTyping();
+    });
+    socket.on("forceNameChange", (name) => {
+      if (state.user) {
+        state.user.name = name;
+        if (state.credentials) state.credentials.name = name;
+        setMemberUI();
+        toast("Takma adın kurucu tarafından " + name + " olarak değiştirildi.");
+      }
+    });
+    socket.on("kicked", () => {
+      state.stopped = true;
+      state.credentials = null;
+      state.user = null;
+      toast("Bir yetkili seni odadan çıkardı.", true);
+      socket.disconnect();
+      setMemberUI();
+    });
+    socket.on("gamesUpdated", (games) => {
+      state.games = games;
+      renderLobby();
+    });
+    socket.on("moderatorsChanged", () => {
+      if ($("moderators-dialog").open) loadModerators();
+    });
+    socket.on("gameUpdated", (game) => {
+      if (game.players.some((p) => p.id === socket.id)) {
+        state.game = game;
+        renderGame();
+      }
+    });
+    socket.on("gameLeft", () => {
+      state.game = null;
+      renderGame();
+    });
+    socket.connect();
+  }
+  $("login-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (state.joining) return;
+    state.stopped = false;
+    state.credentials = {
+      name: $("nickname").value.trim(),
+      role: $("login-role").value,
+      password: $("staff-password").value,
+    };
+    $("login-error").textContent = "";
+    $("login-submit").disabled = true;
+    $("login-submit").textContent = "Bağlanıyor…";
+    if (state.socket?.connected) await authenticate();
+    else setupSocket();
+  });
+  $("login-role").addEventListener("change", () => {
+    $("nickname").required = $("login-role").value === "user";
+    $("nickname").disabled = $("login-role").value !== "user";
+    $("staff-password").required = $("login-role").value !== "user";
+  });
+  function logout() {
+    if (!state.user) return;
+    if (
+      state.game?.status === "playing" &&
+      !confirm(
+        "Çıkış yaparsan oyun sona erecek. Oturumu kapatmak istiyor musun?",
+      )
+    )
+      return;
+    state.stopped = true;
+    state.credentials = null;
+    state.user = null;
+    state.socket?.disconnect();
+    state.messages.clear();
+    cancelReply();
+    cancelEdit();
+    $("message-input").value = "";
+    setMemberUI();
+    renderMessages();
+    toast("Görüşmek üzere. Her zaman yerin var.");
+  }
+  async function openAdmin() {
+    if (state.user?.role !== "admin") return;
+    showDialog("admin-dialog");
+    $("audit-list").textContent = "Yükleniyor…";
+    const result = await emit("getAuditLog");
+    $("audit-list").replaceChildren();
+    if (!result.success) {
+      $("audit-list").textContent = result.message;
+      return;
+    }
+    if (!result.entries.length)
+      $("audit-list").textContent = "Henüz bir yönetim işlemi yok.";
+    for (const entry of result.entries) {
+      const labels = {
+        mute: "susturma değiştirildi",
+        kick: "odadan çıkarıldı",
+        rename: "ad değiştirildi",
+        clear: "kanal temizlendi",
+        delete: "mesaj silindi",
+        pin: "sabitleme değiştirildi",
+        "moderator-add": "moderatör eklendi",
+        "moderator-remove": "moderatör silindi",
+      };
+      const node = el("div", "audit-entry");
+      node.textContent =
+        new Date(entry.createdAt).toLocaleString("tr-TR") +
+        " · " +
+        entry.actor +
+        " · " +
+        (labels[entry.action] || entry.action) +
+        " · " +
+        entry.target;
+      $("audit-list").append(node);
+    }
+  }
+  async function loadModerators() {
+    if (state.user?.role !== "admin") return;
+    const result = await emit("getModerators");
+    if (!result.success) {
+      $("moderators-list").replaceChildren(
+        el("p", "staff-empty", result.message),
+      );
+      return;
+    }
+    renderModerators(result);
+  }
+  function renderModerators(result) {
+    $("staff-owner-name").textContent = state.user?.name || "Halit";
+    $("staff-count").textContent = result.moderators.length + " MODERATÖR";
+    $("moderators-list").replaceChildren();
+    if (!result.moderators.length)
+      $("moderators-list").append(
+        el("div", "staff-empty", "Henüz bir moderatör eklenmemiş."),
+      );
+    for (const moderator of result.moderators) {
+      const row = el("div", "staff-entry");
+      row.append(avatar(moderator.name));
+      const info = el("div", "staff-entry-info");
+      info.append(el("strong", "", moderator.name));
+      const status = el("small");
+      status.append(
+        el("span", "status-dot" + (moderator.online ? "" : " offline-dot")),
+        document.createTextNode(
+          moderator.online ? "Şu an çevrimiçi" : "Çevrimdışı",
+        ),
+      );
+      info.append(status);
+      row.append(info);
+      if (result.canManage)
+        row.append(
+          button("Yetkisini kaldır", "button danger staff-remove", async () => {
+            if (
+              !confirm(
+                moderator.name +
+                  " moderatörlükten çıkarılsın mı? Açık yetkili oturumu kapatılacak.",
+              )
+            )
+              return;
+            const response = await act("removeModerator", {
+              name: moderator.name,
+            });
+            if (response.success) {
+              renderModerators(response);
+              toast("Moderatör yetkisi kaldırıldı.");
+            }
+          }),
+        );
+      else row.append(el("span", "role-badge mod", "MOD"));
+      $("moderators-list").append(row);
+    }
+    $("staff-storage-badge").textContent = result.canManage
+      ? "CANLI YÖNETİM AÇIK"
+      : "PUSH İLE GÜNCELLENİR";
+    $("staff-storage-note").textContent = result.note;
+    $("moderator-form").hidden = !result.canManage;
+    $("staff-repository-help").hidden = result.canManage;
+  }
+  $("moderators-button").addEventListener("click", () => {
+    if (state.user?.role !== "admin") return;
+    $("moderator-error").textContent = "";
+    showDialog("moderators-dialog");
+    loadModerators();
+  });
+  $("moderators-dialog").addEventListener("close", () => {
+    $("moderator-password").value = "";
+  });
+  $("moderator-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    $("moderator-submit").disabled = true;
+    $("moderator-error").textContent = "";
+    const result = await emit("addModerator", {
+      name: $("moderator-name").value,
+      password: $("moderator-password").value,
+    });
+    $("moderator-submit").disabled = false;
+    if (!result.success) {
+      $("moderator-error").textContent = result.message;
+      return;
+    }
+    $("moderator-form").reset();
+    renderModerators(result);
+    toast("Yeni moderatör eklendi. Kendi parolasıyla giriş yapabilir.");
+  });
+  $("clear-channel").addEventListener("click", async () => {
+    if (
+      confirm(
+        "#" +
+          channels[state.channel][0] +
+          " kanalındaki tüm mesajlar silinsin mi?",
+      )
+    ) {
+      const result = await act("moderate", {
+        action: "clear",
+        channel: state.channel,
+      });
+      if (result.success) {
+        toast("Kanal temizlendi.");
+        openAdmin();
+      }
+    }
+  });
+  $("join-top").addEventListener("click", () =>
+    state.user
+      ? state.user.role === "admin"
+        ? openAdmin()
+        : logout()
+      : openLogin(),
+  );
+  $("profile-button").addEventListener("click", () =>
+    state.user ? logout() : openLogin(),
+  );
+  $("hero-join").addEventListener("click", openLogin);
+  document
+    .querySelectorAll("[data-close]")
+    .forEach((b) =>
+      b.addEventListener("click", () => $(b.dataset.close).close()),
+    );
+  for (const id of ["guide-button", "rules-footer"])
+    $(id).addEventListener("click", () => showDialog("guide-dialog"));
+  $("menu-button").addEventListener("click", () =>
+    setMenu(!$("sidebar").classList.contains("open")),
+  );
+  $("sidebar-scrim").addEventListener("click", () => setMenu(false));
+  function setMenu(open) {
+    $("sidebar").classList.toggle("open", open);
+    $("sidebar").inert = matchMedia("(max-width: 768px)").matches && !open;
+    $("sidebar-scrim").hidden = !open;
+    $("menu-button").setAttribute("aria-expanded", String(open));
+    if (open) $("sidebar").querySelector(".nav-item.active")?.focus();
+  }
+  const menuMedia = matchMedia("(max-width: 768px)");
+  menuMedia.addEventListener("change", () => setMenu(false));
+  setMenu(false);
+  const onlinePanel = document.querySelector(".online-panel");
+  const peopleButton = button(
+    "♙",
+    "icon-button people-button",
+    () => {
+      $("people-content").append(onlinePanel);
+      showDialog("people-dialog");
+    },
+    "Çevrimiçi kişileri göster",
+  );
+  peopleButton.innerHTML =
+    '<svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 4v3"/></svg>';
+  $("moderators-button").firstElementChild.innerHTML =
+    '<svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6L12 3Z"/><path d="m9 12 2 2 4-4"/></svg>';
+  peopleButton.id = "people-button";
+  $("theme-button").before(peopleButton);
+  $("people-dialog").addEventListener("close", () =>
+    document.querySelector(".right-rail").prepend(onlinePanel),
+  );
+  document.querySelectorAll("dialog").forEach((dialog) => {
+    const heading = dialog.querySelector("h2");
+    if (heading) {
+      heading.id = dialog.id + "-title";
+      dialog.setAttribute("aria-labelledby", heading.id);
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") setMenu(false);
+    if (
+      e.key === "/" &&
+      !document.querySelector("dialog[open]") &&
+      !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)
+    ) {
+      e.preventDefault();
+      $("message-search").focus();
+    }
+  });
+  function navigate(view, channel = state.channel) {
+    if (state.user)
+      state.socket.emit("typing", { channel: state.channel, isTyping: false });
+    state.view = view;
+    state.channel = channel;
+    state.pins = false;
+    state.codeOnly = false;
+    $("message-search").value = "";
+    cancelReply();
+    cancelEdit();
+    $("chat-view").hidden = view !== "chat";
+    $("games-view").hidden = view !== "games";
+    $("hero").hidden = view === "games";
+    $("header-title").textContent =
+      view === "games" ? "oyun-alanı" : channels[channel][0];
+    $("channel-title").textContent = channels[channel][0];
+    $("channel-description").textContent = channels[channel][1];
+    document.querySelectorAll(".nav-item").forEach((node) => {
+      const active =
+        view === "games"
+          ? node.dataset.view === "games"
+          : node.dataset.channel === channel;
+      node.classList.toggle("active", active);
+      if (active) node.setAttribute("aria-current", "page");
+      else node.removeAttribute("aria-current");
+    });
+    setMenu(false);
+    setMemberUI();
+    renderMessages(true);
+    renderGame();
+    renderLobby();
+    renderTyping();
+  }
+  document
+    .querySelectorAll("[data-channel]")
+    .forEach((node) =>
+      node.addEventListener("click", () =>
+        navigate("chat", node.dataset.channel),
+      ),
+    );
+  document
+    .querySelector('[data-view="games"]')
+    .addEventListener("click", () => navigate("games"));
+  $("open-games").addEventListener("click", () => navigate("games"));
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    $("theme-button").textContent = theme === "dark" ? "☼" : "☾";
+    $("theme-button").setAttribute(
+      "aria-label",
+      theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç",
+    );
+    document.querySelector('meta[name="theme-color"]').content =
+      theme === "dark" ? "#101311" : "#f4f5ef";
+  }
+  try {
+    applyTheme(
+      localStorage.getItem("haking.theme") ||
+        (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+    );
+    $("nickname").value = localStorage.getItem("haking.nickname") || "";
+  } catch {
+    applyTheme("dark");
+  }
+  $("theme-button").addEventListener("click", () => {
+    const theme =
+      document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    applyTheme(theme);
+    try {
+      localStorage.setItem("haking.theme", theme);
+    } catch {}
+  });
+  function renderUsers() {
+    const expanded = new Set(
+      [...$("online-users").querySelectorAll("details[open]")].map(
+        (d) => d.dataset.userId,
+      ),
+    );
+    $("online-count").textContent = state.users.length;
+    $("online-users").replaceChildren();
+    if (!state.users.length) {
+      $("online-users").append(
+        el(
+          "p",
+          "rail-empty",
+          state.user
+            ? "Burası seninle canlanıyor."
+            : "Katıldığında topluluk burada görünecek.",
+        ),
+      );
+    }
+    const sorted = [...state.users].sort(
+      (a, b) =>
+        rank[b.role] - rank[a.role] || a.name.localeCompare(b.name, "tr"),
+    );
+    for (const user of state.showAll ? sorted : sorted.slice(0, 7)) {
+      const row = el("div", "user-row");
+      row.append(avatar(user.name));
+      const info = el("div", "user-info");
+      info.append(
+        el(
+          "strong",
+          "",
+          user.name + (user.id === state.user?.id ? " · sen" : ""),
+        ),
+        el(
+          "small",
+          "",
+          roles[user.role] + (user.isMuted ? " · Susturuldu" : ""),
+        ),
+      );
+      row.append(info);
+      if (state.user && rank[state.user.role] > rank[user.role]) {
+        const controls = el("details", "user-moderation");
+        controls.dataset.userId = user.id;
+        controls.open = expanded.has(user.id);
+        const summary = el("summary", "", "⋯");
+        summary.setAttribute("aria-label", user.name + " için moderasyon");
+        controls.append(summary);
+        const actions = el("div", "moderation-controls");
+        actions.append(
+          button(user.isMuted ? "Sesi aç" : "Sustur", "", () =>
+            act("moderate", { action: "mute", targetId: user.id }),
+          ),
+          button("Çıkar", "", () => {
+            if (confirm(user.name + " odadan çıkarılsın mı?"))
+              act("moderate", { action: "kick", targetId: user.id });
+          }),
+        );
+        if (state.user.role === "admin")
+          actions.append(
+            button("Ad değiştir", "", () => {
+              const name = prompt("Yeni takma ad:", user.name);
+              if (name)
+                act("moderate", {
+                  action: "rename",
+                  targetId: user.id,
+                  newName: name,
+                });
+            }),
+          );
+        controls.append(actions);
+        row.append(controls);
+      }
+      $("online-users").append(row);
+    }
+    $("people-toggle").hidden = sorted.length <= 7;
+    $("people-toggle").textContent = state.showAll
+      ? "Daha az göster ↑"
+      : "Tümünü göster (" + sorted.length + ") ↓";
+  }
+  $("people-toggle").addEventListener("click", () => {
+    state.showAll = !state.showAll;
+    renderUsers();
+  });
+  function appendText(parent, text) {
+    const pattern = /(https?:\/\/[^\s<>]+)/g;
+    let offset = 0;
+    for (const match of text.matchAll(pattern)) {
+      parent.append(document.createTextNode(text.slice(offset, match.index)));
+      let url;
+      try {
+        url = new URL(match[0]);
+      } catch {}
+      if (url && ["http:", "https:"].includes(url.protocol)) {
+        const link = el("a", "", match[0]);
+        link.href = url.href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer nofollow ugc";
+        parent.append(link);
+      } else parent.append(document.createTextNode(match[0]));
+      offset = match.index + match[0].length;
+    }
+    parent.append(document.createTextNode(text.slice(offset)));
+  }
+  function renderMessages(scroll = false) {
+    const list = $("messages"),
+      previous = list.scrollTop;
+    list.replaceChildren();
+    $("code-count").textContent = [...state.messages.values()].filter(
+      (m) => m.channel === state.channel && m.type === "code",
+    ).length;
+    $("all-tab").classList.toggle("active", !state.codeOnly);
+    $("code-tab").classList.toggle("active", state.codeOnly);
+    $("pin-filter").setAttribute("aria-pressed", String(state.pins));
+    $("pin-filter").classList.toggle("admin-open", state.pins);
+    const query = $("message-search").value.trim().toLocaleLowerCase("tr");
+    const messages = [...state.messages.values()].filter(
+      (m) =>
+        m.channel === state.channel &&
+        (!state.codeOnly || m.type === "code") &&
+        (!state.pins || m.pinned) &&
+        (!query ||
+          [m.message, m.name, m.title || ""]
+            .join(" ")
+            .toLocaleLowerCase("tr")
+            .includes(query)),
+    );
+    if (!messages.length) {
+      const empty = el("div", "empty-state");
+      empty.append(
+        el(
+          "span",
+          "empty-mark",
+          state.codeOnly ? "</>" : state.pins ? "⌖" : "#",
+        ),
+        el(
+          "h3",
+          "",
+          query || state.pins
+            ? "Burada henüz bir mesaj yok."
+            : state.user
+              ? "İlk sözü sen söyle."
+              : "Güzel sohbetlerin başlangıcı.",
+        ),
+        el(
+          "p",
+          "",
+          query
+            ? "Farklı bir kelimeyle aramayı dene."
+            : state.pins
+              ? "Yetkililerin sabitlediği mesajlar burada görünür."
+              : state.codeOnly
+                ? "Bir çözüm paylaş. Bir sonraki fikre ilham ol."
+                : "Yeni fikirler bir “merhaba” ile başlar.",
+        ),
+      );
+      if (!query && !state.pins)
+        empty.append(
+          button(
+            state.user
+              ? state.codeOnly
+                ? "Kodunu paylaş ↗"
+                : "Bir merhaba yaz ↗"
+              : "Sohbete katıl ↗",
+            "button secondary",
+            () =>
+              state.user
+                ? state.codeOnly
+                  ? openCode()
+                  : $("message-input").focus()
+                : openLogin(),
+          ),
+        );
+      list.append(empty);
+    }
+    for (const message of messages) list.append(renderMessage(message));
+    if (scroll) list.scrollTop = list.scrollHeight;
+    else list.scrollTop = previous;
+  }
+  function renderMessage(m) {
+    const node = el("article", "message" + (m.pinned ? " pinned" : ""));
+    node.dataset.messageId = m.id;
+    node.append(avatar(m.name));
+    const main = el("div", "message-main");
+    if (m.pinned) main.append(el("div", "pin-label", "⌖ SABİTLENMİŞ MESAJ"));
+    const meta = el("div", "message-meta");
+    meta.append(el("strong", "", m.name));
+    if (m.role !== "user")
+      meta.append(el("span", "role-badge " + m.role, roles[m.role]));
+    const time = el(
+      "time",
+      "",
+      m.time ||
+        new Date(m.createdAt).toLocaleTimeString("tr-TR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+    );
+    time.dateTime = m.createdAt;
+    meta.append(time);
+    if (m.editedAt) meta.append(el("span", "edited-label", "düzenlendi"));
+    main.append(meta);
+    if (m.replyTo)
+      main.append(
+        el(
+          "div",
+          "message-reply",
+          "↳ " + m.replyTo.name + ": " + m.replyTo.message,
+        ),
+      );
+    if (m.type === "code") main.append(renderSnippet(m));
+    else {
+      const body = el("div", "message-body");
+      appendText(body, m.message);
+      main.append(body);
+    }
+    const actions = el("div", "message-actions");
+    for (const emoji of emojis) {
+      const ids = m.reactions?.[emoji] || [];
+      if (ids.length)
+        actions.append(
+          button(
+            emoji + " " + ids.length,
+            "message-action" + (ids.includes(state.user?.id) ? " reacted" : ""),
+            () => {
+              if (requireUser()) act("reactMessage", { msgId: m.id, emoji });
+            },
+            emoji + " tepkisi",
+          ),
+        );
+    }
+    if (state.user) {
+      actions.append(
+        button("↳ Yanıtla", "message-action", () => {
+          state.reply = m.id;
+          state.editing = null;
+          showReply(m);
+          $("message-input").focus();
+        }),
+        button("☺ Tepki", "message-action", () => toggleReactions(actions, m)),
+      );
+      if (m.senderId === state.user.id)
+        actions.append(
+          button("Düzenle", "message-action", () => editMessage(m)),
+        );
+      if (m.senderId === state.user.id || rank[state.user.role] > rank[m.role])
+        actions.append(
+          button("Sil", "message-action", () => {
+            if (confirm("Bu mesaj silinsin mi?"))
+              act("deleteMessage", { msgId: m.id });
+          }),
+        );
+      if (rank[state.user.role] >= 1)
+        actions.append(
+          button(
+            m.pinned ? "Sabitlemeyi kaldır" : "Sabitle",
+            "message-action",
+            () => act("pinMessage", { msgId: m.id }),
+          ),
+        );
+    }
+    if (actions.children.length) main.append(actions);
+    node.append(main);
+    return node;
+  }
+  function toggleReactions(parent, m) {
+    const previous = parent.querySelector(".emoji-picker");
+    if (previous) {
+      previous.remove();
+      return;
+    }
+    const picker = el("div", "emoji-picker");
+    for (const emoji of emojis)
+      picker.append(
+        button(
+          emoji,
+          "",
+          () => {
+            act("reactMessage", { msgId: m.id, emoji });
+            picker.remove();
+          },
+          emoji + " ekle",
+        ),
+      );
+    parent.append(picker);
+  }
+  async function copy(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Kod panoya kopyalandı.");
+    } catch {
+      toast("Panoya erişilemedi. Kodu seçerek kopyalayabilirsin.", true);
+    }
+  }
+  function renderSnippet(m) {
+    const snippet = el("div", "snippet"),
+      header = el("div", "snippet-header"),
+      title = el("div");
+    title.append(
+      el("strong", "snippet-title", m.title || "Kod parçası"),
+      el("span", "snippet-language", m.language || "plaintext"),
+    );
+    const tools = el("div", "snippet-tools");
+    tools.append(
+      button("Kopyala", "", () => copy(m.message)),
+      button("İndir", "", () => downloadSnippet(m)),
+    );
+    header.append(title, tools);
+    const pre = el("pre"),
+      code = el("code", "", m.message);
+    if (window.hljs) {
+      const language = window.hljs.getLanguage(m.language)
+        ? m.language
+        : "plaintext";
+      code.className = "hljs language-" + language;
+      code.innerHTML = window.hljs.highlight(m.message, {
+        language,
+        ignoreIllegals: true,
+      }).value;
+    }
+    pre.append(code);
+    snippet.append(header, pre);
+    return snippet;
+  }
+  function downloadSnippet(m) {
+    const extensions = {
+      javascript: "js",
+      typescript: "ts",
+      python: "py",
+      html: "html",
+      css: "css",
+      json: "json",
+      sql: "sql",
+      bash: "sh",
+      java: "java",
+      cpp: "cpp",
+      plaintext: "txt",
+    };
+    const blob = new Blob([m.message], { type: "text/plain;charset=utf-8" }),
+      url = URL.createObjectURL(blob),
+      a = el("a");
+    a.href = url;
+    a.download =
+      (m.title || "haking-kod").replace(/[^\p{L}\p{N}_-]/gu, "-").slice(0, 60) +
+      "." +
+      (extensions[m.language] || "txt");
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  $("message-search").addEventListener("input", () => renderMessages());
+  $("all-tab").addEventListener("click", () => {
+    state.codeOnly = false;
+    renderMessages();
+  });
+  $("code-tab").addEventListener("click", () => {
+    state.codeOnly = true;
+    renderMessages();
+  });
+  $("pin-filter").addEventListener("click", () => {
+    state.pins = !state.pins;
+    renderMessages();
+  });
+  function showReply(m) {
+    $("reply-preview").hidden = false;
+    $("reply-preview").firstElementChild.textContent =
+      (state.editing ? "Düzenleniyor: " : "Yanıt: " + m.name + " · ") +
+      m.message.slice(0, 100);
+  }
+  function cancelReply() {
+    state.reply = null;
+    $("reply-preview").hidden = true;
+  }
+  function cancelEdit() {
+    if (state.editing) {
+      state.editing = null;
+      $("message-input").value = "";
+      $("message-input").maxLength = 4000;
+      $("reply-preview").hidden = true;
+      $("send-button").textContent = "Gönder ↑";
+      updateCount();
+    }
+  }
+  $("cancel-reply").addEventListener("click", () => {
+    cancelReply();
+    cancelEdit();
+  });
+  function editMessage(m) {
+    cancelEdit();
+    cancelReply();
+    if (m.type === "code") {
+      state.editing = m.id;
+      $("snippet-title").value = m.title || "Kod parçası";
+      $("snippet-language").value = m.language;
+      $("snippet-title").disabled = true;
+      $("snippet-language").disabled = true;
+      $("snippet-code").value = m.message;
+      $("code-error").textContent = "";
+      $("code-submit").textContent = "Değişiklikleri kaydet";
+      showDialog("code-dialog");
+      return;
+    }
+    state.reply = null;
+    state.editing = m.id;
+    $("message-input").value = m.message;
+    $("message-input").maxLength = 12000;
+    showReply(m);
+    $("send-button").textContent = "Kaydet ↑";
+    updateCount();
+    $("message-input").focus();
+  }
+  $("code-dialog").addEventListener("close", () => {
+    if (state.editing && state.messages.get(state.editing)?.type === "code")
+      state.editing = null;
+  });
+  function openCode() {
+    if (!requireUser()) return;
+    cancelEdit();
+    state.editing = null;
+    $("snippet-title").value = "";
+    $("snippet-title").disabled = false;
+    $("snippet-language").disabled = false;
+    $("snippet-code").value = "";
+    $("code-error").textContent = "";
+    $("code-submit").textContent = "Kodu paylaş ↗";
+    showDialog("code-dialog");
+  }
+  for (const id of ["code-button", "share-code-rail"])
+    $(id).addEventListener("click", openCode);
+  $("code-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!requireUser()) return;
+    const editId = state.editing;
+    $("code-submit").disabled = true;
+    const data = {
+      message: $("snippet-code").value,
+      type: "code",
+      language: $("snippet-language").value,
+      title: $("snippet-title").value,
+      channel: "code",
+    };
+    const result = await emit(
+      editId ? "editMessage" : "sendMessage",
+      editId ? { msgId: editId, message: data.message } : data,
+    );
+    $("code-submit").disabled = false;
+    if (!result.success) {
+      $("code-error").textContent = result.message;
+      return;
+    }
+    state.editing = null;
+    $("code-dialog").close();
+    navigate("chat", "code");
+    toast(editId ? "Kod güncellendi." : "Kodun toplulukla paylaşıldı.");
+  });
+  function updateCount() {
+    $("character-count").textContent =
+      $("message-input").value.length + " / " + $("message-input").maxLength;
+  }
+  let typingTimer,
+    lastTyping = 0;
+  $("message-input").addEventListener("input", () => {
+    updateCount();
+    if (!state.user) return;
+    if (Date.now() - lastTyping > 2000) {
+      state.socket.emit("typing", { channel: state.channel, isTyping: true });
+      lastTyping = Date.now();
+    }
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(
+      () =>
+        state.socket?.emit("typing", {
+          channel: state.channel,
+          isTyping: false,
+        }),
+      2000,
+    );
+  });
+  $("message-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      $("message-form").requestSubmit();
+    }
+  });
+  let sending = false;
+  $("message-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!requireUser() || sending) return;
+    const value = $("message-input").value;
+    if (!value.trim()) return;
+    sending = true;
+    $("send-button").disabled = true;
+    const result = await act(
+      state.editing ? "editMessage" : "sendMessage",
+      state.editing
+        ? { msgId: state.editing, message: value }
+        : {
+            message: value,
+            channel: state.channel,
+            replyTo: state.reply,
+            type: "text",
+          },
+    );
+    sending = false;
+    if (result.success) {
+      cancelReply();
+      cancelEdit();
+      $("message-input").value = "";
+      $("message-input").maxLength = 4000;
+      updateCount();
+      state.socket.emit("typing", { channel: state.channel, isTyping: false });
+      $("message-input").focus();
+    }
+    setMemberUI();
+  });
+  $("emoji-button").addEventListener("click", () => {
+    if (!requireUser()) return;
+    const old = $("composer-emoji");
+    if (old) {
+      old.remove();
+      return;
+    }
+    const picker = el("div", "emoji-picker");
+    picker.id = "composer-emoji";
+    for (const emoji of ["👋", "😊", "🎉", "💻", "🚀", "❤️", "👍", "🔥"])
+      picker.append(
+        button(emoji, "", () => {
+          const input = $("message-input");
+          if (input.value.length + emoji.length <= input.maxLength) {
+            input.setRangeText(
+              emoji,
+              input.selectionStart,
+              input.selectionEnd,
+              "end",
+            );
+            updateCount();
+            input.focus();
+          }
+          picker.remove();
+        }),
+      );
+    $("message-form").after(picker);
+  });
+  function renderTyping() {
+    for (const [id, t] of state.typing)
+      if (t.until < Date.now()) state.typing.delete(id);
+    const names = [...state.typing.values()]
+      .filter((t) => t.channel === state.channel)
+      .map((t) => t.name);
+    $("typing-status").textContent = names.length
+      ? names.slice(0, 2).join(", ") +
+        (names.length > 2 ? " ve diğerleri" : "") +
+        " yazıyor…"
+      : "";
+  }
+  setInterval(renderTyping, 1000);
+  async function gameAction(event, data = {}) {
+    if (!requireUser() || state.pendingGame) return;
+    state.pendingGame = true;
+    try {
+      const result = await act(event, data);
+      if (result.success && result.game) {
+        state.game = result.game;
+        renderGame();
+      }
+    } finally {
+      state.pendingGame = false;
+    }
+  }
+  $("create-game").addEventListener("click", () =>
+    gameAction("gameCreate", { bot: false }),
+  );
+  $("play-bot").addEventListener("click", () => gameAction("gameBot"));
+  $("game-add-bot").addEventListener("click", () =>
+    gameAction("gameBot", { gameId: state.game?.id }),
+  );
+  $("game-leave").addEventListener("click", async () => {
+    if (!state.game) return;
+    if (
+      state.game.status === "playing" &&
+      !confirm("Ayrılırsan oyun sona erecek. Çıkmak istiyor musun?")
+    )
+      return;
+    const result = await act("gameLeave", { gameId: state.game.id });
+    if (result.success) {
+      state.game = null;
+      renderGame();
+    }
+  });
+  $("game-rematch").addEventListener("click", () =>
+    gameAction(state.game?.bot ? "gameBot" : "gameCreate"),
+  );
+  function renderGame() {
+    const game = state.game;
+    $("active-game").hidden = !game;
+    $("game-intro").hidden = !!game;
+    if (!game) return;
+    $("game-players").replaceChildren();
+    for (let index = 0; index < 2; index++) {
+      const player = game.players[index];
+      const node = el("div", "game-player");
+      node.append(
+        el("span", "", index ? "○" : "×"),
+        document.createTextNode(
+          player
+            ? player.name + (player.id === state.socket?.id ? " · sen" : "")
+            : "Oyuncu bekleniyor…",
+        ),
+      );
+      $("game-players").append(node);
+    }
+    const mine = game.players.find((p) => p.id === state.socket?.id);
+    let status;
+    if (game.status === "waiting")
+      status = "Bir oyuncu bekleniyor. Odan lobide listelendi.";
+    else if (game.status === "finished") {
+      status =
+        game.winner === "draw"
+          ? "Berabere! Güzel mücadeleydi."
+          : game.winner === "left"
+            ? "Oyuncu ayrıldı veya oda süresi doldu. Oyun sona erdi."
+            : game.winner === mine?.symbol
+              ? "Kazandın! İyi hamle."
+              : (game.players.find((p) => p.symbol === game.winner)?.name ||
+                  "Rakip") + " kazandı. Bir tur daha?";
+    } else
+      status =
+        game.turn === mine?.symbol
+          ? "Sıra sende. Hamleni yap."
+          : (game.players.find((p) => p.symbol === game.turn)?.name ||
+              "Rakip") + " oynuyor…";
+    $("game-status").textContent = status;
+    $("game-board").replaceChildren();
+    game.board.forEach((value, index) => {
+      const cell = button(
+        value === "X" ? "×" : value === "O" ? "○" : "",
+        "game-cell" +
+          (value === "O" ? " o" : "") +
+          (game.winningLine?.includes(index) ? " win" : ""),
+        () => gameAction("gameMove", { gameId: game.id, index }),
+        Math.floor(index / 3) +
+          1 +
+          ". satır, " +
+          ((index % 3) + 1) +
+          ". sütun: " +
+          (value || "boş"),
+      );
+      cell.disabled =
+        !!value || game.status !== "playing" || game.turn !== mine?.symbol;
+      $("game-board").append(cell);
+    });
+    $("game-add-bot").hidden = game.status !== "waiting";
+    $("game-rematch").hidden = game.status !== "finished";
+  }
+  function renderLobby() {
+    const list = $("game-lobby");
+    list.replaceChildren();
+    $("lobby-count").textContent = state.games.length + " ODA";
+    if (!state.games.length) {
+      list.append(
+        el(
+          "div",
+          "lobby-empty",
+          state.user
+            ? "Henüz açık bir oda yok. İlk odayı sen oluştur."
+            : "Odalara katılmak ve oyuncuları görmek için giriş yap.",
+        ),
+      );
+      return;
+    }
+    for (const game of state.games) {
+      const row = el("div", "lobby-room");
+      row.append(avatar(game.players[0].name));
+      const meta = el("div", "room-meta");
+      meta.append(
+        el(
+          "strong",
+          "",
+          game.players[0].name +
+            (game.players[1]
+              ? " × " + game.players[1].name
+              : " · Oyuncu bekliyor"),
+        ),
+        el(
+          "small",
+          "",
+          game.status === "waiting"
+            ? "Bir koltuk boş. Sıra arkadaşında."
+            : game.bot
+              ? "Bot karşılaşması"
+              : "Karşılaşma devam ediyor",
+        ),
+      );
+      row.append(meta);
+      if (game.players.some((p) => p.id === state.socket?.id))
+        row.append(el("span", "tag", "SENİN ODAN"));
+      else if (game.status === "waiting")
+        row.append(
+          button("Katıl ↗", "button primary", () => {
+            if (
+              state.game?.status === "playing" &&
+              !confirm("Mevcut oyunun sona erecek. Bu odaya geçilsin mi?")
+            )
+              return;
+            gameAction("gameJoin", { gameId: game.id });
+          }),
+        );
+      else row.append(el("span", "tag", "OYUNDA"));
+      list.append(row);
+    }
+  }
+  renderMessages();
+  renderUsers();
+  renderLobby();
+  setMemberUI();
+  connection("offline");
+})();

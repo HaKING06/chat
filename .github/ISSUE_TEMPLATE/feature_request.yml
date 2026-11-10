@@ -1,0 +1,11 @@
+name: Özellik önerisi
+description: Topluluğa yararlı bir geliştirme önerin.
+title: "[Öneri] "
+body:
+  - type: textarea
+    id: proposal
+    attributes:
+      label: İhtiyaç ve öneri
+      description: Hangi sorunu çözüyor? Nasıl çalışmasını beklersiniz?
+    validations:
+      required: true

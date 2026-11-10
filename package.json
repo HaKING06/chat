@@ -1,0 +1,16 @@
+{
+  "name": "haking-chat-web",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Haking Chat community frontend",
+  "license": "MIT",
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs",
+    "vendor": "node scripts/vendor.mjs",
+    "check": "node --check app.js && node --check config.js"
+  },
+  "devDependencies": {
+    "@highlightjs/cdn-assets": "^11.11.1",
+    "socket.io-client": "^4.8.1"
+  }
+}

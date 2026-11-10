@@ -1,780 +1,687 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sohbet</title>
-    <link id="page-favicon" rel="icon" type="image/svg+xml">
-    
-    <!-- Highlight.js Tema -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-
-    <style>
-        :root {
-            --bg-base: #000000;
-            --glass-bg: rgba(28, 28, 30, 0.75);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-primary: #f5f5f7;
-            --text-secondary: #86868b;
-            --accent: #0a84ff; 
-            --accent-glow: rgba(10, 132, 255, 0.2);
-            --danger: #ff453a;
-            --success: #32d74b;
-            --admin-gold: #ffd60a;
-            --mod-purple: #bf5af2;
-            --mod-glow: rgba(191, 90, 242, 0.2);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; 
-            background-color: var(--bg-base); color: var(--text-primary); 
-            height: 100vh; height: 100dvh; display: flex; overflow: hidden; 
-            font-size: 14px; -webkit-font-smoothing: antialiased;
-        }
-
-        #login-overlay { 
-            position: fixed; inset: 0; z-index: 100; 
-            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            display: flex; align-items: center; justify-content: center; padding: 20px;
-        }
-        .login-card { 
-            background: var(--glass-bg); padding: 35px 30px; border-radius: 28px; 
-            width: 100%; max-width: 340px; border: 1px solid var(--glass-border);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.5); text-align: center;
-            position: relative; overflow: hidden;
-        }
-        .login-card h2 { font-size: 1.4rem; font-weight: 500; margin-bottom: 25px; }
-        .login-card input { 
-            width: 100%; padding: 14px 16px; margin-bottom: 8px; border-radius: 14px; 
-            background: rgba(255,255,255,0.06); border: 1px solid transparent; 
-            color: var(--text-primary); font-size: 1rem; outline: none; transition: 0.3s; 
-        }
-        .login-card input:focus { background: rgba(255,255,255,0.1); border-color: var(--accent); }
-        #login-error { color: var(--danger); font-size: 0.8rem; min-height: 20px; margin-bottom: 10px; font-weight: 500; }
-        
-        .login-card button { 
-            width: 100%; padding: 14px; border-radius: 14px; border: none; 
-            background: var(--text-primary); color: #000; font-weight: 600; 
-            font-size: 1rem; cursor: pointer; transition: 0.2s; margin-bottom: 15px; 
-        }
-        .login-card button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .admin-toggle { font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; margin-top: 10px; display: inline-block;}
-        
-        #admin-section { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--glass-border); }
-        .admin-btn { background: transparent !important; color: var(--accent) !important; border: 1px solid var(--accent) !important; margin-bottom: 10px !important;}
-        .mod-btn { background: transparent !important; color: var(--mod-purple) !important; border: 1px solid var(--mod-purple) !important; margin-bottom: 0 !important;}
-
-        #loading-spinner {
-            display: none; position: absolute; inset: 0; background: rgba(28, 28, 30, 0.95);
-            backdrop-filter: blur(10px); flex-direction: column; align-items: center; justify-content: center; gap: 15px; z-index: 10;
-        }
-        .spinner {
-            width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { font-size: 0.9rem; color: var(--text-secondary); font-weight: 500; text-align: center; padding: 0 20px; }
-
-        #app-layout { display: none; width: 100%; height: 100%; background: var(--bg-base); position: relative; }
-
-        .sidebar { 
-            width: 280px; background: rgba(20, 20, 22, 0.95); border-right: 1px solid var(--glass-border); 
-            display: flex; flex-direction: column; backdrop-filter: blur(20px); z-index: 50;
-            transition: transform 0.3s ease;
-        }
-        .sidebar-header { 
-            padding: 20px; font-size: 0.75rem; color: var(--text-secondary); 
-            font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px;
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--glass-border);
-        }
-        .online-count-badge { background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; color: var(--text-primary); }
-        #online-users { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
-        
-        .user-item { 
-            display: flex; align-items: center; justify-content: space-between; 
-            padding: 10px 12px; border-radius: 12px; border: 1px solid transparent;
-        }
-        .user-item.is-admin {
-            background: linear-gradient(90deg, var(--accent-glow) 0%, transparent 100%);
-            border-left: 3px solid var(--accent);
-        }
-        .user-item.is-mod {
-            background: linear-gradient(90deg, var(--mod-glow) 0%, transparent 100%);
-            border-left: 3px solid var(--mod-purple);
-        }
-
-        .user-info { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
-        .status-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; }
-        .is-admin .status-dot { background: var(--accent); }
-        .is-mod .status-dot { background: var(--mod-purple); }
-        
-        .admin-badge { background: var(--accent); color: white; font-size: 0.6rem; font-weight: 700; padding: 2px 5px; border-radius: 4px; }
-        .mod-badge { background: var(--mod-purple); color: white; font-size: 0.6rem; font-weight: 700; padding: 2px 5px; border-radius: 4px; }
-        
-        .admin-actions { display: flex; gap: 4px; align-items: center; }
-        .icon-btn { cursor: pointer; color: var(--text-secondary); font-size: 0.8rem; padding: 3px 6px; background: rgba(255,255,255,0.08); border-radius: 6px; transition: 0.2s; }
-        .icon-btn:hover { background: rgba(255,255,255,0.2); color: var(--text-primary); }
-        .icon-btn.kick:hover { color: var(--danger); }
-        .icon-btn.mute:hover { color: var(--admin-gold); }
-
-        .chat-area { flex: 1; display: flex; flex-direction: column; position: relative; height: 100%; overflow: hidden; }
-        
-        .chat-header { 
-            padding: 15px 20px; border-bottom: 1px solid var(--glass-border); 
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(20px);
-            display: flex; align-items: center; justify-content: space-between; z-index: 10;
-        }
-        .chat-header h1 { font-size: 1rem; font-weight: 500; }
-        
-        .mobile-menu-btn { 
-            display: none; background: rgba(255,255,255,0.1); border: none; color: white; 
-            padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; 
-        }
-
-        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-
-        .message-card { 
-            display: flex; flex-direction: column; padding: 12px 16px; 
-            border-radius: 14px; background: var(--glass-bg); 
-            width: 100%; border: 1px solid transparent;
-        }
-        .message-card.my-msg { border-left: 2px solid var(--accent); background: linear-gradient(90deg, rgba(10, 132, 255, 0.05) 0%, rgba(28,28,30,0.6) 100%); }
-
-        .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-        .sender-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
-        .sender-name.admin { color: var(--accent); }
-        .sender-name.mod { color: var(--mod-purple); }
-        .time-stamp { font-size: 0.7rem; color: var(--text-secondary); }
-
-        /* Alıntı / Yanıt Kutusu Tasarımı */
-        .reply-quote {
-            background: rgba(255, 255, 255, 0.05);
-            border-left: 3px solid var(--accent);
-            padding: 6px 10px;
-            border-radius: 6px;
-            margin-bottom: 6px;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-        .reply-quote-name { font-weight: 600; color: var(--text-primary); }
-
-        .msg-content { 
-            font-family: 'SF Mono', 'Menlo', monospace; font-size: 0.9rem; 
-            line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: rgba(255,255,255,0.9);
-        }
-        
-        .msg-content pre {
-            background: rgba(15, 15, 17, 0.9) !important;
-            border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            padding: 10px;
-            margin: 6px 0;
-            overflow-x: auto;
-        }
-        .msg-content code { font-family: 'SF Mono', 'Menlo', monospace; font-size: 0.85rem; }
-
-        .msg-actions { display: flex; gap: 12px; margin-top: 8px; }
-        .action-btn { 
-            background: transparent; border: none; color: var(--text-secondary); 
-            font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 500;
-        }
-        .copy-btn:hover { color: var(--text-primary); }
-        .reply-btn:hover { color: var(--accent); }
-        .delete-btn:hover { color: var(--danger); }
-
-        .sys-msg { text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin: 15px 0; }
-
-        #typing-indicator {
-            padding: 0 20px 6px 20px;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            font-style: italic;
-            height: 18px;
-        }
-
-        #reply-preview {
-            display: none;
-            padding: 8px 14px;
-            background: rgba(255, 255, 255, 0.05);
-            border-top: 1px solid var(--glass-border);
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            justify-content: space-between;
-            align-items: center;
-        }
-        #reply-preview span { color: var(--accent); font-weight: 600; }
-        .cancel-reply { cursor: pointer; color: var(--danger); font-size: 0.8rem; font-weight: 600; }
-
-        .input-container { 
-            background: rgba(0,0,0,0.9); 
-            border-top: 1px solid var(--glass-border);
-            backdrop-filter: blur(20px);
-            z-index: 20;
-        }
-        .input-box-wrapper { padding: 12px 16px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
-        .input-box { 
-            display: flex; gap: 10px; background: rgba(28, 28, 30, 0.9); border: 1px solid var(--glass-border); 
-            border-radius: 16px; padding: 10px 14px; align-items: flex-end;
-        }
-        .input-box textarea { 
-            flex: 1; background: transparent; border: none; color: var(--text-primary); 
-            resize: none; font-family: inherit; font-size: 0.95rem; 
-            max-height: 120px; outline: none; line-height: 1.4;
-        }
-        .input-box textarea::placeholder { color: var(--text-secondary); }
-        
-        .input-actions-group { display: flex; align-items: center; gap: 8px; }
-        .code-btn { 
-            background: rgba(255, 255, 255, 0.08); color: var(--text-primary); border: none; 
-            font-weight: 600; font-size: 0.8rem; cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: 0.2s;
-        }
-        .code-btn:hover { background: rgba(255, 255, 255, 0.15); color: var(--accent); }
-        
-        .send-btn { 
-            background: var(--accent); color: white; border: none; 
-            font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: 0.2s;
-        }
-        .send-btn:hover { opacity: 0.9; }
-
-        @media (max-width: 768px) {
-            .mobile-menu-btn { display: block; }
-            .sidebar { 
-                position: absolute; left: 0; top: 0; bottom: 0; 
-                transform: translateX(-100%); transition: transform 0.3s ease; 
-            }
-            .sidebar.mobile-open { transform: translateX(0); }
-            #messages { padding: 15px; }
-        }
-    </style>
-</head>
-<body>
-
-    <div id="login-overlay">
-        <div class="login-card">
-            <div id="loading-spinner">
-                <div class="spinner"></div>
-                <div class="loading-text" id="loading-msg">Sunucuya bağlanılıyor...</div>
-            </div>
-
-            <h2>Giriş Yap</h2>
-            <input type="text" id="username" placeholder="Adınız" autocomplete="off" spellcheck="false" oninput="clientSideValidation()">
-            <div id="login-error"></div>
-            <button onclick="handleLoginClick('user')" id="joinBtn">Devam Et</button>
-            
-            <div class="admin-toggle" onclick="toggleAdmin()">Yetkili Girişi</div>
-            
-            <div id="admin-section">
-                <input type="password" id="adminPassword" placeholder="Kurucu Şifresi" autocomplete="off" style="margin-bottom: 10px;">
-                <button onclick="handleLoginClick('admin')" class="admin-btn">Kurucu Gir</button>
-                
-                <input type="password" id="modPassword" placeholder="Moderatör Şifresi" autocomplete="off" style="margin-bottom: 10px;">
-                <button onclick="handleLoginClick('mod')" class="mod-btn">Moderatör Gir</button>
-            </div>
+<!doctype html>
+<html lang="tr" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101311" />
+    <title>Haking Chat — Sohbet et. Kod paylaş. Birlikte üret.</title>
+    <meta
+      name="description"
+      content="Haking Chat: Türkçe geliştirici topluluğu. Gerçek zamanlı sohbet et, kod parçalarını paylaş ve arkadaşlarınla ya da akıllı botla XOX oyna."
+    />
+    <link rel="canonical" href="https://chat.haking.tr/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="tr_TR" />
+    <meta
+      property="og:title"
+      content="Haking Chat — Bir fikrin varsa, yerin burada."
+    />
+    <meta
+      property="og:description"
+      content="Sohbet, kod paylaşımı ve küçük bir oyun molası. Türkçe geliştirici topluluğuna katıl."
+    />
+    <meta property="og:url" content="https://chat.haking.tr/" />
+    <meta
+      property="og:image"
+      content="https://chat.haking.tr/assets/og-image.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/vendor/highlight.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/staff.css" />
+    <script src="/config.js" defer></script>
+    <script src="/vendor/socket.io.min.js" defer></script>
+    <script src="/vendor/highlight.min.js" defer></script>
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">İçeriğe geç</a>
+    <div class="workspace">
+      <aside class="sidebar" id="sidebar" aria-label="Ana gezinme">
+        <a class="brand" href="/" aria-label="Haking Chat ana sayfa"
+          ><img src="/assets/mark.svg" alt="" width="38" height="38" /><span
+            >haking<span class="brand-light">chat</span
+            ><small>FİKİRLERİN BULUŞMA NOKTASI</small></span
+          ></a
+        >
+        <div class="space-label">
+          <span class="status-dot"></span> TOPLULUK ALANI
+          <span class="version">v2.0</span>
         </div>
-    </div>
-
-    <div id="app-layout">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <span>Kişiler</span>
-                <span class="online-count-badge" id="online-count">0</span>
+        <nav class="navigation" aria-label="Kanallar">
+          <p class="nav-label">BİRLİKTE DAHA İYİ</p>
+          <button class="nav-item active" data-channel="general">
+            <span class="nav-symbol">#</span
+            ><span>genel-sohbet<small>Bir selamla başlar.</small></span
+            ><i class="nav-dot"></i>
+          </button>
+          <button class="nav-item" data-channel="code">
+            <span class="nav-symbol">&lt;/&gt;</span
+            ><span>kod-paylaşımı<small>Birlikte üretelim.</small></span>
+          </button>
+          <button class="nav-item" data-channel="help">
+            <span class="nav-symbol">?</span
+            ><span>yardımlaşma<small>Takıldığın yeri sor.</small></span>
+          </button>
+          <p class="nav-label second-label">BİRAZ MOLA</p>
+          <button class="nav-item" data-view="games">
+            <span class="nav-symbol game-symbol">×○</span
+            ><span>oyun-alanı<small>XOX · İnsan veya bot</small></span
+            ><span class="mini-badge">OYNA</span>
+          </button>
+        </nav>
+        <div class="sidebar-note">
+          <span class="note-icon">✳</span
+          ><strong>Küçük bir fikir,<br />büyük bir başlangıç.</strong>
+          <p>
+            Kodunu paylaş. Birine yardım et.<br />Topluluğun bir parçası ol.
+          </p>
+          <button class="text-link" id="guide-button">
+            Topluluk rehberi <span>↗</span>
+          </button>
+        </div>
+        <div class="sidebar-bottom">
+          <div class="avatar my-avatar" id="profile-avatar">?</div>
+          <div class="profile-text">
+            <strong id="profile-name">Henüz tanışmadık</strong
+            ><small id="profile-role">Bir merhaba de.</small>
+          </div>
+          <button
+            id="profile-button"
+            class="icon-button"
+            aria-label="Giriş yap"
+          >
+            ↗
+          </button>
+        </div>
+      </aside>
+      <div class="sidebar-scrim" id="sidebar-scrim" hidden></div>
+      <div class="main-shell">
+        <header class="topbar">
+          <div class="breadcrumb">
+            <button
+              class="icon-button mobile-menu"
+              id="menu-button"
+              aria-label="Menüyü aç"
+              aria-expanded="false"
+            >
+              ☰</button
+            ><span class="breadcrumb-root">Topluluk</span
+            ><span class="slash">/</span
+            ><strong id="header-title">genel-sohbet</strong>
+          </div>
+          <div class="topbar-actions">
+            <span class="connection" id="connection-status"
+              ><span class="status-dot"></span><span>Bağlanmadı</span></span
+            ><button
+              id="theme-button"
+              class="icon-button"
+              aria-label="Açık temaya geç"
+            >
+              ☼</button
+            ><button
+              id="moderators-button"
+              class="button small secondary staff-trigger"
+              hidden
+              aria-label="Moderatör yönetimini aç"
+            >
+              <span aria-hidden="true">♜</span
+              ><span class="staff-trigger-label">Moderatörler</span></button
+            ><button id="join-top" class="button small primary">
+              Sohbete katıl <span>↗</span>
+            </button>
+          </div>
+        </header>
+        <main id="main" tabindex="-1">
+          <section class="community-hero" id="hero">
+            <div class="hero-copy">
+              <div class="eyebrow"><span></span> MERHABA, DİJİTAL KOMŞU.</div>
+              <h1>
+                Bir fikrin varsa,<br /><em>yerin burada.</em
+                ><span class="hero-asterisk">✳</span>
+              </h1>
+              <p>
+                Biraz sohbet, biraz kod, bolca paylaşım.<br />Birlikte öğrenen
+                insanların buluşma noktası.
+              </p>
+              <div class="hero-bottom">
+                <button class="button primary" id="hero-join">
+                  Kendine bir yer aç <span>↗</span></button
+                ><span class="hero-footnote"
+                  >Kayıt yok. Sadece bir takma ad.</span
+                >
+              </div>
             </div>
-            <div id="online-users"></div>
-        </aside>
-
-        <main class="chat-area">
-            <header class="chat-header">
-                <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">Kişiler</button>
-                <h1>Sohbet</h1>
-                <div style="width: 50px;"></div>
-            </header>
-            
-            <div id="messages" onclick="closeSidebarOnMobile()"></div>
-            
-            <div id="typing-indicator"></div>
-
-            <div class="input-container">
-                <div id="reply-preview">
-                    <div>Yanıtlanan: <span id="reply-to-name"></span> - <span id="reply-to-text"></span></div>
-                    <div class="cancel-reply" onclick="cancelReply()">İptal</div>
+            <div class="hero-art" aria-hidden="true">
+              <div class="orbit orbit-one"></div>
+              <div class="orbit orbit-two"></div>
+              <div class="art-code">
+                <div class="art-dots">
+                  <i></i><i></i><i></i><span>hello-community.js</span>
                 </div>
-                <div class="input-box-wrapper">
-                    <div class="input-box">
-                        <textarea id="messageInput" placeholder="Mesaj yazın..." rows="1" spellcheck="false" oninput="handleTypingInput(this)"></textarea>
-                        <div class="input-actions-group">
-                            <button class="code-btn" title="Kod Bloğu Ekle" onclick="sendAsCode()">&lt;/&gt;</button>
-                            <button class="send-btn" onclick="sendMessage()">Gönder</button>
-                        </div>
+                <div class="art-code-body">
+                  <span class="code-muted">01</span>
+                  <span class="code-purple">const</span> community = {<br /><span
+                    class="code-muted"
+                    >02</span
+                  >
+                  &nbsp; curiosity:
+                  <span class="code-lime">Infinity</span>,<br /><span
+                    class="code-muted"
+                    >03</span
+                  >
+                  &nbsp; together: <span class="code-lime">true</span
+                  ><br /><span class="code-muted">04</span> };<br /><span
+                    class="code-muted"
+                    >05</span
+                  >
+                  <span class="code-purple">say</span>(<span class="code-lime"
+                    >'Merhaba dünya!'</span
+                  >);
+                </div>
+              </div>
+              <div class="art-sticker">&lt; birlikte /&gt;</div>
+              <div class="art-chat">İyi ki geldin. <span>✦</span></div>
+              <span class="art-plus">+</span>
+            </div>
+          </section>
+          <div class="content-grid">
+            <section
+              class="conversation"
+              id="chat-view"
+              aria-labelledby="channel-title"
+            >
+              <div class="section-heading">
+                <div>
+                  <div class="title-row">
+                    <span class="channel-hash">#</span>
+                    <h2 id="channel-title">genel-sohbet</h2>
+                    <span class="tag" id="channel-tag">HERKESE AÇIK</span>
+                  </div>
+                  <p id="channel-description">
+                    Günün nasıl geçiyor? Sohbete bir yerden katıl.
+                  </p>
+                </div>
+                <button
+                  class="icon-button"
+                  id="pin-filter"
+                  aria-label="Sabitlenmiş mesajları göster"
+                  aria-pressed="false"
+                  title="Sabitlenmiş mesajlar"
+                >
+                  ⌖
+                </button>
+              </div>
+              <div class="chat-tools">
+                <div class="chat-tabs">
+                  <button class="tab active" id="all-tab">Sohbet akışı</button
+                  ><button class="tab" id="code-tab">
+                    Kod parçaları <span id="code-count">0</span>
+                  </button>
+                </div>
+                <label class="search-box"
+                  ><span aria-hidden="true">⌕</span
+                  ><input
+                    id="message-search"
+                    type="search"
+                    placeholder="Mesajlarda ara"
+                    aria-label="Mesajlarda ara"
+                    maxlength="100"
+                  /><kbd>/</kbd></label
+                >
+              </div>
+              <div
+                class="messages"
+                id="messages"
+                role="log"
+                aria-label="Sohbet mesajları"
+                aria-live="polite"
+              ></div>
+              <div
+                id="typing-status"
+                class="typing-status"
+                aria-live="polite"
+              ></div>
+              <div class="composer-wrap">
+                <div id="reply-preview" class="reply-preview" hidden>
+                  <span></span
+                  ><button
+                    class="icon-button"
+                    aria-label="Yanıtı iptal et"
+                    id="cancel-reply"
+                  >
+                    ×
+                  </button>
+                </div>
+                <form id="message-form" class="composer">
+                  <textarea
+                    id="message-input"
+                    rows="1"
+                    maxlength="4000"
+                    placeholder="Sohbete katılmak için giriş yap…"
+                    aria-label="Mesajın"
+                    disabled
+                  ></textarea>
+                  <div class="composer-bottom">
+                    <div class="composer-actions">
+                      <button
+                        type="button"
+                        class="composer-tool"
+                        id="code-button"
+                        aria-label="Kod parçası paylaş"
+                      >
+                        &lt;/&gt;</button
+                      ><button
+                        type="button"
+                        class="composer-tool"
+                        id="emoji-button"
+                        aria-label="Emoji ekle"
+                      >
+                        ☺</button
+                      ><span class="composer-hint">Saygılı ol. Kendin ol.</span>
                     </div>
+                    <button
+                      type="submit"
+                      class="button primary send-button"
+                      id="send-button"
+                      disabled
+                    >
+                      Gönder <span>↑</span>
+                    </button>
+                  </div>
+                </form>
+                <div class="composer-footer">
+                  <span
+                    ><kbd>Enter</kbd> gönder · <kbd>Shift + Enter</kbd> yeni
+                    satır</span
+                  ><span id="character-count">0 / 4000</span>
                 </div>
-            </div>
+              </div>
+            </section>
+            <section
+              class="games-view"
+              id="games-view"
+              hidden
+              aria-labelledby="games-title"
+            >
+              <div class="section-heading">
+                <div>
+                  <div class="eyebrow">BİR OYUNLUK ARA</div>
+                  <h2 id="games-title">Sıra sende.</h2>
+                  <p>Bir arkadaşını bekle ya da yenilmez bota meydan oku.</p>
+                </div>
+                <span class="large-game-mark">×○</span>
+              </div>
+              <div class="game-intro" id="game-intro">
+                <div class="mini-board" aria-hidden="true">
+                  <span>×</span><span></span><span>○</span><span></span
+                  ><span>×</span><span></span><span>○</span><span></span
+                  ><span>×</span>
+                </div>
+                <div>
+                  <h3>Üçü bir araya getir.</h3>
+                  <p>
+                    3 × 3 tahtada yatay, dikey ya da çapraz üç işaretini
+                    birleştir.
+                  </p>
+                  <div class="game-buttons">
+                    <button class="button primary" id="create-game">
+                      Oda oluştur ↗</button
+                    ><button class="button secondary" id="play-bot">
+                      Botla oyna &lt;/&gt;
+                    </button>
+                  </div>
+                  <small
+                    >Bot tüm olasılıkları hesaplar. Kusursuz oyunda sonuç
+                    beraberliktir.</small
+                  >
+                </div>
+              </div>
+              <div id="active-game" class="active-game" hidden>
+                <div class="game-player-row" id="game-players"></div>
+                <p id="game-status" class="game-status" aria-live="polite"></p>
+                <div
+                  class="game-board"
+                  id="game-board"
+                  aria-label="XOX tahtası"
+                ></div>
+                <div class="game-buttons">
+                  <button class="button secondary" id="game-leave">
+                    Oyundan çık</button
+                  ><button class="button primary" id="game-add-bot" hidden>
+                    Beklemek yerine botla oyna</button
+                  ><button class="button primary" id="game-rematch" hidden>
+                    Yeni oyun
+                  </button>
+                </div>
+              </div>
+              <div class="lobby-heading">
+                <h3>
+                  Oyun lobisi <span class="tag" id="lobby-count">0 ODA</span>
+                </h3>
+                <span>Canlı güncellenir <i class="status-dot"></i></span>
+              </div>
+              <div class="game-lobby" id="game-lobby"></div>
+            </section>
+            <aside class="right-rail" aria-label="Topluluk bilgileri">
+              <section class="online-panel">
+                <div class="rail-heading">
+                  <h2>Şu an burada</h2>
+                  <span class="online-number" id="online-count">0</span>
+                </div>
+                <div class="online-label">
+                  <span class="status-dot"></span> BİRLİKTE DAHA GÜZEL
+                </div>
+                <div id="online-users" class="online-users"></div>
+                <button id="people-toggle" class="text-link" hidden>
+                  Tümünü göster ↓
+                </button>
+              </section>
+              <section class="idea-card">
+                <span class="idea-star">✳</span
+                ><span class="eyebrow">PAYLAŞTIKÇA ÇOĞALIR</span>
+                <h3>O küçük kod,<br />birinin büyük<br />çözümü olabilir.</h3>
+                <p>İşe yarayan bir fonksiyon mu yazdın? Toplulukla paylaş.</p>
+                <button class="text-link" id="share-code-rail">
+                  Kodunu paylaş <span>↗</span></button
+                ><span class="idea-decoration" aria-hidden="true">{ }</span>
+              </section>
+              <section class="quick-game">
+                <div class="quick-game-heading">
+                  <span>×○</span><span class="tag">MOLA ZAMANI</span>
+                </div>
+                <h3>İki satır kod,<br />bir tur XOX.</h3>
+                <p>Bir rakip bul ya da bota meydan oku.</p>
+                <button class="button secondary" id="open-games">
+                  Oyun alanına git <span>↗</span>
+                </button>
+              </section>
+              <footer class="rail-footer">
+                <span>© 2026 Haking Chat</span
+                ><button id="rules-footer">Topluluk rehberi</button
+                ><a
+                  href="https://haking.tr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >haking.tr ↗</a
+                ><span class="made-with">İnsanlar, fikirler ve biraz kod.</span>
+              </footer>
+            </aside>
+          </div>
         </main>
+      </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script>
-        let socket = null;
-        let myName = '';
-        let userRole = 'user'; 
-        let myPassword = '';
-        let mySessionId = '';
-        let activeReplyData = null; 
-        let typingTimer = null;
-        let isAuthenticated = false;
-        let unreadMessageCount = 0;
-
-        function clientSideValidation() {
-            const input = document.getElementById('username');
-            const errorDiv = document.getElementById('login-error');
-            const btn = document.getElementById('joinBtn');
-            const val = input.value.trim();
-            errorDiv.innerText = '';
-            btn.disabled = false;
-            btn.style.opacity = '1';
-
-            if(val.length > 0 && val.length < 3) {
-                errorDiv.innerText = 'En az 3 karakter olmalı.';
-                btn.disabled = true; btn.style.opacity = '0.5';
-            } else if (!/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]*$/.test(val)) {
-                errorDiv.innerText = 'Sadece harf kullanabilirsiniz.';
-                btn.disabled = true; btn.style.opacity = '0.5';
-            }
-        }
-
-        function toggleAdmin() {
-            const adminSec = document.getElementById('admin-section');
-            adminSec.style.display = adminSec.style.display === 'block' ? 'none' : 'block';
-            document.getElementById('login-error').innerText = '';
-        }
-
-        function toggleMobileSidebar() {
-            document.getElementById('sidebar').classList.toggle('mobile-open');
-        }
-
-        function closeSidebarOnMobile() {
-            if(window.innerWidth <= 768) {
-                document.getElementById('sidebar').classList.remove('mobile-open');
-            }
-        }
-
-        function showLoading(show, text = "Sunucuya bağlanılıyor...") {
-            const spinner = document.getElementById('loading-spinner');
-            document.getElementById('loading-msg').innerText = text;
-            spinner.style.display = show ? 'flex' : 'none';
-        }
-
-        function handleLoginClick(type) {
-            const errorDiv = document.getElementById('login-error');
-            errorDiv.innerText = '';
-            isAuthenticated = false;
-
-            if (type === 'user') {
-                const nameInput = document.getElementById('username').value.trim();
-                if (!nameInput) { errorDiv.innerText = 'Lütfen bir ad girin.'; return; }
-                if (nameInput.length < 3) { errorDiv.innerText = 'İsim en az 3 karakter olmalıdır.'; return; }
-                myName = nameInput;
-                userRole = 'user';
-                myPassword = '';
-            } else if (type === 'admin') {
-                const pass = document.getElementById('adminPassword').value;
-                if (!pass) { errorDiv.innerText = 'Lütfen kurucu şifresini girin.'; return; }
-                myName = 'Halit';
-                userRole = 'admin';
-                myPassword = pass;
-            } else if (type === 'mod') {
-                const pass = document.getElementById('modPassword').value;
-                if (!pass) { errorDiv.innerText = 'Lütfen moderatör şifresini girin.'; return; }
-                userRole = 'mod';
-                myPassword = pass;
-            }
-
-            requestNotificationPermission();
-            connectToServer();
-        }
-
-        function handleLoginKeydown(event, loginType) {
-            if (event.key !== 'Enter') return;
-            event.preventDefault();
-            handleLoginClick(loginType);
-        }
-
-        function requestNotificationPermission() {
-            if (!('Notification' in window) || Notification.permission !== 'default') return;
-
-            Notification.requestPermission().catch((error) => {
-                console.error('Tarayıcı bildirim izni alınamadı:', error);
-            });
-        }
-
-        function connectToServer() {
-            showLoading(true, "Sunucuya bağlanılıyor (Render uyanıyor olabilir)...");
-
-            if (socket) socket.disconnect();
-
-            socket = io('https://chat-backend-qmzo.onrender.com', {
-                transports: ['polling', 'websocket'],
-                secure: true,
-                reconnectionAttempts: 5,
-                timeout: 45000
-            });
-
-            let isHandled = false;
-
-            socket.on('connect_error', () => {
-                if (isHandled) return;
-                isHandled = true;
-                showLoading(false);
-                document.getElementById('login-error').innerText = 'Sunucuya bağlanılamadı. Linki kontrol edin veya tekrar deneyin.';
-                socket.disconnect();
-            });
-
-            socket.on('connect', () => {
-                setupSocketListeners();
-                showLoading(true, "Odaya giriş yapılıyor...");
-
-                socket.emit('joinRoom', { name: myName, isAdmin: userRole === 'admin', isMod: userRole === 'mod', password: myPassword }, (response) => {
-                    if (isHandled) return;
-                    isHandled = true;
-                    showLoading(false);
-
-                    if (!response.success) {
-                        document.getElementById('login-error').innerText = response.message;
-                        socket.disconnect(); 
-                    } else {
-                        myName = response.formattedName;
-                        isAuthenticated = true;
-                        document.getElementById('login-overlay').style.opacity = '0';
-                        setTimeout(() => {
-                            document.getElementById('login-overlay').style.display = 'none';
-                            document.getElementById('app-layout').style.display = 'flex';
-                        }, 300);
-                    }
-                });
-            });
-        }
-
-        function setupSocketListeners() {
-            socket.off('kicked');
-            socket.off('forceNameChange');
-            socket.off('updateUserList');
-            socket.off('receiveMessage');
-            socket.off('systemMessage');
-            socket.off('messageDeleted');
-            socket.off('displayTyping');
-
-            socket.on('kicked', () => { alert('Kurucu tarafından odadan atıldınız.'); location.reload(); });
-            socket.on('forceNameChange', (newName) => { myName = newName; alert("Adınız '" + newName + "' olarak değiştirildi."); });
-
-            socket.on('updateUserList', (users) => {
-                const listDiv = document.getElementById('online-users');
-                document.getElementById('online-count').innerText = users.length;
-                listDiv.innerHTML = '';
-                
-                users.forEach(u => {
-                    const isMe = (u.name === myName && u.role === userRole);
-                    if(isMe) mySessionId = u.id;
-
-                    const isAdminRole = u.role === 'admin';
-                    const isModRole = u.role === 'mod';
-                    
-                    let roleClass = '', badgeHTML = '';
-                    if (isAdminRole) { roleClass = 'is-admin'; badgeHTML = `<span class="admin-badge">KURUCU</span>`; }
-                    if (isModRole) { roleClass = 'is-mod'; badgeHTML = `<span class="mod-badge">MOD</span>`; }
-
-                    let adminActionsHTML = '';
-                    if (userRole === 'admin' && !isAdminRole) {
-                        const muteLabel = u.isMuted ? '🔊' : '🔇';
-                        adminActionsHTML = `
-                            <div class="admin-actions">
-                                <span class="icon-btn" title="İsim Değiştir" onclick="renameUserModal('${u.id}', '${u.name}')">✎</span>
-                                <span class="icon-btn mute" title="Sustur" onclick="toggleMuteUser('${u.id}')">${muteLabel}</span>
-                                <span class="icon-btn kick" title="At" onclick="kickUser('${u.id}', '${u.name}')">✕</span>
-                            </div>
-                        `;
-                    }
-
-                    const el = document.createElement('div');
-                    el.className = `user-item ${roleClass}`;
-                    el.innerHTML = `
-                        <div class="user-info">
-                            <div class="status-dot"></div>
-                            <span style="font-weight: ${isAdminRole || isModRole ? '600' : '400'}; color: ${isAdminRole ? 'var(--accent)' : isModRole ? 'var(--mod-purple)' : 'var(--text-primary)'}">
-                                ${u.name} ${u.isMuted ? '(Susturuldu)' : ''}
-                            </span>
-                            ${badgeHTML}
-                        </div>
-                        ${adminActionsHTML}
-                    `;
-                    listDiv.appendChild(el);
-                });
-            });
-
-            socket.on('receiveMessage', (data) => renderMessage(data));
-
-            socket.on('systemMessage', (msg) => {
-                const div = document.createElement('div');
-                div.className = 'sys-msg'; div.innerText = msg;
-                document.getElementById('messages').appendChild(div);
-                scrollToBottom();
-            });
-
-            socket.on('messageDeleted', (msgId) => {
-                const el = document.getElementById(`msg-${msgId}`);
-                if (el) {
-                    el.querySelector('.msg-content').innerHTML = '<span style="color: var(--text-secondary); font-style: italic;">Bu mesaj silindi.</span>';
-                    el.querySelector('.msg-actions').style.display = 'none';
-                    const quote = el.querySelector('.reply-quote');
-                    if(quote) quote.remove();
-                }
-            });
-
-            socket.on('displayTyping', (data) => {
-                const typingDiv = document.getElementById('typing-indicator');
-                if (data.isTyping) {
-                    typingDiv.innerText = `${data.name} yazıyor...`;
-                } else {
-                    typingDiv.innerText = '';
-                }
-            });
-        }
-
-        function handleTypingInput(textarea) {
-            textarea.style.height = '';
-            textarea.style.height = textarea.scrollHeight + 'px';
-
-            if (!isAuthenticated || !socket || !socket.connected) return;
-            socket.emit('typing', { isTyping: true });
-            clearTimeout(typingTimer);
-            typingTimer = setTimeout(() => {
-                socket.emit('typing', { isTyping: false });
-            }, 1500);
-        }
-
-        // Yanıtla (Alıntı) İşlemi - Güvenli Parametre Aktarımı
-        function prepareReply(id, name, text) {
-            activeReplyData = { id, name, text };
-            document.getElementById('reply-to-name').innerText = name;
-            document.getElementById('reply-to-text').innerText = text.length > 30 ? text.substring(0, 30) + '...' : text;
-            document.getElementById('reply-preview').style.display = 'flex';
-            document.getElementById('messageInput').focus();
-        }
-
-        function cancelReply() {
-            activeReplyData = null;
-            document.getElementById('reply-preview').style.display = 'none';
-        }
-
-        function renameUserModal(targetId, currentName) {
-            const newName = prompt(`Yeni ad:`);
-            if (newName && newName.trim() !== '' && newName !== currentName) {
-                socket.emit('renameUser', { targetId: targetId, newName: newName.trim(), password: myPassword });
-            }
-        }
-
-        function kickUser(targetId, targetName) {
-            if (confirm(`${targetName} adlı kullanıcıyı odadan atmak istediğinize emin misiniz?`)) {
-                socket.emit('kickUser', { targetId: targetId, password: myPassword });
-            }
-        }
-
-        function toggleMuteUser(targetId) {
-            socket.emit('toggleMute', { targetId: targetId, password: myPassword });
-        }
-
-        function copyMsg(btn) {
-            const contentDiv = btn.closest('.message-card').querySelector('.msg-content');
-            navigator.clipboard.writeText(contentDiv.textContent).then(() => {
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = `Kopyalandı`;
-                setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
-            });
-        }
-
-        function renderMessage(data) {
-            const isOwner = data.senderId === mySessionId;
-            const isMe = isOwner;
-
-            if (!isMe) {
-                addMessageNotification(data);
-            }
-            
-            const wrapper = document.createElement('div');
-            wrapper.className = `message-card ${isMe ? 'my-msg' : ''}`;
-            wrapper.id = `msg-${data.id}`;
-
-            const canDelete = (userRole === 'admin' || userRole === 'mod' || isOwner);
-            let deleteHTML = canDelete ? `<button class="action-btn delete-btn" onclick="deleteMsg('${data.id}')">Sil</button>` : '';
-
-            let roleTag = '';
-            if (data.role === 'admin') roleTag = `<span style="background:var(--accent); color:#fff; font-size:0.6rem; padding:1px 5px; border-radius:4px; margin-left:4px;">KURUCU</span>`;
-            if (data.role === 'mod') roleTag = `<span style="background:var(--mod-purple); color:#fff; font-size:0.6rem; padding:1px 5px; border-radius:4px; margin-left:4px;">MOD</span>`;
-
-            let nameClass = '';
-            if (data.role === 'admin') nameClass = 'admin';
-            if (data.role === 'mod') nameClass = 'mod';
-
-            let replyHTML = '';
-            if (data.replyTo) {
-                replyHTML = `
-                    <div class="reply-quote">
-                        <div class="reply-quote-name">${escapeHTML(data.replyTo.name)}</div>
-                        <div>${escapeHTML(data.replyTo.text)}</div>
-                    </div>
-                `;
-            }
-
-            // Yanıt butonuna veriyi güvenli aktarmak için base64 veya escape edilmiş string yerine data- attribute kullanıyoruz
-            wrapper.innerHTML = `
-                <div class="msg-header">
-                    <span class="sender-name ${nameClass}">${data.name} ${roleTag}</span>
-                    <span class="time-stamp">${data.time}</span>
-                </div>
-                ${replyHTML}
-                <div class="msg-content">${formatMessageContent(data.message)}</div>
-                <div class="msg-actions">
-                    <button class="action-btn copy-btn" onclick="copyMsg(this)">Kopyala</button>
-                    <button class="action-btn reply-btn" onclick="triggerReply('${data.id}', '${encodeURIComponent(data.name)}', '${encodeURIComponent(data.message)}')">Yanıtla</button>
-                    ${deleteHTML}
-                </div>
-            `;
-            
-            document.getElementById('messages').appendChild(wrapper);
-            
-            wrapper.querySelectorAll('pre code').forEach((block) => {
-                hljs.highlightElement(block);
-            });
-
-            scrollToBottom();
-        }
-
-        function addMessageNotification(data) {
-            if (!document.hidden && document.hasFocus()) return;
-
-            unreadMessageCount += 1;
-            updateTabNotification();
-
-            if ('Notification' in window && Notification.permission === 'granted' && (document.hidden || !document.hasFocus())) {
-                const preview = String(data.message || '').replace(/\s+/g, ' ').trim();
-                try {
-                    const notification = new Notification(`${data.name} yeni bir mesaj gönderdi`, {
-                        body: preview.length > 120 ? `${preview.substring(0, 117)}...` : preview,
-                        tag: `chat-message-${data.id}`
-                    });
-                    notification.onclick = () => {
-                        window.focus();
-                        markNotificationsRead();
-                        notification.close();
-                    };
-                } catch (error) {
-                    console.error('Tarayıcı bildirimi gösterilemedi:', error);
-                }
-            }
-        }
-
-        function updateTabNotification() {
-            const favicon = document.getElementById('page-favicon');
-            document.title = unreadMessageCount ? `(${unreadMessageCount}) Sohbet` : 'Sohbet';
-
-            const count = unreadMessageCount > 99 ? '99+' : String(unreadMessageCount);
-            const badge = unreadMessageCount
-                ? `<circle cx="25" cy="7" r="7" fill="#ff453a"/><text x="25" y="10" text-anchor="middle" font-size="${count.length > 2 ? 5 : 7}" font-family="Arial" font-weight="bold" fill="white">${count}</text>`
-                : '';
-            const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="2" y="2" width="28" height="28" rx="8" fill="#0a84ff"/><path d="M8 10h16v12H8z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/><path d="m9 11 7 6 7-6" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${badge}</svg>`;
-            favicon.href = `data:image/svg+xml,${encodeURIComponent(icon)}`;
-        }
-
-        function markNotificationsRead() {
-            unreadMessageCount = 0;
-            updateTabNotification();
-        }
-
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) markNotificationsRead();
-        });
-        window.addEventListener('focus', markNotificationsRead);
-
-        // Yanıt tetikleyici (parametre bozulmalarını önlemek için decode edilir)
-        function triggerReply(id, encodedName, encodedText) {
-            prepareReply(id, decodeURIComponent(encodedName), decodeURIComponent(encodedText));
-        }
-
-        function formatMessageContent(text) {
-            const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-            let formatted = escapeHTML(text);
-
-            formatted = formatted.replace(codeBlockRegex, (match, lang, code) => {
-                return `<pre><code class="${lang}">${code.trim()}</code></pre>`;
-            });
-
-            return formatted;
-        }
-
-        // Normal Gönder Butonu
-        function sendMessage() {
-            dispatchMessage(document.getElementById('messageInput').value);
-        }
-
-        // </&gt; Kod Butonu: Metni otomatik 3 ters tırnak içine alır
-        function sendAsCode() {
-            const input = document.getElementById('messageInput');
-            const val = input.value.trim();
-            if (!val) return;
-            const codeWrapped = "```\n" + val + "\n```";
-            dispatchMessage(codeWrapped);
-        }
-
-        function dispatchMessage(msgText) {
-            if (!isAuthenticated || !socket || !socket.connected) {
-                document.getElementById('login-error').innerText = 'Mesaj göndermek için önce giriş yapmalısınız.';
-                return;
-            }
-
-            const msg = msgText.trim();
-            if (msg) {
-                socket.emit('typing', { isTyping: false });
-                
-                let replyPayload = null;
-                if (activeReplyData) {
-                    replyPayload = { name: activeReplyData.name, text: activeReplyData.text };
-                    cancelReply();
-                }
-
-                socket.emit('sendMessage', { message: msg, replyTo: replyPayload });
-                const input = document.getElementById('messageInput');
-                input.value = '';
-                input.style.height = 'auto';
-                input.focus();
-            }
-        }
-
-        function deleteMsg(id) {
-            socket.emit('deleteMessage', { msgId: id, password: myPassword });
-        }
-
-        function scrollToBottom() {
-            const m = document.getElementById('messages');
-            m.scrollTop = m.scrollHeight;
-        }
-
-        document.getElementById('messageInput').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        document.getElementById('username').addEventListener('keydown', (event) => handleLoginKeydown(event, 'user'));
-        document.getElementById('adminPassword').addEventListener('keydown', (event) => handleLoginKeydown(event, 'admin'));
-        document.getElementById('modPassword').addEventListener('keydown', (event) => handleLoginKeydown(event, 'mod'));
-
-        function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
-        }
-    </script>
-</body>
+    <dialog id="login-dialog" class="modal login-modal">
+      <form id="login-form">
+        <button
+          type="button"
+          class="modal-close icon-button"
+          data-close="login-dialog"
+          aria-label="Pencereyi kapat"
+        >
+          ×</button
+        ><img src="/assets/mark.svg" alt="" width="52" height="52" />
+        <div class="eyebrow">TOPLULUĞA HOŞ GELDİN</div>
+        <h2>Bir merhaba de.</h2>
+        <p>
+          Hesap oluşturman gerekmiyor.<br />Kendine bir takma ad seç, sohbete
+          katıl.
+        </p>
+        <label
+          >Takma ad<input
+            id="nickname"
+            autocomplete="nickname"
+            minlength="3"
+            maxlength="20"
+            placeholder="Sana nasıl seslenelim?"
+            required
+        /></label>
+        <details id="staff-details">
+          <summary>Kurucu veya moderatör girişi</summary>
+          <label
+            >Yetki<select id="login-role">
+              <option value="user">Topluluk üyesi</option>
+              <option value="mod">Moderatör</option>
+              <option value="admin">Kurucu</option>
+            </select></label
+          ><label
+            >Yetkili parolası<input
+              id="staff-password"
+              type="password"
+              autocomplete="current-password"
+              maxlength="200"
+              placeholder="Yalnızca yetkililer için"
+          /></label>
+        </details>
+        <div id="login-error" class="form-error" role="alert"></div>
+        <button type="submit" class="button primary" id="login-submit">
+          Sohbete katıl <span>↗</span></button
+        ><small
+          >Mesajlar topluluğa açıktır. Kişisel bilgilerini paylaşma.</small
+        >
+      </form>
+    </dialog>
+    <dialog id="code-dialog" class="modal code-modal">
+      <form id="code-form">
+        <button
+          type="button"
+          class="modal-close icon-button"
+          data-close="code-dialog"
+          aria-label="Pencereyi kapat"
+        >
+          ×
+        </button>
+        <div class="eyebrow">BİRLİKTE ÜRETELİM</div>
+        <h2>Kodun konuşsun.</h2>
+        <p>Okunabilir, kopyalanabilir bir kod parçası paylaş.</p>
+        <div class="code-fields">
+          <label
+            >Başlık<input
+              id="snippet-title"
+              maxlength="80"
+              placeholder="Örn. Basit bir debounce fonksiyonu"
+              required /></label
+          ><label
+            >Dil<select id="snippet-language">
+              <option value="javascript">JavaScript</option>
+              <option value="typescript">TypeScript</option>
+              <option value="python">Python</option>
+              <option value="html">HTML</option>
+              <option value="css">CSS</option>
+              <option value="json">JSON</option>
+              <option value="sql">SQL</option>
+              <option value="bash">Bash</option>
+              <option value="java">Java</option>
+              <option value="cpp">C++</option>
+              <option value="plaintext">Düz metin</option>
+            </select></label
+          >
+        </div>
+        <label
+          >Kod<textarea
+            id="snippet-code"
+            class="code-input"
+            rows="12"
+            maxlength="12000"
+            spellcheck="false"
+            placeholder="// Harika bir şeyler buraya…"
+            required
+          ></textarea>
+        </label>
+        <div id="code-error" class="form-error" role="alert"></div>
+        <button type="submit" class="button primary" id="code-submit">
+          Kodu paylaş ↗
+        </button>
+      </form>
+    </dialog>
+    <dialog id="guide-dialog" class="modal">
+      <button
+        class="modal-close icon-button"
+        data-close="guide-dialog"
+        aria-label="Pencereyi kapat"
+      >
+        ×
+      </button>
+      <div class="eyebrow">BİRLİKTE YAŞAMA KILAVUZU</div>
+      <h2>İyi bir topluluk,<br />hepimizle başlar.</h2>
+      <div class="guide-item">
+        <span>01</span>
+        <div>
+          <h3>Fikirlere açık, insanlara saygılı ol.</h3>
+          <p>
+            Sohbet metinlerinde otomatik kelime sansürü yoktur. Taciz, tehdit,
+            spam ve kişisel bilgi paylaşımı moderasyona tabidir.
+          </p>
+        </div>
+      </div>
+      <div class="guide-item">
+        <span>02</span>
+        <div>
+          <h3>Takma adın sana ait olsun.</h3>
+          <p>
+            Küfürlü, aşağılayıcı ve yetkili taklidi yapan adlar kullanılamaz.
+            Kod ve mesajlar herkese açıktır; gizli anahtarlarını paylaşma.
+          </p>
+        </div>
+      </div>
+      <div class="guide-item">
+        <span>03</span>
+        <div>
+          <h3>Doğru kanalda buluşalım.</h3>
+          <p>
+            Günlük sohbet genel kanalda, kodlar kod paylaşımında, sorular
+            yardımlaşmada. XOX oyunları oyun alanında.
+          </p>
+        </div>
+      </div>
+      <div class="role-guide">
+        <strong>Moderatör</strong>
+        <p>
+          Üyelerin uygunsuz mesajlarını silebilir, üyeleri susturabilir ve
+          odadan çıkarabilir. Kurucuya ve diğer moderatörlere müdahale edemez.
+        </p>
+        <strong>Kurucu</strong>
+        <p>
+          Ek olarak kullanıcı adı değiştirebilir, kanal temizleyebilir ve
+          yönetim kayıtlarını inceleyebilir.
+        </p>
+      </div>
+      <p class="muted">
+        Sohbet ve oyunlar sunucu belleğinde tutulur; sunucu yeniden başladığında
+        sıfırlanır. Bu alan özel mesajlaşma hizmeti değildir.
+      </p>
+    </dialog>
+    <dialog
+      id="moderators-dialog"
+      class="modal staff-modal"
+      aria-labelledby="moderators-title"
+    >
+      <button
+        class="modal-close icon-button"
+        data-close="moderators-dialog"
+        aria-label="Pencereyi kapat"
+      >
+        ×
+      </button>
+      <div class="eyebrow">KURUCUYA ÖZEL · YETKİLİLER</div>
+      <h2 id="moderators-title">Topluluğun<br />güven ekibi.</h2>
+      <p>
+        Kimlerin moderatör olduğunu ve çevrimiçi durumlarını buradan
+        görebilirsin.
+      </p>
+      <div class="staff-owner">
+        <span class="staff-emblem" aria-hidden="true">✦</span>
+        <div>
+          <strong id="staff-owner-name">Halit</strong
+          ><small>Kurucu · Tüm yönetim yetkileri</small>
+        </div>
+        <span class="role-badge">KURUCU</span>
+      </div>
+      <div class="staff-list-heading">
+        <h3>Moderatörler</h3>
+        <span id="staff-count" class="tag">Yükleniyor</span>
+      </div>
+      <div id="moderators-list" class="staff-list" aria-live="polite"></div>
+      <div class="staff-storage-note">
+        <span id="staff-storage-badge" class="tag"></span>
+        <p id="staff-storage-note"></p>
+      </div>
+      <form id="moderator-form" hidden>
+        <h3>Ekibe birini ekle</h3>
+        <label
+          >Moderatör adı<input
+            id="moderator-name"
+            autocomplete="off"
+            minlength="3"
+            maxlength="20"
+            placeholder="Görünecek isim"
+            required
+        /></label>
+        <label
+          >Giriş parolası<input
+            id="moderator-password"
+            type="password"
+            autocomplete="new-password"
+            minlength="12"
+            maxlength="200"
+            placeholder="En az 12 karakter"
+            required
+        /></label>
+        <div id="moderator-error" class="form-error" role="alert"></div>
+        <button id="moderator-submit" type="submit" class="button primary">
+          Moderatör ekle <span>+</span>
+        </button>
+      </form>
+      <div id="staff-repository-help" class="staff-repository-help" hidden>
+        <h3>İleride yeni moderatör eklemek</h3>
+        <p>
+          Backend klasöründe <code>npm run staff:add</code> komutuyla ad ve
+          parola belirlenir. <code>config/staff.json</code> dosyası güncellenir;
+          GitHub'a push edildiğinde yeni moderatör giriş yapabilir. Silmek için
+          <code>npm run staff:remove</code>.
+        </p>
+      </div>
+    </dialog>
+    <dialog id="admin-dialog" class="modal">
+      <button
+        class="modal-close icon-button"
+        data-close="admin-dialog"
+        aria-label="Pencereyi kapat"
+      >
+        ×
+      </button>
+      <div class="eyebrow">KURUCU ALANI</div>
+      <h2>Topluluk yönetimi</h2>
+      <p>Seçili kanaldaki tüm mesajları temizlemek geri alınamaz.</p>
+      <button class="button danger" id="clear-channel">
+        Bu kanalı temizle
+      </button>
+      <h3 class="audit-title">Son yönetim işlemleri</h3>
+      <div id="audit-list" class="audit-list"></div>
+    </dialog>
+    <dialog
+      id="people-dialog"
+      class="modal people-modal"
+      aria-label="Çevrimiçi topluluk"
+    >
+      <button
+        class="modal-close icon-button"
+        data-close="people-dialog"
+        aria-label="Pencereyi kapat"
+      >
+        ×
+      </button>
+      <div id="people-content"></div>
+    </dialog>
+    <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+    <noscript
+      ><div class="noscript">
+        Sohbeti kullanmak için tarayıcında JavaScript'i etkinleştir.
+      </div></noscript
+    >
+  </body>
 </html>

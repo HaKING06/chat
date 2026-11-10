@@ -1,0 +1,17 @@
+name: Hata bildirimi
+description: Tekrar üretilebilen bir hatayı bildirin.
+title: "[Hata] "
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: Tekrar üretme adımları
+      description: Ne yaptınız? Ne beklediniz? Ne oldu? Güvenlik açıklarını burada paylaşmayın.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Tarayıcı ve işletim sistemi
+    validations:
+      required: true
