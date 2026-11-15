@@ -1,1 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360"><defs><pattern id="g" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0v32" fill="none" stroke="#c5f273" stroke-opacity=".08"/></pattern><radialGradient id="r"><stop stop-color="#c5f273" stop-opacity=".16"/><stop offset="1" stop-color="#101311" stop-opacity="0"/></radialGradient></defs><rect width="1280" height="360" rx="28" fill="#171d18"/><rect width="1280" height="360" rx="28" fill="url(#g)"/><ellipse cx="1000" cy="160" rx="360" ry="300" fill="url(#r)"/><text x="64" y="82" fill="#c5f273" font-family="Segoe UI,Arial,sans-serif" font-size="14" letter-spacing="4">HAKING CHAT / TOPLULUK</text><text x="60" y="160" fill="#f3f5ef" font-family="Segoe UI,Arial,sans-serif" font-weight="700" font-size="52" letter-spacing="-2">Bir sohbetten fazlası.</text><text x="64" y="211" fill="#a9b6aa" font-family="Segoe UI,Arial,sans-serif" font-size="22">Fikirlerini paylaş. Birlikte kodla. Oyuna katıl.</text><rect x="64" y="255" width="165" height="38" rx="19" fill="#c5f273"/><text x="87" y="280" fill="#101311" font-family="Segoe UI,Arial,sans-serif" font-weight="600" font-size="15">chat.haking.tr</text><g transform="translate(920 77) rotate(9)"><rect width="210" height="210" rx="54" fill="#c5f273"/><path d="M48 50h114v88h-60l-36 28v-28H48V50Z" fill="#101311"/><path d="m88 77-19 19 19 19m34-38 19 19-19 19m-13-45-12 52" fill="none" stroke="#c5f273" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="380" viewBox="0 0 1280 380">
+  <defs>
+    <pattern id="g" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0v32" fill="none" stroke="#c5f273" stroke-opacity=".07" />
+    </pattern>
+    <radialGradient id="r1" cx="78%" cy="45%" r="55%">
+      <stop stop-color="#c5f273" stop-opacity=".18" />
+      <stop offset=".5" stop-color="#14724a" stop-opacity=".12" />
+      <stop offset="1" stop-color="#101311" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="felt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#157049" />
+      <stop offset="1" stop-color="#0a3824" />
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="380" rx="28" fill="#131814" />
+  <rect width="1280" height="380" rx="28" fill="url(#g)" />
+  <rect width="1280" height="380" rx="28" fill="url(#r1)" />
+  <rect x="64" y="48" width="248" height="30" rx="15" fill="#1e2720" stroke="#314135" />
+  <circle cx="82" cy="63" r="5" fill="#c5f273" />
+  <text x="98" y="68" fill="#c5f273" font-family="Segoe UI,Arial,sans-serif" font-weight="600" font-size="13" letter-spacing="1.6">HAKING CHAT · v2.1</text>
+  <text x="64" y="148" fill="#f3f5ef" font-family="Segoe UI,Arial,sans-serif" font-weight="800" font-size="54" letter-spacing="-1.8">Sohbet. Kod. 3D Oyun.</text>
+  <text x="64" y="198" fill="#b4c0b5" font-family="Segoe UI,Arial,sans-serif" font-size="21">Gerçek zamanlı topluluk sohbeti, kod paylaşımı, sıralı 1v1 XOX</text>
+  <text x="64" y="228" fill="#b4c0b5" font-family="Segoe UI,Arial,sans-serif" font-size="21">ve 6 kişilik 3D Blackjack masası — PC ve mobilde kusursuz.</text>
+  <rect x="64" y="268" width="210" height="44" rx="22" fill="#c5f273" />
+  <text x="92" y="296" fill="#101311" font-family="Segoe UI,Arial,sans-serif" font-weight="700" font-size="16">https://chat.haking.tr</text>
+  <rect x="290" y="268" width="160" height="44" rx="22" fill="#1b231d" stroke="#354437" />
+  <text x="315" y="296" fill="#d8e3d6" font-family="Segoe UI,Arial,sans-serif" font-weight="600" font-size="14">6 Kişi · 3D Casino</text>
+
+  <!-- Right art: 3D Casino Card + XOX Badge -->
+  <g transform="translate(880 56)">
+    <rect x="30" y="30" width="300" height="230" rx="34" fill="url(#felt)" stroke="#d8b454" stroke-width="3" />
+    <path d="M84 220 A110 110 0 0 1 280 220" fill="none" stroke="#e6c873" stroke-opacity=".45" stroke-width="2.5" stroke-dasharray="6 6" />
+    <!-- Ace card -->
+    <g transform="translate(96 58) rotate(-10)">
+      <rect width="84" height="122" rx="10" fill="#faf7ef" stroke="#dfd7c4" stroke-width="2" />
+      <text x="14" y="30" fill="#131814" font-family="Georgia,serif" font-weight="700" font-size="24">A</text>
+      <text x="42" y="78" text-anchor="middle" fill="#131814" font-family="serif" font-size="44">♠</text>
+    </g>
+    <!-- King card -->
+    <g transform="translate(170 48) rotate(8)">
+      <rect width="84" height="122" rx="10" fill="#faf7ef" stroke="#dfd7c4" stroke-width="2" />
+      <text x="14" y="30" fill="#be1f2d" font-family="Georgia,serif" font-weight="700" font-size="24">K</text>
+      <text x="42" y="78" text-anchor="middle" fill="#be1f2d" font-family="serif" font-size="44">♥</text>
+    </g>
+    <!-- Chips & XOX pill -->
+    <circle cx="94" cy="212" r="18" fill="#168a51" stroke="#f5efe2" stroke-width="3" stroke-dasharray="6 5" />
+    <circle cx="136" cy="218" r="18" fill="#b52b2b" stroke="#f5efe2" stroke-width="3" stroke-dasharray="6 5" />
+    <rect x="200" y="194" width="110" height="42" rx="14" fill="#121814" stroke="#c5f273" stroke-opacity=".6" />
+    <text x="255" y="221" text-anchor="middle" fill="#c5f273" font-family="Consolas,monospace" font-weight="700" font-size="20">× ○ · 21</text>
+  </g>
+</svg>

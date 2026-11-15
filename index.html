@@ -7,7 +7,7 @@
     <title>Haking Chat — Sohbet et. Kod paylaş. Birlikte üret.</title>
     <meta
       name="description"
-      content="Haking Chat: Türkçe geliştirici topluluğu. Gerçek zamanlı sohbet et, kod parçalarını paylaş ve arkadaşlarınla ya da akıllı botla XOX oyna."
+      content="Haking Chat: Türkçe geliştirici topluluğu. Gerçek zamanlı sohbet et, kod parçalarını paylaş, 3D Blackjack ve XOX oyna."
     />
     <link rel="canonical" href="https://chat.haking.tr/" />
     <meta property="og:type" content="website" />
@@ -18,7 +18,7 @@
     />
     <meta
       property="og:description"
-      content="Sohbet, kod paylaşımı ve küçük bir oyun molası. Türkçe geliştirici topluluğuna katıl."
+      content="Sohbet, kod paylaşımı, 3D Blackjack ve XOX oyunları. Türkçe geliştirici topluluğuna katıl."
     />
     <meta property="og:url" content="https://chat.haking.tr/" />
     <meta
@@ -34,10 +34,11 @@
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/staff.css" />
     <link rel="stylesheet" href="/simplify.css" />
+    <link rel="stylesheet" href="/games/games.css" />
     <script src="/config.js" defer></script>
     <script src="/vendor/socket.io.min.js" defer></script>
     <script src="/vendor/highlight.min.js" defer></script>
-    <script src="/app.js" defer></script>
+    <script type="module" src="/app.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">İçeriğe geç</a>
@@ -62,13 +63,10 @@
           <button class="nav-item" data-channel="code">
             <span class="nav-symbol">&lt;/&gt;</span><span>kod-paylaşımı</span>
           </button>
-          <button class="nav-item" data-channel="help">
-            <span class="nav-symbol">?</span><span>yardımlaşma</span>
-          </button>
           <p class="nav-label second-label">OYUN</p>
           <button class="nav-item" data-view="games">
             <span class="nav-symbol game-symbol">×○</span
-            ><span>oyun-alanı<small>XOX · İnsan veya bot</small></span
+            ><span>oyun-alanı<small>3D Blackjack · XOX</small></span
             ><span class="mini-badge">OYNA</span>
           </button>
         </nav>
@@ -108,6 +106,12 @@
           <div class="topbar-actions">
             <span class="connection" id="connection-status"
               ><span class="status-dot"></span><span>Bağlanmadı</span></span
+            ><button
+              id="open-games"
+              class="button small secondary games-shortcut"
+              aria-label="Oyun alanını aç"
+            >
+              ♠ Oyunlar</button
             ><button
               id="theme-button"
               class="icon-button"
@@ -158,7 +162,9 @@
               <div class="chat-tools">
                 <div class="chat-tabs">
                   <button class="tab active" id="all-tab">Sohbet akışı</button
-                  ><button class="tab" id="code-tab">
+                  ><button class="tab" id="pins-tab">
+                    Sabitlenenler</button
+                  ><button class="tab" id="code-tab" hidden>
                     Kod parçaları <span id="code-count">0</span>
                   </button>
                 </div>
@@ -249,54 +255,104 @@
             >
               <div class="section-heading">
                 <div>
-                  <h2 id="games-title">Sıra sende.</h2>
-                  <p>Bir arkadaşını bekle ya da yenilmez bota meydan oku.</p>
-                </div>
-                <span class="large-game-mark">×○</span>
-              </div>
-              <div class="game-intro" id="game-intro">
-                <div class="mini-board" aria-hidden="true">
-                  <span>×</span><span></span><span>○</span><span></span
-                  ><span>×</span><span></span><span>○</span><span></span
-                  ><span>×</span>
-                </div>
-                <div>
-                  <h3>Üçü bir araya getir.</h3>
+                  <h2 id="games-title">Oyun Alanı · Sıra sende.</h2>
                   <p>
-                    3 × 3 tahtada yatay, dikey ya da çapraz üç işaretini
-                    birleştir.
+                    6 kişilik 3D Blackjack masasına otur ya da arkadaşlarınla ve
+                    botlarla XOX oyna.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  id="sfx-toggle"
+                  class="button small secondary"
+                  aria-label="Oyun seslerini aç veya kapat"
+                >
+                  🔊 Ses açık
+                </button>
+              </div>
+              <div class="game-hub" id="game-intro">
+                <article class="game-card game-card-bj">
+                  <div class="game-card-top">
+                    <span class="tag bj-live-tag">3D · MAX 6 KİŞİ</span>
+                    <span class="bj-card-emblem" aria-hidden="true">A♠ K♥</span>
+                  </div>
+                  <h3>Blackjack 21</h3>
+                  <p>
+                    Canlı kurpiyere karşı 6 kişilik 3D kumarhane masası. 1 kişi
+                    oturduğunda oyun menüsü hemen açılır; başlatan olduğunda 10
+                    saniyede, 6 kişi dolduğunda otomatik başlar.
                   </p>
                   <div class="game-buttons">
-                    <button class="button primary" id="create-game">
-                      Oda oluştur ↗</button
-                    ><button class="button secondary" id="play-bot">
-                      Botla oyna &lt;/&gt;
+                    <button class="button primary" id="bj-create">
+                      Masa aç ve otur ♠
                     </button>
                   </div>
-                  <small
-                    >Bot tüm olasılıkları hesaplar. Kusursuz oyunda sonuç
-                    beraberliktir.</small
-                  >
-                </div>
+                  <small>
+                    6 deste · 1.000 başlangıç fişi · Blackjack 3:2 · Çift &amp; Böl
+                  </small>
+                </article>
+                <article class="game-card game-card-xox">
+                  <div class="game-card-top">
+                    <span class="tag">1v1 SIRA SIRA · BOT</span>
+                    <div class="mini-board" aria-hidden="true">
+                      <span>×</span><span></span><span>○</span><span></span
+                      ><span>×</span><span></span><span>○</span><span></span
+                      ><span>×</span>
+                    </div>
+                  </div>
+                  <h3>XOX · Strateji Arenası</h3>
+                  <p>
+                    1v1 tekrar oyna isteği doğrudan rakibine gider ve her el
+                    başlayan taraf sıra sıra değişir. İstersen zorluk seçerek bota
+                    karşı oyna.
+                  </p>
+                  <div class="xox-diff-row">
+                    <label for="xox-difficulty">Bot seviyesi</label>
+                    <select id="xox-difficulty" aria-label="Bot zorluk seviyesi">
+                      <option value="easy">Kolay Bot</option>
+                      <option value="medium">Orta Bot</option>
+                      <option value="hard" selected>Yenilmez Bot</option>
+                    </select>
+                  </div>
+                  <div class="game-buttons">
+                    <button class="button primary" id="create-game">
+                      1v1 Oda oluştur ↗</button
+                    ><button class="button secondary" id="play-bot">
+                      Botla oyna ×○
+                    </button>
+                  </div>
+                  <small>
+                    Yeni oyunlar çok yakında eklenecek şekilde modüler lobi.
+                  </small>
+                </article>
               </div>
               <div id="active-game" class="active-game" hidden>
+                <div class="xox-meta-row" id="xox-meta"></div>
                 <div class="game-player-row" id="game-players"></div>
                 <p id="game-status" class="game-status" aria-live="polite"></p>
                 <div
-                  class="game-board"
-                  id="game-board"
-                  aria-label="XOX tahtası"
+                  id="xox-rematch-prompt"
+                  class="xox-rematch-prompt"
+                  hidden
                 ></div>
+                <div class="xox-board-stage">
+                  <div
+                    class="game-board"
+                    id="game-board"
+                    aria-label="XOX tahtası"
+                  ></div>
+                </div>
                 <div class="game-buttons">
                   <button class="button secondary" id="game-leave">
                     Oyundan çık</button
                   ><button class="button primary" id="game-add-bot" hidden>
-                    Beklemek yerine botla oyna</button
+                    Beklemek yerine bot ekle</button
                   ><button class="button primary" id="game-rematch" hidden>
-                    Yeni oyun
+                    Tekrar oyna ↻
                   </button>
                 </div>
               </div>
+              <div id="active-blackjack" class="active-blackjack" hidden></div>
               <div class="lobby-heading">
                 <h3>
                   Oyun lobisi <span class="tag" id="lobby-count">0 ODA</span>
@@ -472,8 +528,8 @@
         <div>
           <h3>Doğru kanalda buluşalım.</h3>
           <p>
-            Günlük sohbet genel kanalda, kodlar kod paylaşımında, sorular
-            yardımlaşmada. XOX oyunları oyun alanında.
+            Günlük sohbet genel kanalda, kodlar kod paylaşımında, 3D Blackjack ve
+            XOX ise oyun alanında.
           </p>
         </div>
       </div>

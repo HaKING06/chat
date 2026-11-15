@@ -7,10 +7,11 @@
   "scripts": {
     "dev": "node scripts/dev-server.mjs",
     "vendor": "node scripts/vendor.mjs",
-    "check": "node --check app.js && node --check config.js"
+    "check": "node --check app.js && node --check config.js && node --check games/sfx.mjs && node --check games/xox.mjs && node --check games/blackjack3d.mjs"
   },
   "devDependencies": {
     "@highlightjs/cdn-assets": "^11.11.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "three": "^0.187.0"
   }
 }

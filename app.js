@@ -1,4 +1,7 @@
 "use strict";
+import { isSfxMuted, toggleSfxMute } from "./games/sfx.mjs";
+import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
+
 (() => {
   const $ = (id) => document.getElementById(id);
   const channels = {
@@ -7,11 +10,12 @@
       "kod-paylaşımı",
       "Küçük bir fonksiyon, büyük bir çözüm. Kodunu toplulukla paylaş.",
     ],
-    help: ["yardımlaşma", "Takıldığın yeri anlat. Birlikte bir çözüm bulalım."],
   };
   const roles = { user: "Topluluk üyesi", mod: "Moderatör", admin: "Kurucu" };
   const rank = { user: 0, mod: 1, admin: 2 };
   const emojis = ["👍", "❤️", "🔥", "😂", "🎉", "👀"];
+  let bjModulePromise = null;
+  let bjArena = null;
   const state = {
     socket: null,
     user: null,
@@ -22,6 +26,7 @@
     users: [],
     games: [],
     game: null,
+    table: null,
     reply: null,
     editing: null,
     codeOnly: false,
@@ -77,13 +82,13 @@
         resolve(
           err
             ? {
-                success: false,
-                message: "Sunucu yanıt vermedi. Tekrar dene.",
-              }
+              success: false,
+              message: "Sunucu yanıt vermedi. Tekrar dene.",
+            }
             : result || {
-                success: false,
-                message: "Geçersiz sunucu yanıtı.",
-              },
+              success: false,
+              message: "Geçersiz sunucu yanıtı.",
+            },
         ),
       );
     });
@@ -139,6 +144,13 @@
       : "Sohbete katıl ↗";
     $("join-top").classList.toggle("admin-open", state.user?.role === "admin");
     $("moderators-button").hidden = state.user?.role !== "admin";
+    $("open-games")?.classList.toggle("active", state.view === "games");
+    const codeButton = $("code-button");
+    if (codeButton) {
+      codeButton.hidden = state.channel !== "code";
+      codeButton.textContent =
+        state.channel === "code" ? "</> Kod paylaş" : "</>";
+    }
     const enabled =
       !!state.user && !!state.socket?.connected && !state.user.isMuted;
     $("message-input").disabled = !enabled;
@@ -179,7 +191,7 @@
     toast("Hoş geldin, " + state.user.name + ". İyi ki geldin!");
     try {
       localStorage.setItem("haking.nickname", state.user.name);
-    } catch {}
+    } catch { }
   }
   function setupSocket() {
     if (state.socket) {
@@ -220,6 +232,12 @@
       connection("offline");
       state.user = null;
       state.game = null;
+      state.table = null;
+      if (bjArena) {
+        bjArena.dispose();
+        bjArena = null;
+      }
+      resetXoxSoundState();
       state.users = [];
       state.games = [];
       state.typing.clear();
@@ -253,8 +271,8 @@
     socket.on("receiveMessage", (m) => {
       const nearBottom =
         $("messages").scrollHeight -
-          $("messages").scrollTop -
-          $("messages").clientHeight <
+        $("messages").scrollTop -
+        $("messages").clientHeight <
         100;
       state.messages.set(m.id, m);
       while (state.messages.size > 300)
@@ -316,6 +334,22 @@
     });
     socket.on("gameLeft", () => {
       state.game = null;
+      resetXoxSoundState();
+      renderGame();
+    });
+    socket.on("blackjackUpdated", (table) => {
+      if (table.seats?.some((s) => s && s.userId === socket.id)) {
+        state.table = table;
+        state.game = null;
+        renderGame();
+      }
+    });
+    socket.on("blackjackLeft", () => {
+      state.table = null;
+      if (bjArena) {
+        bjArena.dispose();
+        bjArena = null;
+      }
       renderGame();
     });
     socket.connect();
@@ -342,8 +376,11 @@
   });
   function logout() {
     if (!state.user) return;
+    const inActiveBj = state.table?.seats?.some(
+      (s) => s && s.userId === state.socket?.id && s.activeInRound,
+    );
     if (
-      state.game?.status === "playing" &&
+      (state.game?.status === "playing" || inActiveBj) &&
       !confirm(
         "Çıkış yaparsan oyun sona erecek. Oturumu kapatmak istiyor musun?",
       )
@@ -352,6 +389,12 @@
     state.stopped = true;
     state.credentials = null;
     state.user = null;
+    state.game = null;
+    state.table = null;
+    if (bjArena) {
+      bjArena.dispose();
+      bjArena = null;
+    }
     state.socket?.disconnect();
     state.messages.clear();
     cancelReply();
@@ -435,7 +478,7 @@
             if (
               !confirm(
                 moderator.name +
-                  " moderatörlükten çıkarılsın mı? Açık yetkili oturumu kapatılacak.",
+                " moderatörlükten çıkarılsın mı? Açık yetkili oturumu kapatılacak.",
               )
             )
               return;
@@ -488,8 +531,8 @@
     if (
       confirm(
         "#" +
-          channels[state.channel][0] +
-          " kanalındaki tüm mesajlar silinsin mi?",
+        channels[state.channel][0] +
+        " kanalındaki tüm mesajlar silinsin mi?",
       )
     ) {
       const result = await act("moderate", {
@@ -571,10 +614,11 @@
     }
   });
   function navigate(view, channel = state.channel) {
+    const safeChannel = channels[channel] ? channel : "general";
     if (state.user)
       state.socket.emit("typing", { channel: state.channel, isTyping: false });
     state.view = view;
-    state.channel = channel;
+    state.channel = safeChannel;
     state.pins = false;
     state.codeOnly = false;
     $("message-search").value = "";
@@ -582,15 +626,20 @@
     cancelEdit();
     $("chat-view").hidden = view !== "chat";
     $("games-view").hidden = view !== "games";
+    document.body.classList.toggle("in-games", view === "games");
+    document.body.classList.toggle(
+      "in-blackjack",
+      view === "games" && !!state.table,
+    );
     $("header-title").textContent =
-      view === "games" ? "oyun-alanı" : channels[channel][0];
-    $("channel-title").textContent = channels[channel][0];
-    $("channel-description").textContent = "";
+    view === "games" ? "oyun-alanı" : channels[safeChannel][0];
+    $("channel-title").textContent = channels[safeChannel][0];
+    $("channel-description").textContent = channels[safeChannel][1];
     document.querySelectorAll(".nav-item").forEach((node) => {
       const active =
         view === "games"
           ? node.dataset.view === "games"
-          : node.dataset.channel === channel;
+          : node.dataset.channel === safeChannel;
       node.classList.toggle("active", active);
       if (active) node.setAttribute("aria-current", "page");
       else node.removeAttribute("aria-current");
@@ -601,6 +650,7 @@
     renderGame();
     renderLobby();
     renderTyping();
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
   document
     .querySelectorAll("[data-channel]")
@@ -612,7 +662,9 @@
   document
     .querySelector('[data-view="games"]')
     .addEventListener("click", () => navigate("games"));
-  $("open-games")?.addEventListener("click", () => navigate("games"));
+  $("open-games")?.addEventListener("click", () =>
+    navigate(state.view === "games" ? "chat" : "games"),
+  );
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
     $("theme-button").textContent = theme === "dark" ? "☼" : "☾";
@@ -626,7 +678,7 @@
   try {
     applyTheme(
       localStorage.getItem("haking.theme") ||
-        (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+      (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
     );
     $("nickname").value = localStorage.getItem("haking.nickname") || "";
   } catch {
@@ -638,7 +690,7 @@
     applyTheme(theme);
     try {
       localStorage.setItem("haking.theme", theme);
-    } catch {}
+    } catch { }
   });
   function renderUsers() {
     const expanded = new Set(
@@ -743,7 +795,7 @@
       let url;
       try {
         url = new URL(match[0]);
-      } catch {}
+      } catch { }
       if (url && ["http:", "https:"].includes(url.protocol)) {
         const link = el("a", "", match[0]);
         link.href = url.href;
@@ -759,11 +811,15 @@
     const list = $("messages"),
       previous = list.scrollTop;
     list.replaceChildren();
+    const isCodeChannel = state.channel === "code";
+    if (!isCodeChannel) state.codeOnly = false;
+    $("code-tab").hidden = !isCodeChannel;
     $("code-count").textContent = [...state.messages.values()].filter(
       (m) => m.channel === state.channel && m.type === "code",
     ).length;
-    $("all-tab").classList.toggle("active", !state.codeOnly);
-    $("code-tab").classList.toggle("active", state.codeOnly);
+    $("all-tab").classList.toggle("active", !state.codeOnly && !state.pins);
+    $("pins-tab").classList.toggle("active", state.pins);
+    $("code-tab").classList.toggle("active", state.codeOnly && isCodeChannel);
     $("pin-filter").setAttribute("aria-pressed", String(state.pins));
     $("pin-filter").classList.toggle("admin-open", state.pins);
     const query = $("message-search").value.trim().toLocaleLowerCase("tr");
@@ -844,10 +900,10 @@
       "time",
       "",
       m.time ||
-        new Date(m.createdAt).toLocaleTimeString("tr-TR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+      new Date(m.createdAt).toLocaleTimeString("tr-TR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     );
     time.dateTime = m.createdAt;
     meta.append(time);
@@ -1003,14 +1059,23 @@
   $("message-search").addEventListener("input", () => renderMessages());
   $("all-tab").addEventListener("click", () => {
     state.codeOnly = false;
+    state.pins = false;
+    renderMessages();
+  });
+  $("pins-tab").addEventListener("click", () => {
+    state.pins = !state.pins;
+    if (state.pins) state.codeOnly = false;
     renderMessages();
   });
   $("code-tab").addEventListener("click", () => {
+    if (state.channel !== "code") return;
     state.codeOnly = true;
+    state.pins = false;
     renderMessages();
   });
   $("pin-filter").addEventListener("click", () => {
     state.pins = !state.pins;
+    if (state.pins) state.codeOnly = false;
     renderMessages();
   });
   function showReply(m) {
@@ -1147,11 +1212,11 @@
       state.editing
         ? { msgId: state.editing, message: value }
         : {
-            message: value,
-            channel: state.channel,
-            replyTo: state.reply,
-            type: "text",
-          },
+          message: value,
+          channel: state.channel,
+          replyTo: state.reply,
+          type: "text",
+        },
     );
     sending = false;
     if (result.success) {
@@ -1201,17 +1266,35 @@
       .map((t) => t.name);
     $("typing-status").textContent = names.length
       ? names.slice(0, 2).join(", ") +
-        (names.length > 2 ? " ve diğerleri" : "") +
-        " yazıyor…"
+      (names.length > 2 ? " ve diğerleri" : "") +
+      " yazıyor…"
       : "";
   }
   setInterval(renderTyping, 1000);
+  function updateSfxButton() {
+    const btn = $("sfx-toggle");
+    if (!btn) return;
+    const muted = isSfxMuted();
+    btn.textContent = muted ? "🔇 Ses kapalı" : "🔊 Ses açık";
+    btn.setAttribute("aria-pressed", String(!muted));
+  }
+  updateSfxButton();
+  $("sfx-toggle")?.addEventListener("click", () => {
+    toggleSfxMute();
+    updateSfxButton();
+  });
+
   async function gameAction(event, data = {}) {
     if (!requireUser() || state.pendingGame) return;
     state.pendingGame = true;
     try {
       const result = await act(event, data);
       if (result.success && result.game) {
+        if (bjArena) {
+          bjArena.dispose();
+          bjArena = null;
+        }
+        state.table = null;
         state.game = result.game;
         renderGame();
       }
@@ -1219,12 +1302,98 @@
       state.pendingGame = false;
     }
   }
+
+  async function bjCommand(event, data = {}) {
+    if (!requireUser() || state.pendingGame) return;
+    state.pendingGame = true;
+    try {
+      const result = await act(event, data);
+      if (result.success && result.table) {
+        state.game = null;
+        resetXoxSoundState();
+        state.table = result.table;
+        renderGame();
+      }
+    } finally {
+      state.pendingGame = false;
+    }
+  }
+
+  async function leaveBlackjack() {
+    if (!state.table) return;
+    const inHand = state.table.seats?.some(
+      (s) => s && s.userId === state.socket?.id && s.activeInRound,
+    );
+    if (
+      state.table.status === "playing" &&
+      inHand &&
+      !confirm("Aktif el bitmeden kalkarsan elin otomatik durdurulacak. Kalkmak istiyor musun?")
+    )
+      return;
+    const result = await act("bjLeave", { tableId: state.table.id });
+    if (result.success) {
+      state.table = null;
+      if (bjArena) {
+        bjArena.dispose();
+        bjArena = null;
+      }
+      renderGame();
+    }
+  }
+
+  function ensureBjArena() {
+    if (!state.table) return;
+    if (bjArena) {
+      bjArena.update(state.table, state.socket?.id);
+      return;
+    }
+    bjModulePromise ||= import("./games/blackjack3d.mjs");
+    bjModulePromise
+      .then(({ BlackjackArena }) => {
+        if (!state.table || bjArena) return;
+        bjArena = new BlackjackArena($("active-blackjack"), {
+          onLeave: leaveBlackjack,
+          onSwitchSeat: (seatIndex) =>
+            bjCommand("bjJoin", { tableId: state.table?.id, seatIndex }),
+          onBet: (amount) =>
+            emit("bjBet", { tableId: state.table?.id, amount }).then((r) => {
+              if (!r.success) toast(r.message, true);
+              else if (r.table) {
+                state.table = r.table;
+                renderGame();
+              }
+            }),
+          onRebuy: () => bjCommand("bjRebuy", { tableId: state.table?.id }),
+          onStart: () => bjCommand("bjStart", { tableId: state.table?.id }),
+          onAction: (action) =>
+            bjCommand("bjAction", { tableId: state.table?.id, action }),
+          onReact: (emoji) =>
+            emit("bjReact", { tableId: state.table?.id, emoji }).then((r) => {
+              if (!r.success) toast(r.message, true);
+            }),
+        });
+        bjArena.update(state.table, state.socket?.id);
+        window.scrollTo({ top: 0, behavior: "instant" });
+      })
+      .catch(() => {
+        toast("3D Blackjack sahnesi yüklenemedi.", true);
+      });
+  }
+
+  $("bj-create")?.addEventListener("click", () =>
+    bjCommand("bjCreate", { seatIndex: 0 }),
+  );
   $("create-game").addEventListener("click", () =>
     gameAction("gameCreate", { bot: false }),
   );
-  $("play-bot").addEventListener("click", () => gameAction("gameBot"));
+  $("play-bot").addEventListener("click", () =>
+    gameAction("gameBot", { difficulty: $("xox-difficulty")?.value || "hard" }),
+  );
   $("game-add-bot").addEventListener("click", () =>
-    gameAction("gameBot", { gameId: state.game?.id }),
+    gameAction("gameBot", {
+      gameId: state.game?.id,
+      difficulty: $("xox-difficulty")?.value || "hard",
+    }),
   );
   $("game-leave").addEventListener("click", async () => {
     if (!state.game) return;
@@ -1236,134 +1405,163 @@
     const result = await act("gameLeave", { gameId: state.game.id });
     if (result.success) {
       state.game = null;
+      resetXoxSoundState();
       renderGame();
     }
   });
-  $("game-rematch").addEventListener("click", () =>
-    gameAction(state.game?.bot ? "gameBot" : "gameCreate"),
-  );
+  $("game-rematch").addEventListener("click", () => {
+    if (!state.game) return;
+    if (state.game.winner === "left") {
+      gameAction("gameCreate", { bot: false });
+    } else {
+      gameAction("gameRematch", {
+        gameId: state.game.id,
+        difficulty: state.game.difficulty || "hard",
+      });
+    }
+  });
+
   function renderGame() {
     const game = state.game;
-    $("active-game").hidden = !game;
-    $("game-intro").hidden = !!game;
-    if (!game) return;
-    $("game-players").replaceChildren();
-    for (let index = 0; index < 2; index++) {
-      const player = game.players[index];
-      const node = el("div", "game-player");
-      node.append(
-        el("span", "", index ? "○" : "×"),
-        document.createTextNode(
-          player
-            ? player.name + (player.id === state.socket?.id ? " · sen" : "")
-            : "Oyuncu bekleniyor…",
-        ),
+      const table = state.table;
+      $("active-game").hidden = !game || !!table;
+      $("active-blackjack").hidden = !table;
+      $("game-intro").hidden = !!(game || table);
+      document.body.classList.toggle(
+        "in-blackjack",
+        state.view === "games" && !!table,
       );
-      $("game-players").append(node);
-    }
-    const mine = game.players.find((p) => p.id === state.socket?.id);
-    let status;
-    if (game.status === "waiting")
-      status = "Bir oyuncu bekleniyor. Odan lobide listelendi.";
-    else if (game.status === "finished") {
-      status =
-        game.winner === "draw"
-          ? "Berabere! Güzel mücadeleydi."
-          : game.winner === "left"
-            ? "Oyuncu ayrıldı veya oda süresi doldu. Oyun sona erdi."
-            : game.winner === mine?.symbol
-              ? "Kazandın! İyi hamle."
-              : (game.players.find((p) => p.symbol === game.winner)?.name ||
-                  "Rakip") + " kazandı. Bir tur daha?";
-    } else
-      status =
-        game.turn === mine?.symbol
-          ? "Sıra sende. Hamleni yap."
-          : (game.players.find((p) => p.symbol === game.turn)?.name ||
-              "Rakip") + " oynuyor…";
-    $("game-status").textContent = status;
-    $("game-board").replaceChildren();
-    game.board.forEach((value, index) => {
-      const cell = button(
-        value === "X" ? "×" : value === "O" ? "○" : "",
-        "game-cell" +
-          (value === "O" ? " o" : "") +
-          (game.winningLine?.includes(index) ? " win" : ""),
-        () => gameAction("gameMove", { gameId: game.id, index }),
-        Math.floor(index / 3) +
-          1 +
-          ". satır, " +
-          ((index % 3) + 1) +
-          ". sütun: " +
-          (value || "boş"),
-      );
-      cell.disabled =
-        !!value || game.status !== "playing" || game.turn !== mine?.symbol;
-      $("game-board").append(cell);
-    });
-    $("game-add-bot").hidden = game.status !== "waiting";
-    $("game-rematch").hidden = game.status !== "finished";
-  }
+
+      if (table) {
+        ensureBjArena();
+        return;
+      }
+        if (bjArena) {
+          bjArena.dispose();
+          bjArena = null;
+        }
+        if (!game) {
+          resetXoxSoundState();
+          return;
+        }
+
+        renderXoxView({
+          game,
+          mySocketId: state.socket?.id,
+          containers: {
+            playersRow: $("game-players"),
+            metaRow: $("xox-meta"),
+            statusEl: $("game-status"),
+            rematchBox: $("xox-rematch-prompt"),
+            boardWrap: $("game-board"),
+            addBotBtn: $("game-add-bot"),
+            rematchBtn: $("game-rematch"),
+          },
+          handlers: {
+            onMove: (index) =>
+              gameAction("gameMove", { gameId: game.id, index }),
+            onRematchRespond: (accept) =>
+              gameAction("gameRematchRespond", { gameId: game.id, accept }),
+          },
+        });
+      }
+
   function renderLobby() {
-    const list = $("game-lobby");
-    list.replaceChildren();
-    $("lobby-count").textContent = state.games.length + " ODA";
-    if (!state.games.length) {
-      list.append(
-        el(
-          "div",
-          "lobby-empty",
-          state.user
-            ? "Henüz açık bir oda yok. İlk odayı sen oluştur."
-            : "Odalara katılmak ve oyuncuları görmek için giriş yap.",
-        ),
-      );
-      return;
-    }
-    for (const game of state.games) {
-      const row = el("div", "lobby-room");
-      row.append(avatar(game.players[0].name));
-      const meta = el("div", "room-meta");
-      meta.append(
-        el(
-          "strong",
-          "",
-          game.players[0].name +
-            (game.players[1]
-              ? " × " + game.players[1].name
-              : " · Oyuncu bekliyor"),
-        ),
-        el(
-          "small",
-          "",
-          game.status === "waiting"
-            ? "Bir koltuk boş. Sıra arkadaşında."
-            : game.bot
-              ? "Bot karşılaşması"
-              : "Karşılaşma devam ediyor",
-        ),
-      );
-      row.append(meta);
-      if (game.players.some((p) => p.id === state.socket?.id))
-        row.append(el("span", "tag", "SENİN ODAN"));
-      else if (game.status === "waiting")
-        row.append(
-          button("Katıl ↗", "button primary", () => {
-            if (
-              state.game?.status === "playing" &&
-              !confirm("Mevcut oyunun sona erecek. Bu odaya geçilsin mi?")
-            )
-              return;
-            gameAction("gameJoin", { gameId: game.id });
-          }),
-        );
-      else row.append(el("span", "tag", "OYUNDA"));
-      list.append(row);
-    }
-  }
-  renderMessages();
-  renderUsers();
-  renderLobby();
-  setMemberUI();
-  connection("offline");
-})();
+          const list = $("game-lobby");
+          list.replaceChildren();
+          $("lobby-count").textContent = state.games.length + " ODA";
+          if (!state.games.length) {
+            list.append(
+              el(
+                "div",
+                "lobby-empty",
+                state.user
+            ?"Henüz açık bir oyun veya Blackjack masası yok. Yukarıdan hemen başlat."
+            : "Odalara katılmak, Blackjack masasına oturmak ve oyuncuları görmek için giriş yap.",
+              ),
+            );
+            return;
+          }
+            for (const room of state.games) {
+              const row = el("div", "lobby-room");
+      if (room.type === "blackjack") {
+                const badge = el("div", "avatar bj-lobby-avatar", "♠");
+                row.append(badge);
+                const meta = el("div", "room-meta");
+                const statusText =
+                  room.status === "waiting"
+                    ? `${room.seatedCount}/6 koltuk · Katılıma açık`
+                    : room.status === "countdown"
+                      ? `${room.seatedCount}/6 koltuk · Başlamak üzere!`
+                      : `${room.seatedCount}/6 koltuk · ${room.round}. El oynanıyor`;
+                meta.append(
+                  el("strong", "", room.name),
+                  el("small", "", statusText),
+                );
+                row.append(meta);
+                const iAmSeated = room.seats?.some(
+                  (s) => s && s.userId === state.socket?.id,
+                );
+                if (iAmSeated) {
+                  row.append(el("span", "tag", "MASADASIN"));
+                } else if (room.seatedCount < room.maxSeats) {
+                  row.append(
+                    button("Masaya otur ♠", "button primary", () => {
+                      if (
+                        state.game?.status === "playing" &&
+                        !confirm("Mevcut XOX oyunun sona erecek. Blackjack masasına geçilsin mi?")
+                      )
+                        return;
+                      bjCommand("bjJoin", { tableId: room.id });
+                    }),
+                  );
+                } else {
+                  row.append(el("span", "tag", "DOLU (6/6)"));
+                }
+              } else {
+                row.append(avatar(room.players[0].name));
+                const meta = el("div", "room-meta");
+                meta.append(
+                  el(
+                    "strong",
+                    "",
+                    room.players[0].name +
+                    (room.players[1]
+                      ? " × " + room.players[1].name
+                      : " · Oyuncu bekliyor"),
+                  ),
+                  el(
+                    "small",
+                    "",
+                    room.status === "waiting"
+                      ? "XOX · Bir koltuk boş. Sıra arkadaşında."
+                      : room.bot
+                        ? `XOX · Bot karşılaşması (${room.round || 1}. el)`
+                        : `XOX · 1v1 karşılaşma (${room.round || 1}. el)`,
+                  ),
+                );
+                row.append(meta);
+                if (room.players.some((p) => p.id === state.socket?.id))
+                  row.append(el("span", "tag", "SENİN ODAN"));
+                else if (room.status === "waiting")
+                  row.append(
+                    button("Katıl ↗", "button primary", () => {
+                      if (
+                        state.game?.status === "playing" &&
+                        !confirm("Mevcut oyunun sona erecek. Bu odaya geçilsin mi?")
+                      )
+                        return;
+                      gameAction("gameJoin", { gameId: room.id });
+                    }),
+                  );
+                else row.append(el("span", "tag", "OYUNDA"));
+              }
+              list.append(row);
+            }
+          }
+          renderMessages();
+          renderUsers();
+          renderLobby();
+          setMemberUI();
+          connection("offline");
+        })();

@@ -1,0 +1,142 @@
+let ctx = null;
+let muted = false;
+
+try {
+  muted = localStorage.getItem("haking.sfx.muted") === "1";
+} catch {}
+
+function audioCtx() {
+  if (muted || typeof window === "undefined") return null;
+  const Ctor = window.AudioContext || window.webkitAudioContext;
+  if (!Ctor) return null;
+  if (!ctx) ctx = new Ctor();
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
+  return ctx;
+}
+
+function tone({
+  freq = 440,
+  endFreq = null,
+  duration = 0.09,
+  gain = 0.05,
+  type = "sine",
+  delay = 0,
+}) {
+  const c = audioCtx();
+  if (!c) return;
+  const start = c.currentTime + delay;
+  const osc = c.createOscillator();
+  const vol = c.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  if (endFreq !== null) {
+    osc.frequency.exponentialRampToValueAtTime(
+      Math.max(30, endFreq),
+      start + duration,
+    );
+  }
+  vol.gain.setValueAtTime(0.0001, start);
+  vol.gain.exponentialRampToValueAtTime(gain, start + 0.012);
+  vol.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  osc.connect(vol);
+  vol.connect(c.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.02);
+}
+
+export function isSfxMuted() {
+  return muted;
+}
+
+export function toggleSfxMute() {
+  muted = !muted;
+  try {
+    localStorage.setItem("haking.sfx.muted", muted ? "1" : "0");
+  } catch {}
+  if (!muted) tone({ freq: 587, endFreq: 784, duration: 0.08, gain: 0.04 });
+  return muted;
+}
+
+export function playMove(symbol = "X") {
+  tone({
+    freq: symbol === "O" ? 415 : 520,
+    endFreq: symbol === "O" ? 520 : 660,
+    duration: 0.08,
+    gain: 0.045,
+    type: "triangle",
+  });
+}
+
+export function playCard() {
+  tone({
+    freq: 310,
+    endFreq: 190,
+    duration: 0.06,
+    gain: 0.035,
+    type: "triangle",
+  });
+}
+
+export function playChip() {
+  tone({ freq: 1480, endFreq: 1860, duration: 0.045, gain: 0.03, type: "sine" });
+  tone({
+    freq: 1960,
+    endFreq: 2220,
+    duration: 0.04,
+    gain: 0.022,
+    type: "sine",
+    delay: 0.03,
+  });
+}
+
+export function playTick() {
+  tone({ freq: 720, duration: 0.035, gain: 0.02, type: "sine" });
+}
+
+export function playWin() {
+  tone({ freq: 523.25, duration: 0.11, gain: 0.045, type: "triangle", delay: 0 });
+  tone({
+    freq: 659.25,
+    duration: 0.11,
+    gain: 0.045,
+    type: "triangle",
+    delay: 0.08,
+  });
+  tone({
+    freq: 783.99,
+    duration: 0.18,
+    gain: 0.055,
+    type: "triangle",
+    delay: 0.16,
+  });
+}
+
+export function playBlackjack() {
+  tone({ freq: 587.33, duration: 0.1, gain: 0.045, type: "triangle", delay: 0 });
+  tone({
+    freq: 739.99,
+    duration: 0.1,
+    gain: 0.045,
+    type: "triangle",
+    delay: 0.07,
+  });
+  tone({
+    freq: 880,
+    duration: 0.12,
+    gain: 0.05,
+    type: "triangle",
+    delay: 0.14,
+  });
+  tone({
+    freq: 1174.66,
+    duration: 0.24,
+    gain: 0.055,
+    type: "triangle",
+    delay: 0.22,
+  });
+}
+
+export function playDraw() {
+  tone({ freq: 440, duration: 0.1, gain: 0.035, type: "sine", delay: 0 });
+  tone({ freq: 392, duration: 0.14, gain: 0.03, type: "sine", delay: 0.09 });
+}

@@ -21,10 +21,11 @@ Bu sürüm mevcut `chat.haking.tr` ve `chat-backend-qmzo.onrender.com` adresleri
 
 ## 3. Yayın kontrolü
 
-- İki ayrı tarayıcı oturumuyla sohbet mesajı, kod paylaşımı, yanıt ve çevrimiçi listeyi deneyin.
+- İki ayrı tarayıcı oturumuyla sohbet mesajı, `#kod-paylaşımı` sekme tutarlılığı, yanıt ve çevrimiçi listeyi deneyin.
 - Kullanıcı → moderatör → kurucu sıralamasına göre izinleri doğrulayın. Normal kullanıcı yönetim işlemi yapamamalıdır.
-- Bir kullanıcıyla oyun oluşturun, diğeriyle katılın. Sıra dışı hamle, oyundan ayrılma ve botla oynama akışlarını kontrol edin.
-- Mobil görünümde yatay taşma, gönder butonu, tema değişimi ve klavye erişimini kontrol edin.
+- XOX'te 1v1 oda açıp maçı bitirin, `Tekrar oyna` isteğinin lobiye düşmeden rakibin ekranına onay penceresi olarak gittiğini ve sonraki elde ilk başlayan tarafın değiştiğini doğrulayın.
+- 3D Blackjack masasında 1. oyuncu oturunca masa menüsünün açıldığını, `Başlat` ile 10 sn geri sayımı, Kart Çek / Dur / 2× Katla / Böl akışını ve 6 koltuk dolunca otomatik başlamayı deneyin.
+- Mobil görünümde (360px–430px) yatay taşma olmadığını, üst çubuktaki **♠ Oyunlar** kısayolunu, 3D kamera açılarını (`Masa`/`Elim`/`Üstten`) ve alt dokunmatik kontrolleri kontrol edin.
 - Sunucu yeniden başlatıldığında hangi verilerin saklandığını backend README'sinden kontrol edin; bellek tabanlı geçmişi kalıcı arşiv olarak kabul etmeyin.
 
 Bu sürüm son 300 mesajı ve 100 yönetim işlemini bellekte tutar. Sunucu yeniden başladığında geçmiş ve oyunlar sıfırlanır. Tek backend süreci kullanın; kalıcı arşiv veya birden fazla sunucu için paylaşımlı veritabanı ve Socket.IO adapter eklenmelidir.
