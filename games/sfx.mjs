@@ -181,3 +181,30 @@ export function playMention() {
   tone({ freq: 880, duration: 0.08, gain: 0.04, type: "sine", delay: 0 });
   tone({ freq: 1174.66, duration: 0.14, gain: 0.045, type: "sine", delay: 0.075 });
 }
+
+export function playTileDraw() {
+  tone({ freq: 420, endFreq: 560, duration: 0.045, gain: 0.036, type: "triangle" });
+}
+
+export function playTilePlace() {
+  tone({ freq: 290, endFreq: 160, duration: 0.05, gain: 0.045, type: "triangle" });
+  tone({ freq: 620, endFreq: 420, duration: 0.035, gain: 0.02, type: "sine", delay: 0.015 });
+}
+
+export function playTileOpen() {
+  for (let i = 0; i < 3; i++) {
+    tone({
+      freq: 360 + i * 110,
+      endFreq: 260 + i * 80,
+      duration: 0.06,
+      gain: 0.035,
+      type: "triangle",
+      delay: i * 0.045,
+    });
+  }
+}
+
+export function playTilePenalty() {
+  tone({ freq: 240, endFreq: 140, duration: 0.16, gain: 0.045, type: "sawtooth", delay: 0 });
+  tone({ freq: 180, endFreq: 110, duration: 0.2, gain: 0.04, type: "triangle", delay: 0.09 });
+}

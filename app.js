@@ -21,6 +21,8 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
   let diceArena = null;
   let chessModulePromise = null;
   let chessArena = null;
+  let okeyModulePromise = null;
+  let okeyArena = null;
   const state = {
     socket: null,
     user: null,
@@ -34,6 +36,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     table: null,
     diceTable: null,
     chessTable: null,
+    okeyTable: null,
     lobbyFilter: "all",
     lobbySearch: "",
     miniChatOpen: false,
@@ -186,6 +189,10 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       chessArena.dispose();
       chessArena = null;
     }
+    if (okeyArena) {
+      okeyArena.dispose();
+      okeyArena = null;
+    }
   }
   function escapeRegExp(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -221,7 +228,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
   function syncMiniChatUI() {
     const shell = $("mini-chat-shell");
     if (!shell) return;
-    const inArena = !!(state.game || state.table || state.diceTable || state.chessTable);
+    const inArena = !!(state.game || state.table || state.diceTable || state.chessTable || state.okeyTable);
     shell.hidden = !(state.user && state.view === "games" && inArena);
     const drawer = $("mini-chat-drawer");
     const toggle = $("mini-chat-toggle");
@@ -444,6 +451,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       state.table = null;
       state.diceTable = null;
       state.chessTable = null;
+      state.okeyTable = null;
       disposeArenas();
       resetXoxSoundState();
       clearNotifications({ clearMini: true });
@@ -590,6 +598,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         state.game = null;
         state.diceTable = null;
         state.chessTable = null;
+        state.okeyTable = null;
         if (diceArena) {
           diceArena.dispose();
           diceArena = null;
@@ -597,6 +606,10 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         if (chessArena) {
           chessArena.dispose();
           chessArena = null;
+        }
+        if (okeyArena) {
+          okeyArena.dispose();
+          okeyArena = null;
         }
         renderGame();
       }
@@ -615,6 +628,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         state.table = null;
         state.game = null;
         state.chessTable = null;
+        state.okeyTable = null;
         if (bjArena) {
           bjArena.dispose();
           bjArena = null;
@@ -622,6 +636,10 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         if (chessArena) {
           chessArena.dispose();
           chessArena = null;
+        }
+        if (okeyArena) {
+          okeyArena.dispose();
+          okeyArena = null;
         }
         renderGame();
       }
@@ -638,6 +656,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       state.chessTable = table;
       state.table = null;
       state.diceTable = null;
+      state.okeyTable = null;
       state.game = null;
       if (bjArena) {
         bjArena.dispose();
@@ -647,6 +666,10 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         diceArena.dispose();
         diceArena = null;
       }
+      if (okeyArena) {
+        okeyArena.dispose();
+        okeyArena = null;
+      }
       renderGame();
     });
     socket.on("chessLeft", () => {
@@ -654,6 +677,34 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       if (chessArena) {
         chessArena.dispose();
         chessArena = null;
+      }
+      renderGame();
+    });
+    socket.on("okeyUpdated", (table) => {
+      state.okeyTable = table;
+      state.chessTable = null;
+      state.table = null;
+      state.diceTable = null;
+      state.game = null;
+      if (bjArena) {
+        bjArena.dispose();
+        bjArena = null;
+      }
+      if (diceArena) {
+        diceArena.dispose();
+        diceArena = null;
+      }
+      if (chessArena) {
+        chessArena.dispose();
+        chessArena = null;
+      }
+      renderGame();
+    });
+    socket.on("okeyLeft", () => {
+      state.okeyTable = null;
+      if (okeyArena) {
+        okeyArena.dispose();
+        okeyArena = null;
       }
       renderGame();
     });
@@ -699,6 +750,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     state.table = null;
     state.diceTable = null;
     state.chessTable = null;
+    state.okeyTable = null;
     disposeArenas();
     clearNotifications({ clearMini: true });
     state.socket?.disconnect();
@@ -1061,8 +1113,9 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     document.body.classList.toggle("in-games", view === "games");
     document.body.classList.toggle(
       "in-blackjack",
-      view === "games" && !!(state.table || state.diceTable || state.chessTable),
+      view === "games" && !!(state.table || state.diceTable || state.chessTable || state.okeyTable),
     );
+    document.body.classList.toggle("in-okey", view === "games" && !!state.okeyTable);
     $("header-title").textContent =
       view === "games" ? "oyun-alanı" : channels[safeChannel][0];
     $("channel-title").textContent = channels[safeChannel][0];
@@ -1760,6 +1813,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         state.table = null;
         state.diceTable = null;
         state.chessTable = null;
+        state.okeyTable = null;
         state.game = result.game;
         renderGame();
       }
@@ -1777,6 +1831,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         state.game = null;
         state.diceTable = null;
         state.chessTable = null;
+        state.okeyTable = null;
         if (diceArena) {
           diceArena.dispose();
           diceArena = null;
@@ -1784,6 +1839,10 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         if (chessArena) {
           chessArena.dispose();
           chessArena = null;
+        }
+        if (okeyArena) {
+          okeyArena.dispose();
+          okeyArena = null;
         }
         resetXoxSoundState();
         state.table = result.table;
@@ -1804,6 +1863,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         state.game = null;
         state.table = null;
         state.chessTable = null;
+        state.okeyTable = null;
         if (bjArena) {
           bjArena.dispose();
           bjArena = null;
@@ -1811,6 +1871,10 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         if (chessArena) {
           chessArena.dispose();
           chessArena = null;
+        }
+        if (okeyArena) {
+          okeyArena.dispose();
+          okeyArena = null;
         }
         resetXoxSoundState();
         state.diceTable = nextTable;
@@ -1830,6 +1894,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         state.game = null;
         state.table = null;
         state.diceTable = null;
+        state.okeyTable = null;
         if (bjArena) {
           bjArena.dispose();
           bjArena = null;
@@ -1838,8 +1903,43 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
           diceArena.dispose();
           diceArena = null;
         }
+        if (okeyArena) {
+          okeyArena.dispose();
+          okeyArena = null;
+        }
         resetXoxSoundState();
         state.chessTable = result.table;
+        renderGame();
+      }
+    } finally {
+      state.pendingGame = false;
+    }
+  }
+
+  async function okeyCommand(event, data = {}) {
+    if (!requireUser() || state.pendingGame) return;
+    state.pendingGame = true;
+    try {
+      const result = await act(event, data);
+      if (result.success && result.table) {
+        state.game = null;
+        state.table = null;
+        state.diceTable = null;
+        state.chessTable = null;
+        if (bjArena) {
+          bjArena.dispose();
+          bjArena = null;
+        }
+        if (diceArena) {
+          diceArena.dispose();
+          diceArena = null;
+        }
+        if (chessArena) {
+          chessArena.dispose();
+          chessArena = null;
+        }
+        resetXoxSoundState();
+        state.okeyTable = result.table;
         renderGame();
       }
     } finally {
@@ -1904,6 +2004,26 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       if (chessArena) {
         chessArena.dispose();
         chessArena = null;
+      }
+      renderGame();
+    }
+  }
+
+  async function leaveOkey() {
+    if (!state.okeyTable) return;
+    const isPlayer = state.okeyTable.mySeat !== -1;
+    if (
+      isPlayer &&
+      state.okeyTable.status === "playing" &&
+      !confirm("Devam eden Okey oyunundan kalkarsan 4 oyuncu kuralı gereği el sona erer. Kalkmak istiyor musun?")
+    )
+      return;
+    const result = await act("okeyLeave", { tableId: state.okeyTable.id });
+    if (result.success) {
+      state.okeyTable = null;
+      if (okeyArena) {
+        okeyArena.dispose();
+        okeyArena = null;
       }
       renderGame();
     }
@@ -2030,6 +2150,62 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       });
   }
 
+  function ensureOkeyArena() {
+    if (!state.okeyTable) return;
+    if (okeyArena) {
+      okeyArena.user = { id: state.socket?.id, name: state.user?.name };
+      okeyArena.update(state.okeyTable, state.socket?.id);
+      return;
+    }
+    okeyModulePromise ||= import("./games/okey3d.mjs");
+    okeyModulePromise
+      .then(({ OkeyArena }) => {
+        if (!state.okeyTable || okeyArena) return;
+        okeyArena = new OkeyArena(
+          $("active-okey"),
+          { id: state.socket?.id, name: state.user?.name },
+          {
+            onLeave: leaveOkey,
+            onHelp: (variant) =>
+              showDialog(variant === "101" ? "okey101-help-dialog" : "okey-help-dialog"),
+            onJoinSeat: (seatIndex) =>
+              okeyCommand("okeyJoin", { tableId: state.okeyTable?.id, seatIndex }),
+            onAction: (payload) =>
+              okeyCommand("okeyAction", { tableId: state.okeyTable?.id, ...payload }),
+            onArrange: (payload) =>
+              emit("okeyArrange", { tableId: state.okeyTable?.id, ...payload }).then((r) => {
+                if (!r.success) toast(r.message, true);
+                else if (r.table) {
+                  state.okeyTable = r.table;
+                  renderGame();
+                }
+              }),
+            onReact: (emoji) =>
+              emit("okeyReact", { tableId: state.okeyTable?.id, emoji }).then((r) => {
+                if (!r.success) toast(r.message, true);
+              }),
+          },
+        );
+        okeyArena.update(state.okeyTable, state.socket?.id);
+        window.scrollTo({ top: 0, behavior: "instant" });
+      })
+      .catch(() => {
+        toast("3D Okey sahnesi yüklenemedi.", true);
+      });
+  }
+
+  $("okey-create")?.addEventListener("click", () =>
+    okeyCommand("okeyCreate", { variant: "classic" }),
+  );
+  $("okey101-create")?.addEventListener("click", () =>
+    okeyCommand("okeyCreate", { variant: "101" }),
+  );
+  $("okey-help-btn")?.addEventListener("click", () =>
+    showDialog("okey-help-dialog"),
+  );
+  $("okey101-help-btn")?.addEventListener("click", () =>
+    showDialog("okey101-help-dialog"),
+  );
   $("chess-create")?.addEventListener("click", () =>
     chessCommand("chessCreate", {
       withBot: false,
@@ -2115,17 +2291,42 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     const table = state.table;
     const diceTable = state.diceTable;
     const chessTable = state.chessTable;
-    $("active-game").hidden = !game || !!table || !!diceTable || !!chessTable;
-    $("active-blackjack").hidden = !table || !!diceTable || !!chessTable;
-    $("active-dice").hidden = !diceTable || !!chessTable;
-    $("active-chess").hidden = !chessTable;
-    $("game-intro").hidden = !!(game || table || diceTable || chessTable);
+    const okeyTable = state.okeyTable;
+    const inAnyArena = !!(game || table || diceTable || chessTable || okeyTable);
+    $("active-game").hidden = !game || !!(table || diceTable || chessTable || okeyTable);
+    $("active-blackjack").hidden = !table || !!(diceTable || chessTable || okeyTable);
+    $("active-dice").hidden = !diceTable || !!(chessTable || okeyTable);
+    $("active-chess").hidden = !chessTable || !!okeyTable;
+    $("active-okey").hidden = !okeyTable;
+    $("game-intro").hidden = inAnyArena;
+    if ($("lobby-dock")) $("lobby-dock").hidden = inAnyArena;
     document.body.classList.toggle(
       "in-blackjack",
-      state.view === "games" && !!(table || diceTable || chessTable),
+      state.view === "games" && !!(table || diceTable || chessTable || okeyTable),
     );
+    document.body.classList.toggle("in-okey", state.view === "games" && !!okeyTable);
     syncMiniChatUI();
 
+      if (okeyTable) {
+        if (bjArena) {
+          bjArena.dispose();
+          bjArena = null;
+        }
+        if (diceArena) {
+          diceArena.dispose();
+          diceArena = null;
+        }
+        if (chessArena) {
+          chessArena.dispose();
+          chessArena = null;
+        }
+        ensureOkeyArena();
+        return;
+      }
+      if (okeyArena) {
+        okeyArena.dispose();
+        okeyArena = null;
+      }
       if (chessTable) {
         if (bjArena) {
           bjArena.dispose();
@@ -2192,7 +2393,9 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       const f = state.lobbyFilter || "all";
       const rType = room.type || "xox";
       if (f === "watchable") {
-        if (rType !== "chess") return false;
+        if (rType !== "chess" && rType !== "okey" && rType !== "okey101") return false;
+      } else if (f === "waiting") {
+        if (room.status !== "waiting" && room.status !== "countdown") return false;
       } else if (f !== "all" && rType !== f) {
         return false;
       }
@@ -2200,15 +2403,19 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       if (!q) return true;
       const parts = [
         room.name || "",
-        rType === "chess"
-          ? "satranç chess izle"
-          : rType === "blackjack"
-            ? "blackjack bj"
-            : rType === "dice"
-              ? "zar"
-              : room.mode === "infinite"
-                ? "sonsuz xox"
-                : "klasik xox",
+        rType === "okey"
+          ? "klasik okey taş"
+          : rType === "okey101"
+            ? "101 okey yüzbir"
+            : rType === "chess"
+              ? "satranç chess izle"
+              : rType === "blackjack"
+                ? "blackjack bj"
+                : rType === "dice"
+                  ? "zar"
+                  : room.mode === "infinite"
+                    ? "sonsuz xox"
+                    : "klasik xox",
         ...(room.seats || []).map((s) => s?.name || ""),
         ...(room.players || []).map((p) => p?.name || ""),
       ];
@@ -2218,10 +2425,19 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     function renderLobby() {
       const list = $("game-lobby");
         list.replaceChildren();
-        const filtered = state.games.filter(matchesLobby);
+        const filtered = state.games.filter(matchesLobby).sort((a, b) => {
+          const aw = a.status === "waiting" || a.status === "countdown" ? 0 : 1;
+          const bw = b.status === "waiting" || b.status === "countdown" ? 0 : 1;
+          return aw - bw;
+        });
+        const waitingCount = state.games.filter(
+          (g) => g.status === "waiting" || g.status === "countdown",
+        ).length;
         $("lobby-count").textContent =
           state.lobbyFilter === "all" && !state.lobbySearch.trim()
-            ? state.games.length + " ODA"
+            ? waitingCount > 0
+              ? `${state.games.length} ODA · ${waitingCount} BEKLİYOR`
+              : `${state.games.length} ODA`
             : `${filtered.length} / ${state.games.length} ODA`;
         if (!state.games.length) {
           list.append(
@@ -2229,8 +2445,8 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
               "div",
               "lobby-empty",
               state.user
-                ? "Henüz açık bir oyun veya masa yok. Yukarıdan Satranç, Blackjack, Zar ya da XOX başlat!"
-                : "Odalara katılmak, oyun masalarına oturmak ve oyuncuları görmek için giriş yap.",
+                ? "Şu an açık masa yok. Aşağıdan bir masa açtığında burada anında üstte listelenir!"
+                : "Açık masaları görmek, 4 kişilik Okey/101 veya diğer oyunlara oturmak için giriş yap.",
             ),
           );
           return;
@@ -2247,246 +2463,292 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         }
         for (const room of filtered) {
           const row = el("div", "lobby-room");
-          if (room.type === "chess") {
-            const badge = el("div", "avatar chess-lobby-avatar", "♔");
-            row.append(badge);
-            const meta = el("div", "room-meta");
-            const wName = room.seats?.[0]?.name || "Boş";
-            const bName = room.seats?.[1]?.name || "Bekleniyor";
-            const specText =
-              room.spectatorCount > 0 ? ` · 👁 ${room.spectatorCount} izleyici` : "";
-            const statusText =
-              room.status === "waiting"
-                ? `${room.seatedCount}/2 koltuk · Katıl veya İzle${specText}`
-                : room.status === "finished"
-                  ? `Bitti · ${room.moveCount || 0} hamle${specText}`
-                  : `${room.round || 1}. Oyun · ${room.moveCount || 0} hamle${specText}`;
-            meta.append(
-              el("strong", "", `${room.name} (${wName} × ${bName})`),
-              el("small", "", statusText),
-            );
-            row.append(meta);
-            const iAmSeated = state.chessTable?.id === room.id &&
-              state.chessTable.seats?.some((s) => s && !s.isBot && s.userId === state.socket?.id);
-            const iAmSpec = state.chessTable?.id === room.id && !iAmSeated;
-            if (iAmSeated) {
-              row.append(el("span", "tag", "MASADASIN"));
-            } else if (iAmSpec) {
-              row.append(el("span", "tag chess-spec-tag", "İZLİYORSUN 👁"));
-            } else {
-              const actGroup = el("div", "lobby-room-actions");
-              if (room.seatedCount < 2) {
-                actGroup.append(
-                  button("Katıl ♔", "button primary", () => {
-                    chessCommand("chessJoin", { tableId: room.id });
-                  }),
-                );
-              }
-              actGroup.append(
-                button(
-                  "İzle 👁",
-                  room.seatedCount >= 2 ? "button primary" : "button secondary",
-                  () => {
-                    chessCommand("chessSpectate", { tableId: room.id });
-                  },
-                ),
-              );
-              row.append(actGroup);
-            }
-          } else if (room.type === "blackjack") {
-            const badge = el("div", "avatar bj-lobby-avatar", "♠");
-            row.append(badge);
-            const meta = el("div", "room-meta");
-            const statusText =
-              room.status === "waiting"
-                ? `${room.seatedCount}/6 koltuk · Katılıma açık`
-                : room.status === "countdown"
-                  ? `${room.seatedCount}/6 koltuk · Başlamak üzere!`
-                  : `${room.seatedCount}/6 koltuk · ${room.round}. El oynanıyor`;
-            meta.append(
-              el("strong", "", room.name),
-              el("small", "", statusText),
-            );
-            row.append(meta);
-            const iAmSeated = room.seats?.some(
-              (s) => s && s.userId === state.socket?.id,
-            );
-            if (iAmSeated) {
-              row.append(el("span", "tag", "MASADASIN"));
-            } else if (room.seatedCount < room.maxSeats) {
-              row.append(
-                button("Masaya otur ♠", "button primary", () => {
-                  if (
-                    state.game?.status === "playing" &&
-                    !confirm("Mevcut XOX oyunun sona erecek. Blackjack masasına geçilsin mi?")
-                  )
-                    return;
-                  bjCommand("bjJoin", { tableId: room.id });
-                }),
-              );
-            } else {
-              row.append(el("span", "tag", "DOLU (6/6)"));
-            }
-          } else if (room.type === "dice") {
-            const badge = el("div", "avatar dice-lobby-avatar", "🎲");
-            row.append(badge);
-            const meta = el("div", "room-meta");
-            const target = room.targetScore || 3000;
-            const botLabel = room.hasBot ? " · Zar Botu aktif" : "";
-            const statusText =
-              room.status === "waiting"
-                ? `${room.seatedCount}/6 koltuk · Hedef ${target}${botLabel}`
-                : `${room.seatedCount}/6 koltuk · ${room.round || 1}. Tur · Hedef ${target}${botLabel}`;
-            meta.append(
-              el("strong", "", room.name),
-              el("small", "", statusText),
-            );
-            row.append(meta);
-            const iAmSeated = room.seats?.some(
-              (s) => s && s.userId === state.socket?.id,
-            );
-            if (iAmSeated) {
-              row.append(el("span", "tag", "MASADASIN"));
-            } else if (room.seatedCount < room.maxSeats) {
-              row.append(
-                button("Masaya otur 🎲", "button primary", () => {
-                  if (
-                    state.game?.status === "playing" &&
-                    !confirm("Mevcut XOX oyunun sona erecek. Zar Düellosu masasına geçilsin mi?")
-                  )
-                    return;
-                  diceCommand("diceJoin", { tableId: room.id });
-                }),
-              );
-            } else {
-              row.append(el("span", "tag", "DOLU (6/6)"));
-            }
-          } else {
-            row.append(avatar(room.players[0].name));
-            const meta = el("div", "room-meta");
-            const modeLabel = room.mode === "infinite" ? "Sonsuz XOX" : "Klasik XOX";
-            meta.append(
-              el(
-                "strong",
-                "",
-                room.players[0].name +
-                (room.players[1]
-                  ? " × " + room.players[1].name
-                  : " · Oyuncu bekliyor"),
-              ),
-              el(
-                "small",
-                "",
-                room.status === "waiting"
-                  ? `${modeLabel} · Bir koltuk boş. Sıra arkadaşında.`
-                  : room.bot
-                    ? `${modeLabel} · Bot karşılaşması (${room.round || 1}. el)`
-                    : `${modeLabel} · 1v1 karşılaşma (${room.round || 1}. el)`,
-              ),
-            );
-            row.append(meta);
-            if (room.players.some((p) => p.id === state.socket?.id))
-              row.append(el("span", "tag", "SENİN ODAN"));
-            else if (room.status === "waiting")
-              row.append(
-                button("Katıl ↗", "button primary", () => {
-                  if (
-                    state.game?.status === "playing" &&
-                    !confirm("Mevcut oyunun sona erecek. Bu odaya geçilsin mi?")
-                  )
-                    return;
-                  gameAction("gameJoin", { gameId: room.id });
-                }),
-              );
-            else row.append(el("span", "tag", "OYUNDA"));
+          if (room.status === "waiting" || room.status === "countdown") {
+            row.classList.add("is-waiting");
           }
-                list.append(row);
-              }
-            }
-
-              $("lobby-filters")?.addEventListener("click", (e) => {
-                const btn = e.target.closest("[data-filter]");
-                if (!btn) return;
-                state.lobbyFilter = btn.dataset.filter || "all";
-                document.querySelectorAll("#lobby-filters [data-filter]").forEach((chip) => {
-                  chip.classList.toggle("active", chip === btn);
-                });
-                renderLobby();
-              });
-              $("lobby-search")?.addEventListener("input", (e) => {
-                state.lobbySearch = e.target.value || "";
-                renderLobby();
-              });
-
-              function setMiniChatOpen(open) {
-                state.miniChatOpen = Boolean(open);
-                if (state.miniChatOpen) {
-                  clearNotifications({ clearMini: true });
-                  renderMiniChat();
-                  setTimeout(() => $("mini-chat-input")?.focus(), 40);
+        if (room.type === "okey" || room.type === "okey101") {
+              const is101 = room.type === "okey101";
+              row.append(
+                el("div", `avatar ${is101 ? "okey101-lobby-avatar" : "okey-lobby-avatar"}`, is101 ? "101" : "🁣"),
+              );
+                const meta = el("div", "room-meta");
+                const names = (room.seats || []).filter(Boolean).map((s) => s.name).join(", ");
+                const specText = room.spectatorCount > 0 ? ` · 👁 ${room.spectatorCount} izleyici` : "";
+                const statusText =
+                  room.status === "waiting"
+                    ? `⏳ ${room.seatedCount}/4 kişi · 4/4 dolunca başlar (${names})`
+                    : room.status === "finished"
+                      ? `El Bitti · ${names}${specText}`
+                      : `${room.round || 1}. El · Oynanıyor (${names})${specText}`;
+                meta.append(el("strong", "", room.name), el("small", "", statusText));
+                row.append(meta);
+                const iAmSeated =
+                  state.okeyTable?.id === room.id && state.okeyTable.mySeat !== -1;
+                const iAmSpec = state.okeyTable?.id === room.id && !iAmSeated;
+                if (iAmSeated) {
+                  row.append(el("span", "tag", "MASADASIN"));
+                } else if (iAmSpec) {
+                  row.append(el("span", "tag chess-spec-tag", "İZLİYORSUN 👁"));
                 } else {
-                  syncMiniChatUI();
+                  const actGroup = el("div", "lobby-room-actions");
+                  if (room.seatedCount < 4 && room.status !== "playing") {
+                    actGroup.append(
+                      button(`Katıl (${room.seatedCount}/4)`, "button primary", () => {
+                        okeyCommand("okeyJoin", { tableId: room.id });
+                      }),
+                    );
+                  }
+                  actGroup.append(
+                    button(
+                      "İzle 👁",
+                      room.seatedCount >= 4 || room.status === "playing" ? "button primary" : "button secondary",
+                      () => {
+                        okeyCommand("okeySpectate", { tableId: room.id });
+                      },
+                    ),
+                  );
+                  row.append(actGroup);
                 }
-              }
-                $("mini-chat-toggle")?.addEventListener("click", () =>
-                  setMiniChatOpen(!state.miniChatOpen),
+              } else if (room.type === "chess") {
+                const badge = el("div", "avatar chess-lobby-avatar", "♔");
+                row.append(badge);
+                const meta = el("div", "room-meta");
+                const wName = room.seats?.[0]?.name || "Boş";
+                const bName = room.seats?.[1]?.name || "Bekleniyor";
+                const specText =
+                  room.spectatorCount > 0 ? ` · 👁 ${room.spectatorCount} izleyici` : "";
+                const statusText =
+                  room.status === "waiting"
+                    ? `${room.seatedCount}/2 koltuk · Katıl veya İzle${specText}`
+                    : room.status === "finished"
+                      ? `Bitti · ${room.moveCount || 0} hamle${specText}`
+                      : `${room.round || 1}. Oyun · ${room.moveCount || 0} hamle${specText}`;
+                meta.append(
+                  el("strong", "", `${room.name} (${wName} × ${bName})`),
+                  el("small", "", statusText),
                 );
-        $("mini-chat-close")?.addEventListener("click", () => setMiniChatOpen(false));
-        document.querySelectorAll("[data-mini-ch]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            state.miniChatChannel = btn.dataset.miniCh || "general";
-            clearNotifications({ clearMini: state.miniChatOpen });
-            syncMiniChatUI();
-            renderMiniChat();
-          });
-        });
-        let sendingMini = false;
-        $("mini-chat-form")?.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          if (!requireUser() || sendingMini) return;
-          const inp = $("mini-chat-input");
-          const msg = inp?.value || "";
-          if (!msg.trim()) return;
-          sendingMini = true;
-          const res = await act("sendMessage", {
-            message: msg,
-            channel: state.miniChatChannel,
-            type: "text",
-          });
-          sendingMini = false;
-          if (res.success && inp) {
-            inp.value = "";
-            inp.focus();
+                row.append(meta);
+                const iAmSeated = state.chessTable?.id === room.id &&
+                  state.chessTable.seats?.some((s) => s && !s.isBot && s.userId === state.socket?.id);
+                const iAmSpec = state.chessTable?.id === room.id && !iAmSeated;
+                if (iAmSeated) {
+                  row.append(el("span", "tag", "MASADASIN"));
+                } else if (iAmSpec) {
+                  row.append(el("span", "tag chess-spec-tag", "İZLİYORSUN 👁"));
+                } else {
+                  const actGroup = el("div", "lobby-room-actions");
+                  if (room.seatedCount < 2) {
+                    actGroup.append(
+                      button("Katıl ♔", "button primary", () => {
+                        chessCommand("chessJoin", { tableId: room.id });
+                      }),
+                    );
+                  }
+                  actGroup.append(
+                    button(
+                      "İzle 👁",
+                      room.seatedCount >= 2 ? "button primary" : "button secondary",
+                      () => {
+                        chessCommand("chessSpectate", { tableId: room.id });
+                      },
+                    ),
+                  );
+                  row.append(actGroup);
+                }
+              } else if (room.type === "blackjack") {
+                const badge = el("div", "avatar bj-lobby-avatar", "♠");
+                row.append(badge);
+                const meta = el("div", "room-meta");
+                const statusText =
+                  room.status === "waiting"
+                    ? `${room.seatedCount}/6 koltuk · Katılıma açık`
+                    : room.status === "countdown"
+                      ? `${room.seatedCount}/6 koltuk · Başlamak üzere!`
+                      : `${room.seatedCount}/6 koltuk · ${room.round}. El oynanıyor`;
+                meta.append(
+                  el("strong", "", room.name),
+                  el("small", "", statusText),
+                );
+                row.append(meta);
+                const iAmSeated = room.seats?.some(
+                  (s) => s && s.userId === state.socket?.id,
+                );
+                if (iAmSeated) {
+                  row.append(el("span", "tag", "MASADASIN"));
+                } else if (room.seatedCount < room.maxSeats) {
+                  row.append(
+                    button("Masaya otur ♠", "button primary", () => {
+                      if (
+                        state.game?.status === "playing" &&
+                        !confirm("Mevcut XOX oyunun sona erecek. Blackjack masasına geçilsin mi?")
+                      )
+                        return;
+                      bjCommand("bjJoin", { tableId: room.id });
+                    }),
+                  );
+                } else {
+                  row.append(el("span", "tag", "DOLU (6/6)"));
+                }
+              } else if (room.type === "dice") {
+                const badge = el("div", "avatar dice-lobby-avatar", "🎲");
+                row.append(badge);
+                const meta = el("div", "room-meta");
+                const target = room.targetScore || 3000;
+                const botLabel = room.hasBot ? " · Zar Botu aktif" : "";
+                const statusText =
+                  room.status === "waiting"
+                    ? `${room.seatedCount}/6 koltuk · Hedef ${target}${botLabel}`
+                    : `${room.seatedCount}/6 koltuk · ${room.round || 1}. Tur · Hedef ${target}${botLabel}`;
+                meta.append(
+                  el("strong", "", room.name),
+                  el("small", "", statusText),
+                );
+                row.append(meta);
+                const iAmSeated = room.seats?.some(
+                  (s) => s && s.userId === state.socket?.id,
+                );
+                if (iAmSeated) {
+                  row.append(el("span", "tag", "MASADASIN"));
+                } else if (room.seatedCount < room.maxSeats) {
+                  row.append(
+                    button("Masaya otur 🎲", "button primary", () => {
+                      if (
+                        state.game?.status === "playing" &&
+                        !confirm("Mevcut XOX oyunun sona erecek. Zar Düellosu masasına geçilsin mi?")
+                      )
+                        return;
+                      diceCommand("diceJoin", { tableId: room.id });
+                    }),
+                  );
+                } else {
+                  row.append(el("span", "tag", "DOLU (6/6)"));
+                }
+              } else {
+                row.append(avatar(room.players[0].name));
+                const meta = el("div", "room-meta");
+                const modeLabel = room.mode === "infinite" ? "Sonsuz XOX" : "Klasik XOX";
+                meta.append(
+                  el(
+                    "strong",
+                    "",
+                    room.players[0].name +
+                    (room.players[1]
+                      ? " × " + room.players[1].name
+                      : " · Oyuncu bekliyor"),
+                  ),
+                  el(
+                    "small",
+                    "",
+                    room.status === "waiting"
+                      ? `${modeLabel} · Bir koltuk boş. Sıra arkadaşında.`
+                      : room.bot
+                        ? `${modeLabel} · Bot karşılaşması (${room.round || 1}. el)`
+                        : `${modeLabel} · 1v1 karşılaşma (${room.round || 1}. el)`,
+                  ),
+                );
+                row.append(meta);
+                if (room.players.some((p) => p.id === state.socket?.id))
+                  row.append(el("span", "tag", "SENİN ODAN"));
+                else if (room.status === "waiting")
+                  row.append(
+                    button("Katıl ↗", "button primary", () => {
+                      if (
+                        state.game?.status === "playing" &&
+                        !confirm("Mevcut oyunun sona erecek. Bu odaya geçilsin mi?")
+                      )
+                        return;
+                      gameAction("gameJoin", { gameId: room.id });
+                    }),
+                  );
+                else row.append(el("span", "tag", "OYUNDA"));
+              }
+              list.append(row);
+            }
           }
-        });
 
-        window.addEventListener("focus", () => {
-          if (state.view === "chat" || state.miniChatOpen) {
-            clearNotifications({ clearMini: true });
+          $("lobby-filters")?.addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-filter]");
+            if (!btn) return;
+            state.lobbyFilter = btn.dataset.filter || "all";
+            document.querySelectorAll("#lobby-filters [data-filter]").forEach((chip) => {
+              chip.classList.toggle("active", chip === btn);
+            });
+            renderLobby();
+          });
+          $("lobby-search")?.addEventListener("input", (e) => {
+            state.lobbySearch = e.target.value || "";
+            renderLobby();
+          });
+
+          function setMiniChatOpen(open) {
+            state.miniChatOpen = Boolean(open);
+            if (state.miniChatOpen) {
+              clearNotifications({ clearMini: true });
+              renderMiniChat();
+              setTimeout(() => $("mini-chat-input")?.focus(), 40);
+            } else {
+              syncMiniChatUI();
+            }
           }
-        });
-        document.addEventListener("visibilitychange", () => {
-          if (!document.hidden && (state.view === "chat" || state.miniChatOpen)) {
-            clearNotifications({ clearMini: true });
-          }
-        });
-        try {
-          const params = new URLSearchParams(location.search);
-          const page = params.get("sayfa") || location.hash.replace(/^#/, "");
-          const ch = params.get("kanal");
-          if (page === "oyunlar") navigate("games");
-          else if (ch === "kod" || ch === "code") navigate("chat", "code");
-          else {
+          $("mini-chat-toggle")?.addEventListener("click", () =>
+            setMiniChatOpen(!state.miniChatOpen),
+          );
+          $("mini-chat-close")?.addEventListener("click", () => setMiniChatOpen(false));
+          document.querySelectorAll("[data-mini-ch]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              state.miniChatChannel = btn.dataset.miniCh || "general";
+              clearNotifications({ clearMini: state.miniChatOpen });
+              syncMiniChatUI();
+              renderMiniChat();
+            });
+          });
+          let sendingMini = false;
+          $("mini-chat-form")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!requireUser() || sendingMini) return;
+            const inp = $("mini-chat-input");
+            const msg = inp?.value || "";
+            if (!msg.trim()) return;
+            sendingMini = true;
+            const res = await act("sendMessage", {
+              message: msg,
+              channel: state.miniChatChannel,
+              type: "text",
+            });
+            sendingMini = false;
+            if (res.success && inp) {
+              inp.value = "";
+              inp.focus();
+            }
+          });
+
+          window.addEventListener("focus", () => {
+            if (state.view === "chat" || state.miniChatOpen) {
+              clearNotifications({ clearMini: true });
+            }
+          });
+          document.addEventListener("visibilitychange", () => {
+            if (!document.hidden && (state.view === "chat" || state.miniChatOpen)) {
+              clearNotifications({ clearMini: true });
+            }
+          });
+          try {
+            const params = new URLSearchParams(location.search);
+            const page = params.get("sayfa") || location.hash.replace(/^#/, "");
+            const ch = params.get("kanal");
+            if (page === "oyunlar") navigate("games");
+            else if (ch === "kod" || ch === "code") navigate("chat", "code");
+            else {
+              renderMessages();
+              renderUsers();
+              renderLobby();
+              setMemberUI();
+            }
+          } catch {
             renderMessages();
             renderUsers();
             renderLobby();
             setMemberUI();
           }
-        } catch {
-          renderMessages();
-          renderUsers();
-          renderLobby();
-          setMemberUI();
-        }
-        connection("offline");
-      }) ();
+          connection("offline");
+        }) ();
