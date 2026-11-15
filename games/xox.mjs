@@ -117,6 +117,11 @@ export function renderXoxView({
 
   if (metaRow) {
     metaRow.replaceChildren();
+    const modeBadge = document.createElement("span");
+    modeBadge.className =
+      "tag " + (game.mode === "infinite" ? "xox-infinite-tag" : "");
+    modeBadge.textContent =
+      game.mode === "infinite" ? "SONSUZ 3 TAŞ · BERABERESİZ" : "KLASİK 3×3";
     const roundBadge = document.createElement("span");
     roundBadge.className = "tag xox-round-tag";
     roundBadge.textContent = `${round}. EL`;
@@ -125,8 +130,11 @@ export function renderXoxView({
     starterBadge.textContent = `İlk başlayan: ${starter ? starter.name : "×"}`;
     const scorePill = document.createElement("span");
     scorePill.className = "xox-score-pill";
-    scorePill.textContent = `× ${scores.X} · Berabere ${scores.draws} · ${scores.O} ○`;
-    metaRow.append(roundBadge, starterBadge, scorePill);
+    scorePill.textContent =
+      game.mode === "infinite"
+        ? `× ${scores.X} · ${scores.O} ○`
+        : `× ${scores.X} · Berabere ${scores.draws} · ${scores.O} ○`;
+    metaRow.append(modeBadge, roundBadge, starterBadge, scorePill);
     if (game.bot) {
       const diffBadge = document.createElement("span");
       diffBadge.className = "tag";
@@ -192,9 +200,8 @@ export function renderXoxView({
         const title = document.createElement("strong");
         title.textContent = `${game.rematch.fromName} 1v1 Tekrar Oyna istiyor!`;
         const hint = document.createElement("p");
-        hint.textContent = `Kabul edersen ${round + 1}. el hemen başlayacak · Sıradaki ilk başlayan: ${
-          nextStarter.id === mySocketId ? `Sen (${nextStarter.symbol})` : nextStarter.name
-        }`;
+        hint.textContent = `Kabul edersen ${round + 1}. el hemen başlayacak · Sıradaki ilk başlayan: ${nextStarter.id === mySocketId ? `Sen (${nextStarter.symbol})` : nextStarter.name
+          }`;
         const actions = document.createElement("div");
         actions.className = "rematch-actions";
         const acceptBtn = document.createElement("button");
@@ -244,20 +251,32 @@ export function renderXoxView({
 
   game.board.forEach((value, index) => {
     const isNewMark = !!value && prevBoard[index] !== value;
+    const isVanishing =
+      game.mode === "infinite" &&
+      game.status === "playing" &&
+      game.vanishIndex === index &&
+      !!value;
     const cell = document.createElement("button");
     cell.type = "button";
     cell.className =
       "game-cell" +
       (value ? " is-filled " + value.toLowerCase() : "") +
       (isNewMark ? " is-new" : "") +
+      (isVanishing ? " is-fading" : "") +
       (game.winningLine?.includes(index) ? " win" : "");
     cell.setAttribute(
       "aria-label",
-      `${Math.floor(index / 3) + 1}. satır, ${(index % 3) + 1}. sütun: ${value || "boş"}`,
+      `${Math.floor(index / 3) + 1}. satır, ${(index % 3) + 1}. sütun: ${value || "boş"}${isVanishing ? " (bir sonraki hamlede silinecek)" : ""}`,
     );
     cell.disabled = !!value || !canClickBoard;
     if (value) {
       cell.append(makeMarkSvg(value));
+      if (isVanishing) {
+        const hint = document.createElement("span");
+        hint.className = "cell-vanish-badge";
+        hint.textContent = "SONRAKİ GİDER";
+        cell.append(hint);
+      }
     } else if (canClickBoard) {
       const ghost = document.createElement("span");
       ghost.className = "cell-ghost";

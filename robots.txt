@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 
+Host: https://chat.haking.tr
 Sitemap: https://chat.haking.tr/sitemap.xml

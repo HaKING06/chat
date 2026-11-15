@@ -140,3 +140,25 @@ export function playDraw() {
   tone({ freq: 440, duration: 0.1, gain: 0.035, type: "sine", delay: 0 });
   tone({ freq: 392, duration: 0.14, gain: 0.03, type: "sine", delay: 0.09 });
 }
+
+export function playDiceRoll() {
+  for (let i = 0; i < 4; i++) {
+    tone({
+      freq: 220 + i * 75,
+      endFreq: 140 + i * 40,
+      duration: 0.045,
+      gain: 0.03,
+      type: "triangle",
+      delay: i * 0.055,
+    });
+  }
+}
+
+export function playDiceLock() {
+  tone({ freq: 680, endFreq: 960, duration: 0.055, gain: 0.03, type: "sine" });
+}
+
+export function playFarkle() {
+  tone({ freq: 310, endFreq: 185, duration: 0.16, gain: 0.045, type: "sawtooth", delay: 0 });
+  tone({ freq: 210, endFreq: 110, duration: 0.24, gain: 0.04, type: "triangle", delay: 0.12 });
+}

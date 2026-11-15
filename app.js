@@ -16,6 +16,8 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
   const emojis = ["👍", "❤️", "🔥", "😂", "🎉", "👀"];
   let bjModulePromise = null;
   let bjArena = null;
+  let diceModulePromise = null;
+  let diceArena = null;
   const state = {
     socket: null,
     user: null,
@@ -27,6 +29,12 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     games: [],
     game: null,
     table: null,
+    diceTable: null,
+    channelState: {
+      general: { locked: false, slowmodeSec: 0 },
+      code: { locked: false, slowmodeSec: 0 },
+    },
+    announcement: null,
     reply: null,
     editing: null,
     codeOnly: false,
@@ -123,6 +131,47 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         .toLocaleUpperCase("tr"),
     );
   }
+  function renderChannelNotices() {
+    const annBox = $("announcement-banner");
+    const noticeBox = $("channel-notice");
+    const ann = state.announcement;
+    if (annBox) {
+      const showAnn =
+        !!ann && (ann.channel === "all" || ann.channel === state.channel);
+      annBox.hidden = !showAnn;
+      annBox.replaceChildren();
+      if (showAnn) {
+        annBox.append(
+          el("span", "role-badge", "KURUCU DUYURUSU"),
+          el("span", "announcement-text", ann.text),
+        );
+      }
+    }
+    const ch = state.channelState?.[state.channel] || {
+      locked: false,
+      slowmodeSec: 0,
+    };
+    if (noticeBox) {
+      const parts = [];
+      if (ch.locked)
+        parts.push("🔒 Kanal kilitli · Yalnızca yetkililer mesaj gönderebilir.");
+      if (ch.slowmodeSec > 0)
+        parts.push(`⏱ Yavaş mod aktif (${ch.slowmodeSec} sn aralık)`);
+      noticeBox.hidden = parts.length === 0;
+      noticeBox.classList.toggle("is-locked", !!ch.locked);
+      noticeBox.textContent = parts.join("   ·   ");
+    }
+  }
+  function disposeArenas() {
+    if (bjArena) {
+      bjArena.dispose();
+      bjArena = null;
+    }
+    if (diceArena) {
+      diceArena.dispose();
+      diceArena = null;
+    }
+  }
   function setMemberUI() {
     document.body.classList.toggle("is-member", !!state.user);
     $("profile-name").textContent = state.user?.name || "Henüz tanışmadık";
@@ -140,9 +189,14 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     $("join-top").textContent = state.user
       ? state.user.role === "admin"
         ? "Yönetim ⌘"
+      : state.user.role === "mod"
+        ? "Moderasyon 🛡"
         : "Çıkış yap ↗"
       : "Sohbete katıl ↗";
-    $("join-top").classList.toggle("admin-open", state.user?.role === "admin");
+    $("join-top").classList.toggle(
+      "admin-open",
+      state.user?.role === "admin" || state.user?.role === "mod",
+    );
     $("moderators-button").hidden = state.user?.role !== "admin";
     $("open-games")?.classList.toggle("active", state.view === "games");
     const codeButton = $("code-button");
@@ -151,15 +205,27 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       codeButton.textContent =
         state.channel === "code" ? "</> Kod paylaş" : "</>";
     }
+    const chState = state.channelState?.[state.channel] || {
+      locked: false,
+      slowmodeSec: 0,
+    };
+    const isStaff = !!state.user && rank[state.user.role] >= 1;
+    const lockedForMe = !!chState.locked && !isStaff;
     const enabled =
-      !!state.user && !!state.socket?.connected && !state.user.isMuted;
+    !!state.user &&
+      !!state.socket?.connected &&
+      !state.user.isMuted &&
+      !lockedForMe;
     $("message-input").disabled = !enabled;
     $("send-button").disabled = !enabled;
     $("message-input").placeholder = state.user?.isMuted
       ? "Mesaj gönderme iznin şu an kapalı."
+      : lockedForMe
+      ? "Bu kanal şu an yalnızca yetkililerin yazımına açık (kilitli)."
       : state.user
         ? "#" + channels[state.channel][0] + " kanalına bir şeyler yaz…"
         : "Sohbete katılmak için giriş yap…";
+    renderChannelNotices();
   }
   async function authenticate() {
     if (!state.credentials || state.joining) return;
@@ -182,6 +248,8 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     state.messages = new Map((result.history || []).map((m) => [m.id, m]));
     state.users = result.users || [];
     state.games = result.games || [];
+    if (result.channelState) state.channelState = result.channelState;
+    state.announcement = result.announcement || null;
     $("staff-password").value = "";
     $("login-dialog").close();
     setMemberUI();
@@ -233,10 +301,8 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       state.user = null;
       state.game = null;
       state.table = null;
-      if (bjArena) {
-        bjArena.dispose();
-        bjArena = null;
-      }
+      state.diceTable = null;
+      disposeArenas();
       resetXoxSoundState();
       state.users = [];
       state.games = [];
@@ -267,6 +333,17 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       setMemberUI();
       renderUsers();
       if ($("moderators-dialog").open) loadModerators();
+      if ($("admin-dialog").open) renderMutedUsers();
+    });
+    socket.on("channelStateUpdated", (nextState) => {
+      if (nextState) state.channelState = nextState;
+      setMemberUI();
+      if ($("admin-dialog").open) syncAdminChannelControls();
+    });
+    socket.on("announcement", (ann) => {
+      state.announcement = ann || null;
+      renderChannelNotices();
+      if (ann?.text && state.user) toast("📢 " + ann.text);
     });
     socket.on("receiveMessage", (m) => {
       const nearBottom =
@@ -341,6 +418,11 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       if (table.seats?.some((s) => s && s.userId === socket.id)) {
         state.table = table;
         state.game = null;
+        state.diceTable = null;
+        if (diceArena) {
+          diceArena.dispose();
+          diceArena = null;
+        }
         renderGame();
       }
     });
@@ -349,6 +431,26 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       if (bjArena) {
         bjArena.dispose();
         bjArena = null;
+      }
+      renderGame();
+    });
+    socket.on("diceUpdated", (table) => {
+      if (table.seats?.some((s) => s && !s.isBot && s.userId === socket.id)) {
+        state.diceTable = table;
+        state.table = null;
+        state.game = null;
+        if (bjArena) {
+          bjArena.dispose();
+          bjArena = null;
+        }
+        renderGame();
+      }
+    });
+    socket.on("diceLeft", () => {
+      state.diceTable = null;
+      if (diceArena) {
+        diceArena.dispose();
+        diceArena = null;
       }
       renderGame();
     });
@@ -379,8 +481,9 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     const inActiveBj = state.table?.seats?.some(
       (s) => s && s.userId === state.socket?.id && s.activeInRound,
     );
+    const inActiveDice = state.diceTable?.status === "playing";
     if (
-      (state.game?.status === "playing" || inActiveBj) &&
+      (state.game?.status === "playing" || inActiveBj || inActiveDice) &&
       !confirm(
         "Çıkış yaparsan oyun sona erecek. Oturumu kapatmak istiyor musun?",
       )
@@ -391,10 +494,8 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     state.user = null;
     state.game = null;
     state.table = null;
-    if (bjArena) {
-      bjArena.dispose();
-      bjArena = null;
-    }
+    state.diceTable = null;
+    disposeArenas();
     state.socket?.disconnect();
     state.messages.clear();
     cancelReply();
@@ -404,9 +505,63 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     renderMessages();
     toast("Görüşmek üzere. Her zaman yerin var.");
   }
+  function syncAdminChannelControls() {
+    const ch = state.channelState?.[state.channel] || {
+      locked: false,
+      slowmodeSec: 0,
+    };
+    const chTitle = "#" + channels[state.channel][0];
+    if ($("admin-channel-badge")) $("admin-channel-badge").textContent = chTitle;
+    if ($("admin-slowmode")) $("admin-slowmode").value = String(ch.slowmodeSec || 0);
+    if ($("toggle-channel-lock"))
+      $("toggle-channel-lock").textContent = ch.locked
+        ? "Kanal kilidini aç 🔓"
+        : "Kanalı kilitle 🔒";
+  }
+  function renderMutedUsers() {
+    const box = $("muted-users-list");
+    if (!box) return;
+    box.replaceChildren();
+    const muted = state.users.filter((u) => u.isMuted);
+    if (!muted.length) {
+      box.append(el("div", "staff-empty", "Şu an susturulan üye yok."));
+      return;
+    }
+    for (const u of muted) {
+      const row = el("div", "staff-entry");
+      const info = el("div", "staff-entry-info");
+      const rem = u.muteUntil
+        ? `${Math.max(1, Math.ceil((u.muteUntil - Date.now()) / 60000))} dk kaldı`
+        : "Süresiz";
+      info.append(
+        el("strong", "", u.name),
+        el("small", "", rem + (u.muteReason ? ` · ${u.muteReason}` : "")),
+      );
+      row.append(info);
+      if (state.user && rank[state.user.role] > rank[u.role]) {
+        row.append(
+          button("Sesi aç", "button small secondary", async () => {
+            const res = await act("moderate", { action: "mute", targetId: u.id });
+            if (res.success) toast(u.name + " susturulması kaldırıldı.");
+          }),
+        );
+      }
+      box.append(row);
+    }
+  }
   async function openAdmin() {
-    if (state.user?.role !== "admin") return;
+    if (!state.user || rank[state.user.role] < 1) return;
+    const isAdmin = state.user.role === "admin";
+    const dlg = $("admin-dialog");
+    dlg.classList.toggle("is-mod-scope", !isAdmin);
+    if ($("admin-dialog-title"))
+      $("admin-dialog-title").textContent = isAdmin
+        ? "Kurucu · Topluluk yönetimi"
+        : "Moderatör · Kanal moderasyonu";
+    syncAdminChannelControls();
+    renderMutedUsers();
     showDialog("admin-dialog");
+    if (!isAdmin) return;
     $("audit-list").textContent = "Yükleniyor…";
     const result = await emit("getAuditLog");
     $("audit-list").replaceChildren();
@@ -418,10 +573,17 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       $("audit-list").textContent = "Henüz bir yönetim işlemi yok.";
     for (const entry of result.entries) {
       const labels = {
-        mute: "susturma değiştirildi",
+        mute: "susturuldu",
+        unmute: "sesi açıldı",
         kick: "odadan çıkarıldı",
         rename: "ad değiştirildi",
         clear: "kanal temizlendi",
+        clearGames: "oyun lobisi sıfırlandı",
+        slowmode: "yavaş mod güncellendi",
+        lock: "kanal kilitlendi",
+        unlock: "kanal kilidi açıldı",
+        announce: "duyuru yayınlandı",
+        "announce-clear": "duyuru kaldırıldı",
         delete: "mesaj silindi",
         pin: "sabitleme değiştirildi",
         "moderator-add": "moderatör eklendi",
@@ -527,6 +689,57 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     renderModerators(result);
     toast("Yeni moderatör eklendi. Kendi parolasıyla giriş yapabilir.");
   });
+  $("admin-slowmode")?.addEventListener("change", async () => {
+    const res = await act("setChannelState", {
+      channel: state.channel,
+      slowmodeSec: Number($("admin-slowmode").value) || 0,
+    });
+    if (res.success) {
+      if (res.channelState) state.channelState = res.channelState;
+      setMemberUI();
+      toast("Yavaş mod ayarı güncellendi.");
+    }
+  });
+  $("toggle-channel-lock")?.addEventListener("click", async () => {
+    const locked = !!state.channelState?.[state.channel]?.locked;
+    const res = await act("setChannelState", {
+      channel: state.channel,
+      locked: !locked,
+    });
+    if (res.success) {
+      if (res.channelState) state.channelState = res.channelState;
+      setMemberUI();
+      syncAdminChannelControls();
+      toast(!locked ? "Kanal kilitlendi." : "Kanal kilidi açıldı.");
+    }
+  });
+  $("clear-games-btn")?.addEventListener("click", async () => {
+    if (confirm("Açık tüm XOX, Blackjack ve Zar masaları kapatılsın mı?")) {
+      const res = await act("moderate", { action: "clearGames" });
+      if (res.success) {
+        toast("Oyun lobisi sıfırlandı.");
+        openAdmin();
+      }
+    }
+  });
+  $("announce-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = $("announce-text")?.value.trim();
+    if (!text) return;
+    const res = await act("announce", { text, channel: "all" });
+    if (res.success) {
+      $("announce-text").value = "";
+      toast("Resmi duyuru yayınlandı.");
+      openAdmin();
+    }
+  });
+  $("clear-announce")?.addEventListener("click", async () => {
+    const res = await act("announce", { text: "", channel: "all" });
+    if (res.success) {
+      toast("Aktif duyuru kaldırıldı.");
+      openAdmin();
+    }
+  });
   $("clear-channel").addEventListener("click", async () => {
     if (
       confirm(
@@ -547,10 +760,10 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
   });
   $("join-top").addEventListener("click", () =>
     state.user
-      ? state.user.role === "admin"
-        ? openAdmin()
-        : logout()
-      : openLogin(),
+        ? rank[state.user.role] >= 1
+          ? openAdmin()
+          : logout()
+        : openLogin(),
   );
   $("profile-button").addEventListener("click", () =>
     state.user ? logout() : openLogin(),
@@ -613,6 +826,20 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       $("message-search").focus();
     }
   });
+  function syncUrlRoute(view, channel) {
+    try {
+      const url = new URL(location.href);
+      url.searchParams.delete("sayfa");
+      url.searchParams.delete("kanal");
+      url.hash = "";
+      if (view === "games") url.searchParams.set("sayfa", "oyunlar");
+      else if (channel === "code") url.searchParams.set("kanal", "kod");
+      const next = url.pathname + url.search;
+      if (next !== location.pathname + location.search) {
+        history.replaceState(null, "", next);
+      }
+    } catch { }
+  }
   function navigate(view, channel = state.channel) {
     const safeChannel = channels[channel] ? channel : "general";
     if (state.user)
@@ -629,10 +856,10 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     document.body.classList.toggle("in-games", view === "games");
     document.body.classList.toggle(
       "in-blackjack",
-      view === "games" && !!state.table,
+      view === "games" && !!(state.table || state.diceTable),
     );
     $("header-title").textContent =
-    view === "games" ? "oyun-alanı" : channels[safeChannel][0];
+      view === "games" ? "oyun-alanı" : channels[safeChannel][0];
     $("channel-title").textContent = channels[safeChannel][0];
     $("channel-description").textContent = channels[safeChannel][1];
     document.querySelectorAll(".nav-item").forEach((node) => {
@@ -644,6 +871,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       if (active) node.setAttribute("aria-current", "page");
       else node.removeAttribute("aria-current");
     });
+    syncUrlRoute(view, safeChannel);
     setMenu(false);
     setMemberUI();
     renderMessages(true);
@@ -753,13 +981,38 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     if (!state.user || rank[state.user.role] <= rank[user.role]) return;
     const dialog = $("user-actions-dialog");
     $("user-actions-name").textContent = user.name;
+    const meta = $("user-actions-meta");
+    if (meta) {
+      if (user.isMuted) {
+        const rem = user.muteUntil
+          ? `${Math.max(1, Math.ceil((user.muteUntil - Date.now()) / 60000))} dk kaldı`
+          : "Süresiz";
+        meta.textContent =
+          `Durum: Susturuldu (${rem})` +
+          (user.muteReason ? ` · ${user.muteReason}` : "");
+      } else {
+        meta.textContent = `Rol: ${roles[user.role]}`;
+      }
+    }
+    const muteBox = $("mute-options-box");
+    if (muteBox) muteBox.hidden = !!user.isMuted;
+    if ($("mute-reason")) $("mute-reason").value = "";
     const actions = $("user-actions-list");
     actions.replaceChildren();
     actions.append(
-      button(user.isMuted ? "Sesi aç" : "Sustur", "user-menu-action", () => {
-        dialog.close();
-        act("moderate", { action: "mute", targetId: user.id });
-      }),
+        button(user.isMuted ? "Sesi hemen aç" : "Sustur", "user-menu-action", () => {
+          const durationMinutes = user.isMuted
+            ? 0
+            : Number($("mute-duration")?.value || 0);
+          const reason = user.isMuted ? "" : ($("mute-reason")?.value || "").trim();
+          dialog.close();
+          act("moderate", {
+            action: "mute",
+            targetId: user.id,
+            durationMinutes,
+            reason,
+          });
+        }),
     );
     if (state.user.role === "admin")
       actions.append(
@@ -1294,7 +1547,12 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
           bjArena.dispose();
           bjArena = null;
         }
+        if (diceArena) {
+          diceArena.dispose();
+          diceArena = null;
+        }
         state.table = null;
+        state.diceTable = null;
         state.game = result.game;
         renderGame();
       }
@@ -1310,8 +1568,35 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       const result = await act(event, data);
       if (result.success && result.table) {
         state.game = null;
+        state.diceTable = null;
+        if (diceArena) {
+          diceArena.dispose();
+          diceArena = null;
+        }
         resetXoxSoundState();
         state.table = result.table;
+        renderGame();
+      }
+    } finally {
+      state.pendingGame = false;
+    }
+  }
+
+  async function diceCommand(event, data = {}) {
+    if (!requireUser() || state.pendingGame) return;
+    state.pendingGame = true;
+    try {
+      const result = await act(event, data);
+      const nextTable = result.table || result.diceTable;
+      if (result.success && nextTable) {
+        state.game = null;
+        state.table = null;
+        if (bjArena) {
+          bjArena.dispose();
+          bjArena = null;
+        }
+        resetXoxSoundState();
+        state.diceTable = nextTable;
         renderGame();
       }
     } finally {
@@ -1336,6 +1621,24 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       if (bjArena) {
         bjArena.dispose();
         bjArena = null;
+      }
+      renderGame();
+    }
+  }
+
+  async function leaveDice() {
+    if (!state.diceTable) return;
+    if (
+      state.diceTable.status === "playing" &&
+      !confirm("Aktif zar düellosu bitmeden ayrılmak istiyor musun?")
+    )
+      return;
+    const result = await act("diceLeave", { tableId: state.diceTable.id });
+    if (result.success) {
+      state.diceTable = null;
+      if (diceArena) {
+        diceArena.dispose();
+        diceArena = null;
       }
       renderGame();
     }
@@ -1380,19 +1683,78 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       });
   }
 
+  function ensureDiceArena() {
+    if (!state.diceTable) return;
+    if (diceArena) {
+      diceArena.update(state.diceTable, state.socket?.id);
+      return;
+    }
+    diceModulePromise ||= import("./games/dice3d.mjs");
+    diceModulePromise
+      .then(({ DiceArena }) => {
+        if (!state.diceTable || diceArena) return;
+        diceArena = new DiceArena($("active-dice"), {
+          onLeave: leaveDice,
+          onSwitchSeat: (seatIndex) =>
+            diceCommand("diceJoin", { tableId: state.diceTable?.id, seatIndex }),
+          onConfig: (cfg) =>
+            diceCommand("diceConfig", { tableId: state.diceTable?.id, ...cfg }),
+          onStart: (opts = {}) =>
+            diceCommand("diceStart", { tableId: state.diceTable?.id, ...opts }),
+          onRoll: () => diceCommand("diceRoll", { tableId: state.diceTable?.id }),
+          onCommit: ({ indices, mode }) =>
+            diceCommand("diceCommit", {
+              tableId: state.diceTable?.id,
+              indices,
+              mode,
+            }),
+          onReact: (emoji) =>
+            emit("diceReact", { tableId: state.diceTable?.id, emoji }).then((r) => {
+              if (!r.success) toast(r.message, true);
+            }),
+        });
+        diceArena.update(state.diceTable, state.socket?.id);
+        window.scrollTo({ top: 0, behavior: "instant" });
+      })
+      .catch(() => {
+        toast("3D Zar Düellosu sahnesi yüklenemedi.", true);
+      });
+  }
+
   $("bj-create")?.addEventListener("click", () =>
     bjCommand("bjCreate", { seatIndex: 0 }),
   );
+  $("dice-create")?.addEventListener("click", () =>
+    diceCommand("diceCreate", {
+      targetScore: Number($("dice-target")?.value || 5000),
+      seatIndex: 0,
+      withBot: false,
+    }),
+  );
+  $("dice-create-bot")?.addEventListener("click", () =>
+    diceCommand("diceCreate", {
+      targetScore: Number($("dice-target")?.value || 5000),
+      seatIndex: 0,
+      withBot: true,
+    }),
+  );
   $("create-game").addEventListener("click", () =>
-    gameAction("gameCreate", { bot: false }),
+    gameAction("gameCreate", {
+      bot: false,
+      mode: $("xox-mode")?.value || "infinite",
+    }),
   );
   $("play-bot").addEventListener("click", () =>
-    gameAction("gameBot", { difficulty: $("xox-difficulty")?.value || "hard" }),
+    gameAction("gameBot", {
+      difficulty: $("xox-difficulty")?.value || "hard",
+      mode: $("xox-mode")?.value || "infinite",
+    }),
   );
   $("game-add-bot").addEventListener("click", () =>
     gameAction("gameBot", {
       gameId: state.game?.id,
       difficulty: $("xox-difficulty")?.value || "hard",
+      mode: state.game?.mode || $("xox-mode")?.value || "infinite",
     }),
   );
   $("game-leave").addEventListener("click", async () => {
@@ -1412,7 +1774,10 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
   $("game-rematch").addEventListener("click", () => {
     if (!state.game) return;
     if (state.game.winner === "left") {
-      gameAction("gameCreate", { bot: false });
+      gameAction("gameCreate", {
+        bot: false,
+        mode: state.game.mode || "infinite",
+      });
     } else {
       gameAction("gameRematch", {
         gameId: state.game.id,
@@ -1423,145 +1788,208 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
 
   function renderGame() {
     const game = state.game;
-      const table = state.table;
-      $("active-game").hidden = !game || !!table;
-      $("active-blackjack").hidden = !table;
-      $("game-intro").hidden = !!(game || table);
-      document.body.classList.toggle(
-        "in-blackjack",
-        state.view === "games" && !!table,
-      );
+    const table = state.table;
+    const diceTable = state.diceTable;
+    $("active-game").hidden = !game || !!table || !!diceTable;
+    $("active-blackjack").hidden = !table || !!diceTable;
+    $("active-dice").hidden = !diceTable;
+    $("game-intro").hidden = !!(game || table || diceTable);
+    document.body.classList.toggle(
+      "in-blackjack",
+      state.view === "games" && !!(table || diceTable),
+    );
 
-      if (table) {
-        ensureBjArena();
-        return;
-      }
+      if (diceTable) {
         if (bjArena) {
           bjArena.dispose();
           bjArena = null;
         }
-        if (!game) {
-          resetXoxSoundState();
-          return;
-        }
-
-        renderXoxView({
-          game,
-          mySocketId: state.socket?.id,
-          containers: {
-            playersRow: $("game-players"),
-            metaRow: $("xox-meta"),
-            statusEl: $("game-status"),
-            rematchBox: $("xox-rematch-prompt"),
-            boardWrap: $("game-board"),
-            addBotBtn: $("game-add-bot"),
-            rematchBtn: $("game-rematch"),
-          },
-          handlers: {
-            onMove: (index) =>
-              gameAction("gameMove", { gameId: game.id, index }),
-            onRematchRespond: (accept) =>
-              gameAction("gameRematchRespond", { gameId: game.id, accept }),
-          },
-        });
+        ensureDiceArena();
+        return;
+      }
+      if (diceArena) {
+        diceArena.dispose();
+        diceArena = null;
+      }
+      if (table) {
+        ensureBjArena();
+        return;
+      }
+      if (bjArena) {
+        bjArena.dispose();
+        bjArena = null;
+      }
+      if (!game) {
+        resetXoxSoundState();
+        return;
       }
 
-  function renderLobby() {
-          const list = $("game-lobby");
-          list.replaceChildren();
-          $("lobby-count").textContent = state.games.length + " ODA";
-          if (!state.games.length) {
-            list.append(
-              el(
-                "div",
-                "lobby-empty",
-                state.user
-            ?"Henüz açık bir oyun veya Blackjack masası yok. Yukarıdan hemen başlat."
-            : "Odalara katılmak, Blackjack masasına oturmak ve oyuncuları görmek için giriş yap.",
-              ),
-            );
+      renderXoxView({
+        game,
+        mySocketId: state.socket?.id,
+        containers: {
+          playersRow: $("game-players"),
+          metaRow: $("xox-meta"),
+          statusEl: $("game-status"),
+          rematchBox: $("xox-rematch-prompt"),
+          boardWrap: $("game-board"),
+          addBotBtn: $("game-add-bot"),
+          rematchBtn: $("game-rematch"),
+        },
+        handlers: {
+          onMove: (index) =>
+            gameAction("gameMove", { gameId: game.id, index }),
+          onRematchRespond: (accept) =>
+            gameAction("gameRematchRespond", { gameId: game.id, accept }),
+        },
+      });
+    }
+
+    function renderLobby() {
+        const list = $("game-lobby");
+        list.replaceChildren();
+        $("lobby-count").textContent = state.games.length + " ODA";
+        if (!state.games.length) {
+          list.append(
+            el(
+              "div",
+              "lobby-empty",
+              state.user
+                ? "Henüz açık bir oyun, Zar Düellosu veya Blackjack masası yok. Yukarıdan hemen başlat."
+                : "Odalara katılmak, oyun masalarına oturmak ve oyuncuları görmek için giriş yap.",
+            ),
+          );
+          return;
+        }
+        for (const room of state.games) {
+          const row = el("div", "lobby-room");
+          if (room.type === "blackjack") {
+    const badge = el("div", "avatar bj-lobby-avatar", "♠");
+    row.append(badge);
+    const meta = el("div", "room-meta");
+    const statusText =
+      room.status === "waiting"
+        ? `${room.seatedCount}/6 koltuk · Katılıma açık`
+        : room.status === "countdown"
+          ? `${room.seatedCount}/6 koltuk · Başlamak üzere!`
+          : `${room.seatedCount}/6 koltuk · ${room.round}. El oynanıyor`;
+    meta.append(
+      el("strong", "", room.name),
+      el("small", "", statusText),
+    );
+    row.append(meta);
+    const iAmSeated = room.seats?.some(
+      (s) => s && s.userId === state.socket?.id,
+    );
+    if (iAmSeated) {
+      row.append(el("span", "tag", "MASADASIN"));
+    } else if (room.seatedCount < room.maxSeats) {
+      row.append(
+        button("Masaya otur ♠", "button primary", () => {
+          if (
+            state.game?.status === "playing" &&
+            !confirm("Mevcut XOX oyunun sona erecek. Blackjack masasına geçilsin mi?")
+          )
             return;
-          }
-            for (const room of state.games) {
-              const row = el("div", "lobby-room");
-      if (room.type === "blackjack") {
-                const badge = el("div", "avatar bj-lobby-avatar", "♠");
-                row.append(badge);
-                const meta = el("div", "room-meta");
-                const statusText =
-                  room.status === "waiting"
-                    ? `${room.seatedCount}/6 koltuk · Katılıma açık`
-                    : room.status === "countdown"
-                      ? `${room.seatedCount}/6 koltuk · Başlamak üzere!`
-                      : `${room.seatedCount}/6 koltuk · ${room.round}. El oynanıyor`;
-                meta.append(
-                  el("strong", "", room.name),
-                  el("small", "", statusText),
-                );
-                row.append(meta);
-                const iAmSeated = room.seats?.some(
-                  (s) => s && s.userId === state.socket?.id,
-                );
-                if (iAmSeated) {
-                  row.append(el("span", "tag", "MASADASIN"));
-                } else if (room.seatedCount < room.maxSeats) {
-                  row.append(
-                    button("Masaya otur ♠", "button primary", () => {
-                      if (
-                        state.game?.status === "playing" &&
-                        !confirm("Mevcut XOX oyunun sona erecek. Blackjack masasına geçilsin mi?")
-                      )
-                        return;
-                      bjCommand("bjJoin", { tableId: room.id });
-                    }),
-                  );
-                } else {
-                  row.append(el("span", "tag", "DOLU (6/6)"));
-                }
-              } else {
-                row.append(avatar(room.players[0].name));
-                const meta = el("div", "room-meta");
-                meta.append(
-                  el(
-                    "strong",
-                    "",
-                    room.players[0].name +
-                    (room.players[1]
-                      ? " × " + room.players[1].name
-                      : " · Oyuncu bekliyor"),
-                  ),
-                  el(
-                    "small",
-                    "",
-                    room.status === "waiting"
-                      ? "XOX · Bir koltuk boş. Sıra arkadaşında."
-                      : room.bot
-                        ? `XOX · Bot karşılaşması (${room.round || 1}. el)`
-                        : `XOX · 1v1 karşılaşma (${room.round || 1}. el)`,
-                  ),
-                );
-                row.append(meta);
-                if (room.players.some((p) => p.id === state.socket?.id))
-                  row.append(el("span", "tag", "SENİN ODAN"));
-                else if (room.status === "waiting")
-                  row.append(
-                    button("Katıl ↗", "button primary", () => {
-                      if (
-                        state.game?.status === "playing" &&
-                        !confirm("Mevcut oyunun sona erecek. Bu odaya geçilsin mi?")
-                      )
-                        return;
-                      gameAction("gameJoin", { gameId: room.id });
-                    }),
-                  );
-                else row.append(el("span", "tag", "OYUNDA"));
-              }
-              list.append(row);
-            }
-          }
-          renderMessages();
-          renderUsers();
-          renderLobby();
-          setMemberUI();
-          connection("offline");
-        })();
+          bjCommand("bjJoin", { tableId: room.id });
+        }),
+      );
+    } else {
+      row.append(el("span", "tag", "DOLU (6/6)"));
+    }
+  } else if (room.type === "dice") {
+    const badge = el("div", "avatar dice-lobby-avatar", "🎲");
+    row.append(badge);
+    const meta = el("div", "room-meta");
+    const target = room.targetScore || 5000;
+    const botLabel = room.hasBot ? " · Zar Botu aktif" : "";
+    const statusText =
+      room.status === "waiting"
+        ? `${room.seatedCount}/6 koltuk · Hedef ${target}${botLabel}`
+        : `${room.seatedCount}/6 koltuk · ${room.round || 1}. Tur · Hedef ${target}${botLabel}`;
+    meta.append(
+      el("strong", "", room.name),
+      el("small", "", statusText),
+    );
+    row.append(meta);
+    const iAmSeated = room.seats?.some(
+      (s) => s && s.userId === state.socket?.id,
+    );
+    if (iAmSeated) {
+      row.append(el("span", "tag", "MASADASIN"));
+    } else if (room.seatedCount < room.maxSeats) {
+      row.append(
+        button("Masaya otur 🎲", "button primary", () => {
+          if (
+            state.game?.status === "playing" &&
+            !confirm("Mevcut XOX oyunun sona erecek. Zar Düellosu masasına geçilsin mi?")
+          )
+            return;
+          diceCommand("diceJoin", { tableId: room.id });
+        }),
+      );
+    } else {
+      row.append(el("span", "tag", "DOLU (6/6)"));
+    }
+  } else {
+    row.append(avatar(room.players[0].name));
+    const meta = el("div", "room-meta");
+    const modeLabel = room.mode === "infinite" ? "Sonsuz XOX" : "Klasik XOX";
+    meta.append(
+      el(
+        "strong",
+        "",
+        room.players[0].name +
+        (room.players[1]
+          ? " × " + room.players[1].name
+          : " · Oyuncu bekliyor"),
+      ),
+      el(
+        "small",
+        "",
+        room.status === "waiting"
+          ? `${modeLabel} · Bir koltuk boş. Sıra arkadaşında.`
+          : room.bot
+            ? `${modeLabel} · Bot karşılaşması (${room.round || 1}. el)`
+            : `${modeLabel} · 1v1 karşılaşma (${room.round || 1}. el)`,
+      ),
+    );
+    row.append(meta);
+    if (room.players.some((p) => p.id === state.socket?.id))
+      row.append(el("span", "tag", "SENİN ODAN"));
+    else if (room.status === "waiting")
+      row.append(
+        button("Katıl ↗", "button primary", () => {
+          if (
+            state.game?.status === "playing" &&
+            !confirm("Mevcut oyunun sona erecek. Bu odaya geçilsin mi?")
+          )
+            return;
+          gameAction("gameJoin", { gameId: room.id });
+        }),
+      );
+    else row.append(el("span", "tag", "OYUNDA"));
+  }
+  list.append(row);
+}
+  }
+try {
+  const params = new URLSearchParams(location.search);
+  const page = params.get("sayfa") || location.hash.replace(/^#/, "");
+  const ch = params.get("kanal");
+  if (page === "oyunlar") navigate("games");
+  else if (ch === "kod" || ch === "code") navigate("chat", "code");
+  else {
+    renderMessages();
+    renderUsers();
+    renderLobby();
+    setMemberUI();
+  }
+} catch {
+  renderMessages();
+  renderUsers();
+  renderLobby();
+  setMemberUI();
+}
+connection("offline");
+}) ();

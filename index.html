@@ -1,664 +1,567 @@
 <!doctype html>
 <html lang="tr" data-theme="dark">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#101311" />
-    <title>Haking Chat — Sohbet et. Kod paylaş. Birlikte üret.</title>
-    <meta
-      name="description"
-      content="Haking Chat: Türkçe geliştirici topluluğu. Gerçek zamanlı sohbet et, kod parçalarını paylaş, 3D Blackjack ve XOX oyna."
-    />
-    <link rel="canonical" href="https://chat.haking.tr/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="tr_TR" />
-    <meta
-      property="og:title"
-      content="Haking Chat — Bir fikrin varsa, yerin burada."
-    />
-    <meta
-      property="og:description"
-      content="Sohbet, kod paylaşımı, 3D Blackjack ve XOX oyunları. Türkçe geliştirici topluluğuna katıl."
-    />
-    <meta property="og:url" content="https://chat.haking.tr/" />
-    <meta
-      property="og:image"
-      content="https://chat.haking.tr/assets/og-image.png"
-    />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
-    <link rel="stylesheet" href="/vendor/highlight.css" />
-    <link rel="stylesheet" href="/styles.css" />
-    <link rel="stylesheet" href="/staff.css" />
-    <link rel="stylesheet" href="/simplify.css" />
-    <link rel="stylesheet" href="/games/games.css" />
-    <script src="/config.js" defer></script>
-    <script src="/vendor/socket.io.min.js" defer></script>
-    <script src="/vendor/highlight.min.js" defer></script>
-    <script type="module" src="/app.js"></script>
-  </head>
-  <body>
-    <a class="skip-link" href="#main">İçeriğe geç</a>
-    <div class="workspace">
-      <aside class="sidebar" id="sidebar" aria-label="Ana gezinme">
-        <a class="brand" href="/" aria-label="Haking Chat ana sayfa"
-          ><img src="/assets/mark.svg" alt="" width="38" height="38" /><span
-            >haking<span class="brand-light">chat</span
-            ><small>FİKİRLERİN BULUŞMA NOKTASI</small></span
-          ></a
-        >
-        <div class="space-label">
-          <span class="status-dot"></span> TOPLULUK ALANI
-          <span class="version">v2.0</span>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#101311" />
+  <meta name="application-name" content="Haking Chat" />
+  <meta name="apple-mobile-web-app-title" content="Haking Chat" />
+  <title>Haking Chat — Sohbet, Kod Paylaşımı ve 3D Oyun Arenası</title>
+  <meta name="description"
+    content="Haking Chat (chat.haking.tr): Türkçe geliştirici topluluğu. Gerçek zamanlı sohbet, kod paylaşımı, 6 kişilik 3D Blackjack, 3D Zar Düellosu 5.000 ve Sonsuz XOX." />
+  <link rel="canonical" href="https://chat.haking.tr/" />
+  <meta property="og:site_name" content="Haking Chat" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="tr_TR" />
+  <meta property="og:title" content="Haking Chat — Sohbet. Kod. 3D Çok Oyunculu Arena." />
+  <meta property="og:description"
+    content="Sohbet et, kod paylaş, 6 kişilik 3D Blackjack, ekran ghostlanmayan 3D Zar Düellosu 5.000 ve Sonsuz 3 Taş XOX oyna." />
+  <meta property="og:url" content="https://chat.haking.tr/" />
+  <meta property="og:image" content="https://chat.haking.tr/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Haking Chat — chat.haking.tr topluluk sohbeti ve 3D oyun arenası" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Haking Chat — Sohbet, Kod Paylaşımı ve 3D Arena" />
+  <meta name="twitter:description"
+    content="6 kişilik 3D Blackjack, 3D Zar Düellosu 5.000 ve Sonsuz XOX — PC ve mobilde anında oyna." />
+  <meta name="twitter:image" content="https://chat.haking.tr/assets/og-image.png" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="stylesheet" href="/vendor/highlight.css" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/staff.css" />
+  <link rel="stylesheet" href="/simplify.css" />
+  <link rel="stylesheet" href="/games/games.css" />
+  <script src="/config.js" defer></script>
+  <script src="/vendor/socket.io.min.js" defer></script>
+  <script src="/vendor/highlight.min.js" defer></script>
+  <script type="module" src="/app.js"></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">İçeriğe geç</a>
+  <div class="workspace">
+    <aside class="sidebar" id="sidebar" aria-label="Ana gezinme">
+      <a class="brand" href="/" aria-label="Haking Chat ana sayfa"><img src="/assets/mark.svg" alt="" width="38"
+          height="38" /><span>haking<span class="brand-light">chat</span><small>FİKİRLERİN BULUŞMA
+            NOKTASI</small></span></a>
+      <div class="space-label">
+        <span class="status-dot"></span> TOPLULUK ALANI
+        <span class="version">v2.2</span>
+      </div>
+      <nav class="navigation" aria-label="Kanallar">
+        <p class="nav-label">KANALLAR</p>
+        <button class="nav-item active" data-channel="general">
+          <span class="nav-symbol">#</span><span>genel-sohbet</span><i class="nav-dot"></i>
+        </button>
+        <button class="nav-item" data-channel="code">
+          <span class="nav-symbol">&lt;/&gt;</span><span>kod-paylaşımı</span>
+        </button>
+        <p class="nav-label second-label">OYUN</p>
+        <button class="nav-item" data-view="games">
+          <span class="nav-symbol game-symbol">×○</span><span>oyun-alanı<small>Blackjack · Zar 5K · XOX</small></span><span class="mini-badge">OYNA</span>
+        </button>
+      </nav>
+      <div class="sidebar-note">
+        <button class="text-link" id="guide-button">Topluluk rehberi</button>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="avatar my-avatar" id="profile-avatar">?</div>
+        <div class="profile-text">
+          <strong id="profile-name">Henüz tanışmadık</strong><small id="profile-role">Bir merhaba de.</small>
         </div>
-        <nav class="navigation" aria-label="Kanallar">
-          <p class="nav-label">KANALLAR</p>
-          <button class="nav-item active" data-channel="general">
-            <span class="nav-symbol">#</span><span>genel-sohbet</span
-            ><i class="nav-dot"></i>
-          </button>
-          <button class="nav-item" data-channel="code">
-            <span class="nav-symbol">&lt;/&gt;</span><span>kod-paylaşımı</span>
-          </button>
-          <p class="nav-label second-label">OYUN</p>
-          <button class="nav-item" data-view="games">
-            <span class="nav-symbol game-symbol">×○</span
-            ><span>oyun-alanı<small>3D Blackjack · XOX</small></span
-            ><span class="mini-badge">OYNA</span>
-          </button>
-        </nav>
-        <div class="sidebar-note">
-          <button class="text-link" id="guide-button">Topluluk rehberi</button>
+        <button id="profile-button" class="icon-button" aria-label="Giriş yap">
+          ↗
+        </button>
+      </div>
+    </aside>
+    <div class="sidebar-scrim" id="sidebar-scrim" hidden></div>
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="breadcrumb">
+          <button class="icon-button mobile-menu" id="menu-button" aria-label="Menüyü aç" aria-expanded="false">
+            ☰</button><span class="breadcrumb-root">Topluluk</span><span class="slash">/</span><strong
+            id="header-title">genel-sohbet</strong>
         </div>
-        <div class="sidebar-bottom">
-          <div class="avatar my-avatar" id="profile-avatar">?</div>
-          <div class="profile-text">
-            <strong id="profile-name">Henüz tanışmadık</strong
-            ><small id="profile-role">Bir merhaba de.</small>
-          </div>
-          <button
-            id="profile-button"
-            class="icon-button"
-            aria-label="Giriş yap"
-          >
-            ↗
+        <div class="topbar-actions">
+          <span class="connection" id="connection-status"><span
+              class="status-dot"></span><span>Bağlanmadı</span></span><button id="open-games"
+            class="button small secondary games-shortcut" aria-label="Oyun alanını aç">
+            ♠ Oyunlar</button><button id="theme-button" class="icon-button" aria-label="Açık temaya geç">
+            ☼</button><button id="moderators-button" class="button small secondary staff-trigger" hidden
+            aria-label="Moderatör yönetimini aç">
+            <span aria-hidden="true">♜</span><span class="staff-trigger-label">Moderatörler</span></button><button
+            id="join-top" class="button small primary">
+            Sohbete katıl <span>↗</span>
           </button>
         </div>
-      </aside>
-      <div class="sidebar-scrim" id="sidebar-scrim" hidden></div>
-      <div class="main-shell">
-        <header class="topbar">
-          <div class="breadcrumb">
-            <button
-              class="icon-button mobile-menu"
-              id="menu-button"
-              aria-label="Menüyü aç"
-              aria-expanded="false"
-            >
-              ☰</button
-            ><span class="breadcrumb-root">Topluluk</span
-            ><span class="slash">/</span
-            ><strong id="header-title">genel-sohbet</strong>
-          </div>
-          <div class="topbar-actions">
-            <span class="connection" id="connection-status"
-              ><span class="status-dot"></span><span>Bağlanmadı</span></span
-            ><button
-              id="open-games"
-              class="button small secondary games-shortcut"
-              aria-label="Oyun alanını aç"
-            >
-              ♠ Oyunlar</button
-            ><button
-              id="theme-button"
-              class="icon-button"
-              aria-label="Açık temaya geç"
-            >
-              ☼</button
-            ><button
-              id="moderators-button"
-              class="button small secondary staff-trigger"
-              hidden
-              aria-label="Moderatör yönetimini aç"
-            >
-              <span aria-hidden="true">♜</span
-              ><span class="staff-trigger-label">Moderatörler</span></button
-            ><button id="join-top" class="button small primary">
-              Sohbete katıl <span>↗</span>
-            </button>
-          </div>
-        </header>
-        <main id="main" tabindex="-1">
-          <div class="content-grid">
-            <section
-              class="conversation"
-              id="chat-view"
-              aria-labelledby="channel-title"
-            >
-              <div class="section-heading">
-                <div>
-                  <div class="title-row">
-                    <span class="channel-hash">#</span>
-                    <h2 id="channel-title">genel-sohbet</h2>
-                    <span class="tag" id="channel-tag">HERKESE AÇIK</span>
-                  </div>
-                  <p id="channel-description">
-                    Günün nasıl geçiyor? Sohbete bir yerden katıl.
-                  </p>
+      </header>
+      <main id="main" tabindex="-1">
+        <div class="content-grid">
+          <section class="conversation" id="chat-view" aria-labelledby="channel-title">
+            <div class="section-heading">
+              <div>
+                <div class="title-row">
+                  <span class="channel-hash">#</span>
+                  <h2 id="channel-title">genel-sohbet</h2>
+                  <span class="tag" id="channel-tag">HERKESE AÇIK</span>
                 </div>
-                <button
-                  class="icon-button"
-                  id="pin-filter"
-                  aria-label="Sabitlenmiş mesajları göster"
-                  aria-pressed="false"
-                  title="Sabitlenmiş mesajlar"
-                >
-                  ⌖
+                <p id="channel-description">
+                  Günün nasıl geçiyor? Sohbete bir yerden katıl.
+                </p>
+              </div>
+              <button class="icon-button" id="pin-filter" aria-label="Sabitlenmiş mesajları göster" aria-pressed="false"
+                title="Sabitlenmiş mesajlar">
+                ⌖
+              </button>
+            </div>
+            <div class="chat-tools">
+              <div class="chat-tabs">
+                <button class="tab active" id="all-tab">Sohbet akışı</button><button class="tab" id="pins-tab">
+                  Sabitlenenler</button><button class="tab" id="code-tab" hidden>
+                  Kod parçaları <span id="code-count">0</span>
                 </button>
               </div>
-              <div class="chat-tools">
-                <div class="chat-tabs">
-                  <button class="tab active" id="all-tab">Sohbet akışı</button
-                  ><button class="tab" id="pins-tab">
-                    Sabitlenenler</button
-                  ><button class="tab" id="code-tab" hidden>
-                    Kod parçaları <span id="code-count">0</span>
-                  </button>
-                </div>
-                <label class="search-box"
-                  ><span aria-hidden="true">⌕</span
-                  ><input
-                    id="message-search"
-                    type="search"
-                    placeholder="Mesajlarda ara"
-                    aria-label="Mesajlarda ara"
-                    maxlength="100"
-                  /><kbd>/</kbd></label
-                >
-              </div>
-              <div
-                class="messages"
-                id="messages"
-                role="log"
-                aria-label="Sohbet mesajları"
-                aria-live="polite"
-              ></div>
-              <div
-                id="typing-status"
-                class="typing-status"
-                aria-live="polite"
-              ></div>
-              <div class="composer-wrap">
-                <div id="reply-preview" class="reply-preview" hidden>
-                  <span></span
-                  ><button
-                    class="icon-button"
-                    aria-label="Yanıtı iptal et"
-                    id="cancel-reply"
-                  >
-                    ×
-                  </button>
-                </div>
-                <form id="message-form" class="composer">
-                  <textarea
-                    id="message-input"
-                    rows="1"
-                    maxlength="4000"
-                    placeholder="Sohbete katılmak için giriş yap…"
-                    aria-label="Mesajın"
-                    disabled
-                  ></textarea>
-                  <div class="composer-bottom">
-                    <div class="composer-actions">
-                      <button
-                        type="button"
-                        class="composer-tool"
-                        id="code-button"
-                        aria-label="Kod parçası paylaş"
-                      >
-                        &lt;/&gt;</button
-                      ><button
-                        type="button"
-                        class="composer-tool"
-                        id="emoji-button"
-                        aria-label="Emoji ekle"
-                      >
-                        ☺
-                      </button>
-                    </div>
-                    <button
-                      type="submit"
-                      class="button primary send-button"
-                      id="send-button"
-                      disabled
-                    >
-                      Gönder <span>↑</span>
-                    </button>
-                  </div>
-                </form>
-                <div class="composer-footer">
-                  <span
-                    ><kbd>Enter</kbd> gönder · <kbd>Shift + Enter</kbd> yeni
-                    satır</span
-                  ><span id="character-count">0 / 4000</span>
-                </div>
-              </div>
-            </section>
-            <section
-              class="games-view"
-              id="games-view"
-              hidden
-              aria-labelledby="games-title"
-            >
-              <div class="section-heading">
-                <div>
-                  <h2 id="games-title">Oyun Alanı · Sıra sende.</h2>
-                  <p>
-                    6 kişilik 3D Blackjack masasına otur ya da arkadaşlarınla ve
-                    botlarla XOX oyna.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  id="sfx-toggle"
-                  class="button small secondary"
-                  aria-label="Oyun seslerini aç veya kapat"
-                >
-                  🔊 Ses açık
+              <label class="search-box"><span aria-hidden="true">⌕</span><input id="message-search" type="search"
+                  placeholder="Mesajlarda ara" aria-label="Mesajlarda ara" maxlength="100" /><kbd>/</kbd></label>
+            </div>
+            <div id="announcement-banner" class="announcement-banner" hidden></div>
+            <div id="channel-notice" class="channel-notice" hidden></div>
+            <div class="messages" id="messages" role="log" aria-label="Sohbet mesajları" aria-live="polite"></div>
+            <div id="typing-status" class="typing-status" aria-live="polite"></div>
+            <div class="composer-wrap">
+              <div id="reply-preview" class="reply-preview" hidden>
+                <span></span><button class="icon-button" aria-label="Yanıtı iptal et" id="cancel-reply">
+                  ×
                 </button>
               </div>
-              <div class="game-hub" id="game-intro">
-                <article class="game-card game-card-bj">
-                  <div class="game-card-top">
-                    <span class="tag bj-live-tag">3D · MAX 6 KİŞİ</span>
-                    <span class="bj-card-emblem" aria-hidden="true">A♠ K♥</span>
-                  </div>
-                  <h3>Blackjack 21</h3>
-                  <p>
-                    Canlı kurpiyere karşı 6 kişilik 3D kumarhane masası. 1 kişi
-                    oturduğunda oyun menüsü hemen açılır; başlatan olduğunda 10
-                    saniyede, 6 kişi dolduğunda otomatik başlar.
-                  </p>
-                  <div class="game-buttons">
-                    <button class="button primary" id="bj-create">
-                      Masa aç ve otur ♠
+              <form id="message-form" class="composer">
+                <textarea id="message-input" rows="1" maxlength="4000" placeholder="Sohbete katılmak için giriş yap…"
+                  aria-label="Mesajın" disabled></textarea>
+                <div class="composer-bottom">
+                  <div class="composer-actions">
+                    <button type="button" class="composer-tool" id="code-button" aria-label="Kod parçası paylaş">
+                      &lt;/&gt;</button><button type="button" class="composer-tool" id="emoji-button"
+                      aria-label="Emoji ekle">
+                      ☺
                     </button>
                   </div>
-                  <small>
-                    6 deste · 1.000 başlangıç fişi · Blackjack 3:2 · Çift &amp; Böl
-                  </small>
-                </article>
-                <article class="game-card game-card-xox">
-                  <div class="game-card-top">
-                    <span class="tag">1v1 SIRA SIRA · BOT</span>
-                    <div class="mini-board" aria-hidden="true">
-                      <span>×</span><span></span><span>○</span><span></span
-                      ><span>×</span><span></span><span>○</span><span></span
-                      ><span>×</span>
-                    </div>
-                  </div>
-                  <h3>XOX · Strateji Arenası</h3>
-                  <p>
-                    1v1 tekrar oyna isteği doğrudan rakibine gider ve her el
-                    başlayan taraf sıra sıra değişir. İstersen zorluk seçerek bota
-                    karşı oyna.
-                  </p>
-                  <div class="xox-diff-row">
-                    <label for="xox-difficulty">Bot seviyesi</label>
-                    <select id="xox-difficulty" aria-label="Bot zorluk seviyesi">
-                      <option value="easy">Kolay Bot</option>
-                      <option value="medium">Orta Bot</option>
-                      <option value="hard" selected>Yenilmez Bot</option>
-                    </select>
-                  </div>
-                  <div class="game-buttons">
-                    <button class="button primary" id="create-game">
-                      1v1 Oda oluştur ↗</button
-                    ><button class="button secondary" id="play-bot">
-                      Botla oyna ×○
-                    </button>
-                  </div>
-                  <small>
-                    Yeni oyunlar çok yakında eklenecek şekilde modüler lobi.
-                  </small>
-                </article>
+                  <button type="submit" class="button primary send-button" id="send-button" disabled>
+                    Gönder <span>↑</span>
+                  </button>
+                </div>
+              </form>
+              <div class="composer-footer">
+                <span><kbd>Enter</kbd> gönder · <kbd>Shift + Enter</kbd> yeni
+                  satır</span><span id="character-count">0 / 4000</span>
               </div>
-              <div id="active-game" class="active-game" hidden>
-                <div class="xox-meta-row" id="xox-meta"></div>
-                <div class="game-player-row" id="game-players"></div>
-                <p id="game-status" class="game-status" aria-live="polite"></p>
-                <div
-                  id="xox-rematch-prompt"
-                  class="xox-rematch-prompt"
-                  hidden
-                ></div>
-                <div class="xox-board-stage">
-                  <div
-                    class="game-board"
-                    id="game-board"
-                    aria-label="XOX tahtası"
-                  ></div>
+            </div>
+          </section>
+          <section class="games-view" id="games-view" hidden aria-labelledby="games-title">
+            <div class="section-heading">
+              <div>
+                <h2 id="games-title">Oyun Alanı · Sıra sende.</h2>
+                <p>
+                  6 kişilik 3D Blackjack, ekran ghostlanmayan 3D Zar Düellosu 5.000
+                  ve beraberesiz Sonsuz XOX — PC &amp; mobilde oyna.
+                </p>
+              </div>
+              <button type="button" id="sfx-toggle" class="button small secondary"
+                aria-label="Oyun seslerini aç veya kapat">
+                🔊 Ses açık
+              </button>
+            </div>
+            <div class="game-hub" id="game-intro">
+              <article class="game-card game-card-bj">
+                <div class="game-card-top">
+                  <span class="tag bj-live-tag">3D · MAX 6 KİŞİ</span>
+                  <span class="bj-card-emblem" aria-hidden="true">A♠ K♥</span>
+                </div>
+                <h3>Blackjack 21</h3>
+                <p>
+                  Canlı kurpiyere karşı 6 kişilik 3D masa. 1 kişi oturduğunda
+                  menü açılır; başlatan olduğunda 10 sn, 6 kişi dolduğunda oto başlar.
+                </p>
+                <div class="game-buttons">
+                  <button class="button primary" id="bj-create">
+                    Masa aç ve otur ♠
+                  </button>
+                </div>
+                <small>
+                  6 deste · 1.000 başlangıç fişi · Blackjack 3:2 · Çift &amp; Böl
+                </small>
+              </article>
+              <article class="game-card game-card-dice">
+                <div class="game-card-top">
+                  <span class="tag dice-live-tag">3D · ANTI-GHOST · 1–6 KİŞİ</span>
+                  <span class="dice-card-emblem" aria-hidden="true">⚄ ⚀</span>
+                </div>
+                <h3>Zar Düellosu 5.000</h3>
+                <p>
+                  Yan yana ekranlarda ghostlama imkansız: tüm zarlar açıktır. 1v1 veya
+                  6 arkadaşınla ya da Zar Botu ile risk al, komboları topla ve kasaya yaz!
+                </p>
+                <div class="xox-diff-row">
+                  <label for="dice-target">Hedef puan</label>
+                  <select id="dice-target" aria-label="Zar Düellosu hedef puanı">
+                    <option value="3000">3.000 · Hızlı</option>
+                    <option value="5000" selected>5.000 · Standart</option>
+                    <option value="10000">10.000 · Maraton</option>
+                  </select>
                 </div>
                 <div class="game-buttons">
-                  <button class="button secondary" id="game-leave">
-                    Oyundan çık</button
-                  ><button class="button primary" id="game-add-bot" hidden>
-                    Beklemek yerine bot ekle</button
-                  ><button class="button primary" id="game-rematch" hidden>
-                    Tekrar oyna ↻
+                  <button class="button primary" id="dice-create">
+                    Zar Masası Aç 🎲</button><button class="button secondary" id="dice-create-bot">
+                    Botla 1v1 Başla 🤖
                   </button>
                 </div>
-              </div>
-              <div id="active-blackjack" class="active-blackjack" hidden></div>
-              <div class="lobby-heading">
-                <h3>
-                  Oyun lobisi <span class="tag" id="lobby-count">0 ODA</span>
-                </h3>
-                <span>Canlı güncellenir <i class="status-dot"></i></span>
-              </div>
-              <div class="game-lobby" id="game-lobby"></div>
-            </section>
-            <aside class="right-rail" aria-label="Topluluk bilgileri">
-              <section class="online-panel">
-                <div class="rail-heading">
-                  <h2>Şu an burada</h2>
-                  <span class="online-number" id="online-count">0</span>
+                <small>
+                  1=100 · 5=50 · Üçlüler · 1-6 Sıralı=1500 · Sıcak Zar · Sıfır gizli bilgi
+                </small>
+              </article>
+              <article class="game-card game-card-xox">
+                <div class="game-card-top">
+                  <span class="tag">SONSUZ &amp; KLASİK</span>
+                  <div class="mini-board" aria-hidden="true">
+                    <span>×</span><span></span><span>○</span><span></span><span>×</span><span></span><span>○</span><span></span><span>×</span>
+                  </div>
                 </div>
-                <div class="online-label">
-                  <span class="status-dot"></span> BİRLİKTE DAHA GÜZEL
+                <h3>XOX · Strateji Arenası</h3>
+                <p>
+                  Gelişmiş tuzak kuran Yenilmez Bot! Berabereden sıkıldıysan
+                  <strong>Sonsuz 3 Taş</strong> modunda oyna — 4. taşta en eski taşın kalkar, berabere bitemez!
+                </p>
+                <div class="xox-diff-row">
+                  <label for="xox-mode">Oyun modu</label>
+                  <select id="xox-mode" aria-label="XOX oyun modu">
+                    <option value="infinite" selected>Sonsuz 3 Taş</option>
+                    <option value="classic">Klasik 3×3</option>
+                  </select>
                 </div>
-                <div id="online-users" class="online-users"></div>
-                <button id="people-toggle" class="text-link" hidden>
-                  Tümünü göster ↓
+                <div class="xox-diff-row">
+                  <label for="xox-difficulty">Bot seviyesi</label>
+                  <select id="xox-difficulty" aria-label="Bot zorluk seviyesi">
+                    <option value="easy">Kolay Bot</option>
+                    <option value="medium">Orta Bot</option>
+                    <option value="hard" selected>Yenilmez Bot</option>
+                  </select>
+                </div>
+                <div class="game-buttons">
+                  <button class="button primary" id="create-game">
+                    1v1 Oda oluştur ↗</button><button class="button secondary" id="play-bot">
+                    Botla oyna ×○
+                  </button>
+                </div>
+                <small>
+                  Alternatif başlayan · 1v1 kabul ekranı · Canlı skor
+                </small>
+              </article>
+            </div>
+            <div id="active-game" class="active-game" hidden>
+              <div class="xox-meta-row" id="xox-meta"></div>
+              <div class="game-player-row" id="game-players"></div>
+              <p id="game-status" class="game-status" aria-live="polite"></p>
+              <div id="xox-rematch-prompt" class="xox-rematch-prompt" hidden></div>
+              <div class="xox-board-stage">
+                <div class="game-board" id="game-board" aria-label="XOX tahtası"></div>
+              </div>
+              <div class="game-buttons">
+                <button class="button secondary" id="game-leave">
+                  Oyundan çık</button><button class="button primary" id="game-add-bot" hidden>
+                  Beklemek yerine bot ekle</button><button class="button primary" id="game-rematch" hidden>
+                  Tekrar oyna ↻
                 </button>
-              </section>
-              <footer class="rail-footer">
-                <span>© 2026 Haking Chat</span
-                ><button id="rules-footer">Topluluk rehberi</button
-                ><a
-                  href="https://haking.tr"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  >haking.tr ↗</a
-                >
-              </footer>
-            </aside>
-          </div>
-        </main>
+              </div>
+            </div>
+            <div id="active-blackjack" class="active-blackjack" hidden></div>
+            <div id="active-dice" class="active-blackjack" hidden></div>
+            <div class="lobby-heading">
+              <h3>
+                Oyun lobisi <span class="tag" id="lobby-count">0 ODA</span>
+              </h3>
+              <span>Canlı güncellenir <i class="status-dot"></i></span>
+            </div>
+            <div class="game-lobby" id="game-lobby"></div>
+          </section>
+          <aside class="right-rail" aria-label="Topluluk bilgileri">
+            <section class="online-panel">
+              <div class="rail-heading">
+                <h2>Şu an burada</h2>
+                <span class="online-number" id="online-count">0</span>
+              </div>
+              <div class="online-label">
+                <span class="status-dot"></span> BİRLİKTE DAHA GÜZEL
+              </div>
+              <div id="online-users" class="online-users"></div>
+              <button id="people-toggle" class="text-link" hidden>
+                Tümünü göster ↓
+              </button>
+            </section>
+            <footer class="rail-footer">
+              <span>© 2026 Haking Chat</span><button id="rules-footer">Topluluk rehberi</button><a
+                href="https://haking.tr" target="_blank" rel="noopener noreferrer">haking.tr ↗</a>
+            </footer>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </div>
+  <dialog id="login-dialog" class="modal login-modal">
+    <form id="login-form">
+      <button type="button" class="modal-close icon-button" data-close="login-dialog" aria-label="Pencereyi kapat">
+        ×</button><img src="/assets/mark.svg" alt="" width="52" height="52" />
+
+      <h2>Sohbete katıl</h2>
+      <p>
+        Hesap oluşturman gerekmiyor.<br />Kendine bir takma ad seç, sohbete
+        katıl.
+      </p>
+      <label>Takma ad<input id="nickname" autocomplete="nickname" minlength="3" maxlength="20"
+          placeholder="Sana nasıl seslenelim?" required /></label>
+      <details id="staff-details">
+        <summary>Kurucu veya moderatör girişi</summary>
+        <label>Yetki<select id="login-role">
+            <option value="user">Topluluk üyesi</option>
+            <option value="mod">Moderatör</option>
+            <option value="admin">Kurucu</option>
+          </select></label><label>Yetkili parolası<input id="staff-password" type="password"
+            autocomplete="current-password" maxlength="200" placeholder="Yalnızca yetkililer için" /></label>
+      </details>
+      <div id="login-error" class="form-error" role="alert"></div>
+      <button type="submit" class="button primary" id="login-submit">
+        Sohbete katıl <span>↗</span></button><small>Mesajlar topluluğa açıktır. Kişisel bilgilerini paylaşma.</small>
+    </form>
+  </dialog>
+  <dialog id="code-dialog" class="modal code-modal">
+    <form id="code-form">
+      <button type="button" class="modal-close icon-button" data-close="code-dialog" aria-label="Pencereyi kapat">
+        ×
+      </button>
+
+      <h2>Kod paylaş</h2>
+      <p>Okunabilir, kopyalanabilir bir kod parçası paylaş.</p>
+      <div class="code-fields">
+        <label>Başlık<input id="snippet-title" maxlength="80" placeholder="Örn. Basit bir debounce fonksiyonu"
+            required /></label><label>Dil<select id="snippet-language">
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="python">Python</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="json">JSON</option>
+            <option value="sql">SQL</option>
+            <option value="bash">Bash</option>
+            <option value="java">Java</option>
+            <option value="cpp">C++</option>
+            <option value="plaintext">Düz metin</option>
+          </select></label>
+      </div>
+      <label>Kod<textarea id="snippet-code" class="code-input" rows="12" maxlength="12000" spellcheck="false"
+          placeholder="// Harika bir şeyler buraya…" required></textarea>
+      </label>
+      <div id="code-error" class="form-error" role="alert"></div>
+      <button type="submit" class="button primary" id="code-submit">
+        Kodu paylaş ↗
+      </button>
+    </form>
+  </dialog>
+  <dialog id="guide-dialog" class="modal">
+    <button class="modal-close icon-button" data-close="guide-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
+
+    <h2>İyi bir topluluk,<br />hepimizle başlar.</h2>
+    <div class="guide-item">
+      <span>01</span>
+      <div>
+        <h3>Fikirlere açık, insanlara saygılı ol.</h3>
+        <p>
+          Sohbet metinlerinde otomatik kelime sansürü yoktur. Taciz, tehdit,
+          spam ve kişisel bilgi paylaşımı moderasyona tabidir.
+        </p>
       </div>
     </div>
-    <dialog id="login-dialog" class="modal login-modal">
-      <form id="login-form">
-        <button
-          type="button"
-          class="modal-close icon-button"
-          data-close="login-dialog"
-          aria-label="Pencereyi kapat"
-        >
-          ×</button
-        ><img src="/assets/mark.svg" alt="" width="52" height="52" />
-
-        <h2>Sohbete katıl</h2>
+    <div class="guide-item">
+      <span>02</span>
+      <div>
+        <h3>Takma adın sana ait olsun.</h3>
         <p>
-          Hesap oluşturman gerekmiyor.<br />Kendine bir takma ad seç, sohbete
-          katıl.
-        </p>
-        <label
-          >Takma ad<input
-            id="nickname"
-            autocomplete="nickname"
-            minlength="3"
-            maxlength="20"
-            placeholder="Sana nasıl seslenelim?"
-            required
-        /></label>
-        <details id="staff-details">
-          <summary>Kurucu veya moderatör girişi</summary>
-          <label
-            >Yetki<select id="login-role">
-              <option value="user">Topluluk üyesi</option>
-              <option value="mod">Moderatör</option>
-              <option value="admin">Kurucu</option>
-            </select></label
-          ><label
-            >Yetkili parolası<input
-              id="staff-password"
-              type="password"
-              autocomplete="current-password"
-              maxlength="200"
-              placeholder="Yalnızca yetkililer için"
-          /></label>
-        </details>
-        <div id="login-error" class="form-error" role="alert"></div>
-        <button type="submit" class="button primary" id="login-submit">
-          Sohbete katıl <span>↗</span></button
-        ><small
-          >Mesajlar topluluğa açıktır. Kişisel bilgilerini paylaşma.</small
-        >
-      </form>
-    </dialog>
-    <dialog id="code-dialog" class="modal code-modal">
-      <form id="code-form">
-        <button
-          type="button"
-          class="modal-close icon-button"
-          data-close="code-dialog"
-          aria-label="Pencereyi kapat"
-        >
-          ×
-        </button>
-
-        <h2>Kod paylaş</h2>
-        <p>Okunabilir, kopyalanabilir bir kod parçası paylaş.</p>
-        <div class="code-fields">
-          <label
-            >Başlık<input
-              id="snippet-title"
-              maxlength="80"
-              placeholder="Örn. Basit bir debounce fonksiyonu"
-              required /></label
-          ><label
-            >Dil<select id="snippet-language">
-              <option value="javascript">JavaScript</option>
-              <option value="typescript">TypeScript</option>
-              <option value="python">Python</option>
-              <option value="html">HTML</option>
-              <option value="css">CSS</option>
-              <option value="json">JSON</option>
-              <option value="sql">SQL</option>
-              <option value="bash">Bash</option>
-              <option value="java">Java</option>
-              <option value="cpp">C++</option>
-              <option value="plaintext">Düz metin</option>
-            </select></label
-          >
-        </div>
-        <label
-          >Kod<textarea
-            id="snippet-code"
-            class="code-input"
-            rows="12"
-            maxlength="12000"
-            spellcheck="false"
-            placeholder="// Harika bir şeyler buraya…"
-            required
-          ></textarea>
-        </label>
-        <div id="code-error" class="form-error" role="alert"></div>
-        <button type="submit" class="button primary" id="code-submit">
-          Kodu paylaş ↗
-        </button>
-      </form>
-    </dialog>
-    <dialog id="guide-dialog" class="modal">
-      <button
-        class="modal-close icon-button"
-        data-close="guide-dialog"
-        aria-label="Pencereyi kapat"
-      >
-        ×
-      </button>
-
-      <h2>İyi bir topluluk,<br />hepimizle başlar.</h2>
-      <div class="guide-item">
-        <span>01</span>
-        <div>
-          <h3>Fikirlere açık, insanlara saygılı ol.</h3>
-          <p>
-            Sohbet metinlerinde otomatik kelime sansürü yoktur. Taciz, tehdit,
-            spam ve kişisel bilgi paylaşımı moderasyona tabidir.
-          </p>
-        </div>
-      </div>
-      <div class="guide-item">
-        <span>02</span>
-        <div>
-          <h3>Takma adın sana ait olsun.</h3>
-          <p>
-            Küfürlü, aşağılayıcı ve yetkili taklidi yapan adlar kullanılamaz.
-            Kod ve mesajlar herkese açıktır; gizli anahtarlarını paylaşma.
-          </p>
-        </div>
-      </div>
-      <div class="guide-item">
-        <span>03</span>
-        <div>
-          <h3>Doğru kanalda buluşalım.</h3>
-          <p>
-            Günlük sohbet genel kanalda, kodlar kod paylaşımında, 3D Blackjack ve
-            XOX ise oyun alanında.
-          </p>
-        </div>
-      </div>
-      <div class="role-guide">
-        <strong>Moderatör</strong>
-        <p>
-          Üyelerin uygunsuz mesajlarını silebilir, üyeleri susturabilir ve
-          odadan çıkarabilir. Kurucuya ve diğer moderatörlere müdahale edemez.
-        </p>
-        <strong>Kurucu</strong>
-        <p>
-          Ek olarak kullanıcı adı değiştirebilir, kanal temizleyebilir ve
-          yönetim kayıtlarını inceleyebilir.
+          Küfürlü, aşağılayıcı ve yetkili taklidi yapan adlar kullanılamaz.
+          Kod ve mesajlar herkese açıktır; gizli anahtarlarını paylaşma.
         </p>
       </div>
-      <p class="muted">
-        Sohbet ve oyunlar sunucu belleğinde tutulur; sunucu yeniden başladığında
-        sıfırlanır. Bu alan özel mesajlaşma hizmeti değildir.
+    </div>
+    <div class="guide-item">
+      <span>03</span>
+      <div>
+        <h3>Doğru kanalda buluşalım.</h3>
+        <p>
+          Günlük sohbet genel kanalda, kodlar kod paylaşımında, 3D Blackjack ve
+          XOX ise oyun alanında.
+        </p>
+      </div>
+    </div>
+    <div class="role-guide">
+      <strong>Moderatör Yetkileri</strong>
+      <p>
+        Süreli/sebepli susturma, ses açma, odadan çıkarma, üye mesajı silme,
+        kanal başına 3 mesaj sabitleme ve kanal yavaş modu açma/kapatma yetkisine sahiptir.
       </p>
-    </dialog>
-    <dialog
-      id="moderators-dialog"
-      class="modal staff-modal"
-      aria-labelledby="moderators-title"
-    >
-      <button
-        class="modal-close icon-button"
-        data-close="moderators-dialog"
-        aria-label="Pencereyi kapat"
-      >
-        ×
-      </button>
+      <strong>Kurucu Yetkileri</strong>
+      <p>
+        Moderatör ekleme/çıkarma, ad değiştirme, kanalı tamamen kilitleme veya temizleme,
+        resmi duyuru yayınlama, takılan oyun odalarını sıfırlama ve tam denetim günlüğü yetkisine sahiptir.
+      </p>
+    </div>
+    <p class="muted">
+      Sohbet ve oyunlar sunucu belleğinde tutulur; sunucu yeniden başladığında
+      sıfırlanır. Bu alan özel mesajlaşma hizmeti değildir.
+    </p>
+  </dialog>
+  <dialog id="moderators-dialog" class="modal staff-modal" aria-labelledby="moderators-title">
+    <button class="modal-close icon-button" data-close="moderators-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
 
-      <h2 id="moderators-title">Moderatörler</h2>
-      <div class="staff-owner">
-        <span class="staff-emblem" aria-hidden="true">✦</span>
-        <div>
-          <strong id="staff-owner-name">Halit</strong><small>Kurucu</small>
-        </div>
+    <h2 id="moderators-title">Moderatörler</h2>
+    <div class="staff-owner">
+      <span class="staff-emblem" aria-hidden="true">✦</span>
+      <div>
+        <strong id="staff-owner-name">Halit</strong><small>Kurucu</small>
+      </div>
+      <span class="role-badge">KURUCU</span>
+    </div>
+    <div class="staff-list-heading">
+      <h3>Moderatörler</h3>
+      <span id="staff-count" class="tag">Yükleniyor</span>
+    </div>
+    <div id="moderators-list" class="staff-list" aria-live="polite"></div>
+    <div class="staff-storage-note">
+      <span id="staff-storage-badge" class="tag"></span>
+      <p id="staff-storage-note"></p>
+    </div>
+    <form id="moderator-form" hidden>
+      <h3>Ekibe birini ekle</h3>
+      <label>Moderatör adı<input id="moderator-name" autocomplete="off" minlength="3" maxlength="20"
+          placeholder="Görünecek isim" required /></label>
+      <label>Giriş parolası<input id="moderator-password" type="password" autocomplete="new-password" minlength="12"
+          maxlength="200" placeholder="En az 12 karakter" required /></label>
+      <div id="moderator-error" class="form-error" role="alert"></div>
+      <button id="moderator-submit" type="submit" class="button primary">
+        Moderatör ekle <span>+</span>
+      </button>
+    </form>
+    <div class="staff-matrix" aria-label="Yetki dağılımı">
+      <div class="staff-matrix-col">
         <span class="role-badge">KURUCU</span>
+        <ul>
+          <li>Moderatör ekleme &amp; çıkarma</li>
+          <li>Kanal kilitleme &amp; temizleme</li>
+          <li>Resmi duyuru &amp; ad değiştirme</li>
+          <li>Oyun lobisini sıfırlama &amp; günlük</li>
+        </ul>
       </div>
-      <div class="staff-list-heading">
-        <h3>Moderatörler</h3>
-        <span id="staff-count" class="tag">Yükleniyor</span>
+      <div class="staff-matrix-col">
+        <span class="role-badge mod">MODERATÖR</span>
+        <ul>
+          <li>Süreli / sebepli susturma &amp; ses açma</li>
+          <li>Kanal yavaş modu (5–60 sn)</li>
+          <li>Odadan çıkarma &amp; mesaj silme</li>
+          <li>Kanal başına 3 mesaj sabitleme</li>
+        </ul>
       </div>
-      <div id="moderators-list" class="staff-list" aria-live="polite"></div>
-      <div class="staff-storage-note">
-        <span id="staff-storage-badge" class="tag"></span>
-        <p id="staff-storage-note"></p>
-      </div>
-      <form id="moderator-form" hidden>
-        <h3>Ekibe birini ekle</h3>
-        <label
-          >Moderatör adı<input
-            id="moderator-name"
-            autocomplete="off"
-            minlength="3"
-            maxlength="20"
-            placeholder="Görünecek isim"
-            required
-        /></label>
-        <label
-          >Giriş parolası<input
-            id="moderator-password"
-            type="password"
-            autocomplete="new-password"
-            minlength="12"
-            maxlength="200"
-            placeholder="En az 12 karakter"
-            required
-        /></label>
-        <div id="moderator-error" class="form-error" role="alert"></div>
-        <button id="moderator-submit" type="submit" class="button primary">
-          Moderatör ekle <span>+</span>
-        </button>
-      </form>
-      <div id="staff-repository-help" hidden></div>
-    </dialog>
-    <dialog id="admin-dialog" class="modal">
-      <button
-        class="modal-close icon-button"
-        data-close="admin-dialog"
-        aria-label="Pencereyi kapat"
-      >
+    </div>
+    <div id="staff-repository-help" hidden></div>
+  </dialog>
+    <dialog id="admin-dialog" class="modal admin-modal">
+      <button class="modal-close icon-button" data-close="admin-dialog" aria-label="Pencereyi kapat">
         ×
       </button>
 
-      <h2>Topluluk yönetimi</h2>
-      <p>Seçili kanaldaki tüm mesajları temizlemek geri alınamaz.</p>
-      <button class="button danger" id="clear-channel">
-        Bu kanalı temizle
-      </button>
-      <h3 class="audit-title">Son yönetim işlemleri</h3>
-      <div id="audit-list" class="audit-list"></div>
+      <h2 id="admin-dialog-title">Topluluk yönetimi</h2>
+      <div class="admin-section">
+        <div class="admin-section-head">
+          <h3 id="admin-channel-heading">Seçili kanal kontrolleri</h3>
+          <span id="admin-channel-badge" class="tag">#genel-sohbet</span>
+        </div>
+        <div class="admin-control-row">
+          <label for="admin-slowmode">Yavaş mod
+            <select id="admin-slowmode">
+              <option value="0">Kapalı (0 sn)</option>
+              <option value="5">5 saniye</option>
+              <option value="10">10 saniye</option>
+              <option value="15">15 saniye</option>
+              <option value="30">30 saniye</option>
+              <option value="60">60 saniye</option>
+            </select></label>
+          <button type="button" class="button secondary founder-only" id="toggle-channel-lock">
+            Kanalı kilitle 🔒
+          </button>
+        </div>
+        <div class="admin-actions-grid founder-only" id="founder-channel-actions">
+          <button type="button" class="button danger" id="clear-channel">
+            Bu kanalı temizle
+          </button>
+          <button type="button" class="button secondary" id="clear-games-btn">
+            Oyun lobisini sıfırla
+          </button>
+        </div>
+      </div>
+
+      <form id="announce-form" class="admin-section founder-only">
+        <h3>Resmi duyuru yayınla</h3>
+        <div class="admin-control-row">
+          <input id="announce-text" maxlength="280" placeholder="Tüm topluluğa veya aktif kanala duyuru yaz…" />
+          <button type="submit" class="button primary">Yayınla</button>
+          <button type="button" class="button secondary" id="clear-announce">Kaldır</button>
+        </div>
+      </form>
+
+      <div class="admin-section">
+        <h3>Susturulan kullanıcılar</h3>
+        <div id="muted-users-list" class="muted-users-list"></div>
+      </div>
+
+      <div class="founder-only" id="audit-section">
+        <h3 class="audit-title">Son yönetim işlemleri</h3>
+        <div id="audit-list" class="audit-list"></div>
+      </div>
     </dialog>
-    <dialog
-      id="user-actions-dialog"
-      class="modal user-actions-modal"
-      aria-labelledby="user-actions-name"
-    >
-      <button
-        class="modal-close icon-button"
-        data-close="user-actions-dialog"
-        aria-label="Pencereyi kapat"
-      >
+    <dialog id="user-actions-dialog" class="modal user-actions-modal" aria-labelledby="user-actions-name">
+      <button class="modal-close icon-button" data-close="user-actions-dialog" aria-label="Pencereyi kapat">
         ×
       </button>
       <h2 id="user-actions-name">Kullanıcı</h2>
+      <p id="user-actions-meta" class="user-actions-meta"></p>
+      <div id="mute-options-box" class="mute-options-box">
+        <label>Susturma süresi
+          <select id="mute-duration">
+            <option value="0">Süresiz (manuel açılana kadar)</option>
+            <option value="5">5 dakika</option>
+            <option value="15" selected>15 dakika</option>
+            <option value="60">1 saat</option>
+          </select></label>
+        <label>Sebep (isteğe bağlı)
+          <input id="mute-reason" maxlength="100" placeholder="Örn. Spam / Kurallar" /></label>
+      </div>
       <div id="user-actions-list"></div>
     </dialog>
-    <dialog
-      id="people-dialog"
-      class="modal people-modal"
-      aria-label="Çevrimiçi topluluk"
-    >
-      <button
-        class="modal-close icon-button"
-        data-close="people-dialog"
-        aria-label="Pencereyi kapat"
-      >
+    <dialog id="people-dialog" class="modal people-modal" aria-label="Çevrimiçi topluluk">
+      <button class="modal-close icon-button" data-close="people-dialog" aria-label="Pencereyi kapat">
         ×
       </button>
       <div id="people-content"></div>
     </dialog>
     <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
-    <noscript
-      ><div class="noscript">
+    <noscript>
+      <div class="noscript">
         Sohbeti kullanmak için tarayıcında JavaScript'i etkinleştir.
-      </div></noscript
-    >
-  </body>
+      </div>
+    </noscript>
+</body>
+
 </html>
