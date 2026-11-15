@@ -230,10 +230,19 @@ export class OkeyArena {
     this.specBadge.hidden = true;
     this.okeyPill = document.createElement("span");
     this.okeyPill.className = "tag okey-wild-pill";
-    titleWrap.append(this.titleEl, this.modeBadge, this.specBadge, this.okeyPill);
+    this.timerPill = document.createElement("span");
+    this.timerPill.id = "okey-timer-pill";
+    this.timerPill.className = "tag okey-timer-pill";
+    this.timerPill.hidden = true;
+    titleWrap.append(this.titleEl, this.modeBadge, this.specBadge, this.okeyPill, this.timerPill);
 
     const camBar = document.createElement("div");
     camBar.className = "okey-cam-bar";
+    this.takeBotBtn = this.makeBtn("🪑 Bot Yerine Otur", "button small primary okey-take-bot-btn", () => {
+      if (this.firstBotIdx >= 0) this.cb.onTakeBotSeat?.(this.firstBotIdx);
+    });
+    this.takeBotBtn.hidden = true;
+    this.takeBotBtn.title = "Çıkan oyuncunun yerine geçen botun koltuğunu devral";
     this.camBirdsBtn = this.makeBtn("🦅 Kuş Bakışı", "button small secondary active", () =>
       this.setCameraPreset("birdseye"),
     );
@@ -243,7 +252,16 @@ export class OkeyArena {
     this.helpBtn = this.makeBtn("?", "button small secondary", () => this.cb.onHelp?.(this.table?.variant));
     this.helpBtn.title = "Kurallar ve Nasıl Oynanır";
     this.leaveBtn = this.makeBtn("Masadan kalk", "button small secondary", () => this.cb.onLeave?.());
-    camBar.append(this.camBirdsBtn, this.camAngleBtn, this.helpBtn, this.leaveBtn);
+    camBar.append(
+      this.takeBotBtn,
+      this.camBirdsBtn,
+      this.camAngleBtn,
+      this.helpBtn,
+      this.leaveBtn,
+    );
+
+    if (this.timerTick) clearInterval(this.timerTick);
+    this.timerTick = setInterval(() => this.updateTimerPill(), 250);
 
     topbar.append(titleWrap, camBar);
 
@@ -377,10 +395,12 @@ export class OkeyArena {
       this.selectedSlot = null;
       this.cb.onArrange?.({ mode: "sortSeries" });
     });
+    this.sortSeriesBtn.title = "101+ seri hedefini önceliklendirerek en verimli perleri otomatik dizer";
     this.sortPairsBtn = this.makeBtn("👯 Çift Diz", "button small secondary", () => {
       this.selectedSlot = null;
       this.cb.onArrange?.({ mode: "sortPairs" });
     });
+    this.sortPairsBtn.title = "Çiftleri ve Okey eşleşmelerini sol tarafa toplar";
     rackLeftTools.append(this.sortSeriesBtn, this.sortPairsBtn);
 
     this.rackHintEl = document.createElement("span");
@@ -522,7 +542,7 @@ export class OkeyArena {
         if (this.table) this.rebuild3DScene();
       },
       undefined,
-      () => {},
+      () => { },
     );
   }
 
@@ -761,6 +781,11 @@ export class OkeyArena {
     const is101 = table.variant === "101";
     const isSpec = table.mySeat === -1;
     const isMyTurn = !isSpec && table.status === "playing" && table.turn === table.mySeat;
+    const firstBotIdx = (table.seats || []).findIndex((s) => s?.isBot);
+    this.firstBotIdx = firstBotIdx;
+    if (this.takeBotBtn) {
+      this.takeBotBtn.hidden = !(isSpec && firstBotIdx !== -1);
+    }
 
     this.titleEl.textContent = table.name;
     this.modeBadge.textContent =
@@ -803,6 +828,7 @@ export class OkeyArena {
     }
     this.banner.classList.toggle("is-my-turn", isMyTurn);
 
+    this.updateTimerPill();
     this.renderSeatsHud(myId);
     this.renderWaitOverlay();
     this.renderMeldsOverlay();
@@ -812,9 +838,33 @@ export class OkeyArena {
     this.rebuild3DScene();
   }
 
+  updateTimerPill() {
+    if (!this.timerPill || !this.table) return;
+    const t = this.table;
+    if (t.status !== "playing") {
+      this.timerPill.hidden = true;
+      return;
+    }
+    const activeSeat = t.seats?.[t.turn];
+    this.timerPill.hidden = false;
+    this.timerPill.classList.remove("warn", "active", "bot");
+    if (activeSeat?.isBot) {
+      this.timerPill.classList.add("bot");
+      this.timerPill.textContent = "🤖 Bot oynuyor…";
+      return;
+    }
+    const deadline = Number(t.turnDeadline) || 0;
+    const remSec = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    const isMine = t.mySeat !== -1 && t.turn === t.mySeat;
+    if (isMine) this.timerPill.classList.add("active");
+    if (remSec <= 15) this.timerPill.classList.add("warn");
+    this.timerPill.textContent = isMine ? `⏱ ${remSec}s (Sen)` : `⏱ ${remSec}s`;
+  }
+
   renderSeatsHud(myId) {
     this.seatsHud.replaceChildren();
     const t = this.table;
+    const isSpec = t.mySeat === -1;
     const viewSeat = t.mySeat >= 0 ? t.mySeat : 0;
     const slotPosCls = ["pos-bottom", "pos-right", "pos-top", "pos-left"];
     for (let rel = 0; rel < 4; rel++) {
@@ -828,8 +878,30 @@ export class OkeyArena {
         card.textContent = `Koltuk ${absIdx + 1}: Boş`;
       } else {
         const isMe = seat.userId === myId;
+        if (seat.isBot) card.classList.add("is-bot");
+        const canSit = isSpec && seat.isBot;
+        if (canSit) {
+          card.classList.add("is-bot-joinable");
+          card.setAttribute("role", "button");
+          card.tabIndex = 0;
+          card.title = "Bu botun yerine masaya oturmak için tıkla";
+          const onSit = () => this.cb.onTakeBotSeat?.(absIdx);
+          card.addEventListener("click", onSit);
+          card.addEventListener("keydown", (ev) => {
+            if (ev.key === "Enter" || ev.key === " ") {
+              ev.preventDefault();
+              onSit();
+            }
+          });
+        }
         const nameEl = document.createElement("strong");
         nameEl.textContent = seat.name + (isMe ? " (Sen)" : "");
+        if (canSit) {
+          const sitBadge = document.createElement("span");
+          sitBadge.className = "okey-seat-sit-badge";
+          sitBadge.textContent = "Otur";
+          nameEl.append(sitBadge);
+        }
         const metaEl = document.createElement("small");
         const countTxt = t.status === "playing" ? `${seat.tileCount} taş` : `${seat.score} p`;
         const openTxt = t.variant === "101" && seat.opened ? (seat.openedType === "pairs" ? " · Çift" : ` · ${seat.openedScore}p`) : "";
@@ -1245,6 +1317,10 @@ export class OkeyArena {
 
   dispose() {
     this.disposed = true;
+    if (this.timerTick) {
+      clearInterval(this.timerTick);
+      this.timerTick = null;
+    }
     if (this.animFrame) cancelAnimationFrame(this.animFrame);
     this.resizeObs?.disconnect();
     this.controls?.dispose();

@@ -2661,6 +2661,75 @@ body.in-blackjack .games-view {
   font-size: 15px;
 }
 
+.okey-timer-pill {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e6f2d8;
+  border: 1px solid rgba(197, 242, 115, 0.28);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.okey-timer-pill.active {
+  background: rgba(197, 242, 115, 0.18);
+  color: #dfffaa;
+  border-color: rgba(197, 242, 115, 0.65);
+}
+
+.okey-timer-pill.warn {
+  background: rgba(220, 38, 38, 0.25);
+  color: #ffd3d3;
+  border-color: rgba(248, 113, 113, 0.8);
+  animation: okeyPulseWarn 1s ease-in-out infinite;
+}
+
+.okey-timer-pill.bot {
+  background: rgba(56, 189, 248, 0.16);
+  color: #bae6fd;
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+@keyframes okeyPulseWarn {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+.okey-seat-chip.is-bot {
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.okey-seat-chip.is-bot-joinable {
+  cursor: pointer;
+  border-color: rgba(197, 242, 115, 0.72);
+  background: rgba(18, 42, 24, 0.92);
+  box-shadow: 0 0 0 1px rgba(197, 242, 115, 0.22);
+}
+
+.okey-seat-chip.is-bot-joinable:hover {
+  border-color: #c5f273;
+  transform: translateY(-1px);
+}
+
+.okey-seat-sit-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #c5f273;
+  color: #101610;
+  font-size: 10px;
+  font-weight: 800;
+  margin-left: 4px;
+}
+
+.okey-take-bot-btn {
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(197, 242, 115, 0.28);
+}
+
 /* Tactile 2-Tier Wooden Istaka */
 .okey-rack-dock {
   border-radius: 16px;
@@ -2991,5 +3060,82 @@ body.in-blackjack .games-view {
 
   .chess-stage {
     height: clamp(185px, 50dvh, 230px) !important;
+  }
+}
+
+@media (max-width: 960px) {
+  body.in-okey main {
+    padding-bottom: 62px !important;
+  }
+
+  .okey-cam-bar {
+    gap: 4px;
+  }
+
+  .okey-cam-bar .button {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .okey-stage {
+    height: clamp(150px, 23dvh, 185px) !important;
+  }
+
+  .okey-slot {
+    height: 40px;
+  }
+}
+
+@media (max-width: 560px) {
+  .okey-timer-pill,
+  .okey-take-bot-btn {
+    font-size: 10.5px;
+    padding: 4px 7px;
+  }
+
+  .okey-seat-sit-badge {
+    font-size: 9px;
+    padding: 1px 5px;
+  }
+}
+
+/* Landscape must come AFTER max-width:960px so landscape phones (e.g. 844x390) always win */
+@media (max-height: 540px) and (orientation: landscape) {
+  body.in-okey main {
+    padding: 4px 8px 34px !important;
+  }
+
+  .okey-stage {
+    height: clamp(128px, 35dvh, 148px) !important;
+  }
+
+  .okey-slot {
+    height: 28px !important;
+  }
+
+  .okey-rack-dock {
+    padding: 4px 6px 5px !important;
+    gap: 3px !important;
+  }
+
+  .okey-rack-tools .button {
+    padding: 3px 7px;
+    font-size: 10.5px;
+  }
+
+  body.in-okey .mini-chat-shell:not([hidden]) {
+    right: 8px;
+    bottom: 3px;
+  }
+
+  body.in-okey .mini-chat-toggle {
+    padding: 3px 9px;
+    font-size: 10.5px;
+  }
+
+  .okey-timer-pill,
+  .okey-take-bot-btn {
+    font-size: 10.5px;
+    padding: 3px 7px;
   }
 }

@@ -8,19 +8,15 @@
   <meta name="application-name" content="Haking Chat" />
   <meta name="apple-mobile-web-app-title" content="Haking Chat" />
   <title>Haking Chat — Sohbet, Kod Paylaşımı ve 3D Oyun Arenası</title>
-  <meta
-    name="description"
-    content="Haking Chat (chat.haking.tr): Türkçe geliştirici topluluğu. Gerçek zamanlı sohbet, kod paylaşımı, Klasik Okey 3D, 101 Okey 3D, 3D Satranç (İzle modu), Blackjack 21, Zar Düellosu ve XOX."
-  />
+  <meta name="description"
+    content="Haking Chat (chat.haking.tr): Türkçe geliştirici topluluğu. Gerçek zamanlı sohbet, kod paylaşımı, Klasik Okey 3D, 101 Okey 3D, 3D Satranç (İzle modu), Blackjack 21, Zar Düellosu ve XOX." />
   <link rel="canonical" href="https://chat.haking.tr/" />
   <meta property="og:site_name" content="Haking Chat" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="tr_TR" />
   <meta property="og:title" content="Haking Chat — Sohbet. Kod. 3D Çok Oyunculu Arena." />
-  <meta
-    property="og:description"
-    content="Sohbet et, kod paylaş, Klasik Okey 3D, 101 Okey 3D, 3D Satranç, Blackjack 21, Zar Düellosu ve XOX oyna."
-  />
+  <meta property="og:description"
+    content="Sohbet et, kod paylaş, Klasik Okey 3D, 101 Okey 3D, 3D Satranç, Blackjack 21, Zar Düellosu ve XOX oyna." />
   <meta property="og:url" content="https://chat.haking.tr/" />
   <meta property="og:image" content="https://chat.haking.tr/assets/og-image.png" />
   <meta property="og:image:width" content="1200" />
@@ -29,7 +25,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Haking Chat — Sohbet, Kod Paylaşımı ve 3D Arena" />
   <meta name="twitter:description"
-  content="Klasik Okey 3D, 101 Okey 3D, Satranç 3D, Blackjack, Zar Düellosu ve XOX — PC ve mobilde anında oyna." />
+    content="Klasik Okey 3D, 101 Okey 3D, Satranç 3D, Blackjack, Zar Düellosu ve XOX — PC ve mobilde anında oyna." />
   <meta name="twitter:image" content="https://chat.haking.tr/assets/og-image.png" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
@@ -167,222 +163,222 @@
             </div>
           </section>
           <section class="games-view" id="games-view" hidden aria-labelledby="games-title">
-              <div class="section-heading games-hero-bar">
-                <div>
-                  <h2 id="games-title">Oyun Merkezi · Sıra sende.</h2>
-                  <p>
-                    Klasik Okey 3D, 101 Okey 3D, Satranç 3D (İzle modu), Blackjack 21,
-                    Zar Düellosu &amp; XOX — PC ve mobilde (dikey / yatay) oyna.
-                  </p>
-                </div>
-                <button type="button" id="sfx-toggle" class="button small secondary"
-                  aria-label="Oyun seslerini aç veya kapat">
-                  🔊 Ses açık
-                </button>
+            <div class="section-heading games-hero-bar">
+              <div>
+                <h2 id="games-title">Oyun Merkezi · Sıra sende.</h2>
+                <p>
+                  Klasik Okey 3D, 101 Okey 3D, Satranç 3D (İzle modu), Blackjack 21,
+                  Zar Düellosu &amp; XOX — PC ve mobilde (dikey / yatay) oyna.
+                </p>
               </div>
-              <section class="lobby-dock" id="lobby-dock" aria-label="Canlı Oyun Lobisi">
-                <div class="lobby-heading">
-                  <h3>
-                    Canlı Masalar &amp; Bekleyenler <span class="tag" id="lobby-count">0 ODA</span>
-                  </h3>
-                  <span>Anlık güncellenir <i class="status-dot"></i></span>
-                </div>
-                <div class="lobby-controls" id="lobby-controls">
-                  <div class="lobby-filters" id="lobby-filters" role="group" aria-label="Oyun türü filtresi">
-                    <button type="button" class="lobby-chip active" data-filter="all">Tümü</button>
-                    <button type="button" class="lobby-chip" data-filter="waiting">⏳ Bekleyen</button>
-                    <button type="button" class="lobby-chip" data-filter="okey">🁣 Okey</button>
-                    <button type="button" class="lobby-chip" data-filter="okey101">💯 101</button>
-                    <button type="button" class="lobby-chip" data-filter="chess">♔ Satranç</button>
-                    <button type="button" class="lobby-chip" data-filter="blackjack">♠ Blackjack</button>
-                    <button type="button" class="lobby-chip" data-filter="dice">🎲 Zar</button>
-                    <button type="button" class="lobby-chip" data-filter="xox">×○ XOX</button>
-                    <button type="button" class="lobby-chip" data-filter="watchable">👁 İzle</button>
-                  </div>
-                  <input id="lobby-search" type="search" maxlength="40" placeholder="Masa veya oyuncu ara…"
-                    aria-label="Aktif odalarda ara" />
-                </div>
-                <div class="game-lobby" id="game-lobby"></div>
-              </section>
-              <div class="game-hub" id="game-intro">
-                <article class="game-card game-card-okey">
-                  <div class="game-card-top">
-                    <span class="tag okey-live-tag">3D · 4 KİŞİ ZORUNLU</span>
-                    <span class="okey-card-emblem" aria-hidden="true">🁣 7★</span>
-                  </div>
-                  <h3>Klasik Okey 3D</h3>
-                  <p>
-                    106 taşlı klasik ahşap ıstaka masası. <strong>4 oyuncu</strong> dolmadan
-                    başlamaz; rakiplerin taşları gizlidir. Manuel veya otomatik taş diz!
-                  </p>
-                  <div class="game-buttons">
-                    <button class="button primary" id="okey-create">
-                      Klasik Masa Aç 🁣
-                    </button><button type="button" class="button secondary" id="okey-help-btn">
-                      ? Nasıl Oynanır
-                    </button>
-                  </div>
-                  <small>
-                    12-13-1 &amp; 7 Çift · Gösterge &amp; Sahte Okey · 4/4 Oto Başlar · İzle
-                  </small>
-                </article>
-                <article class="game-card game-card-okey101">
-                  <div class="game-card-top">
-                    <span class="tag okey101-live-tag">3D · 4 KİŞİ · 101+ / 5 ÇİFT</span>
-                    <span class="okey-card-emblem gold" aria-hidden="true">101</span>
-                  </div>
-                  <h3>101 Okey 3D</h3>
-                  <p>
-                    21 taşla açılışta <strong>101+ seri</strong> veya <strong>5+ çift</strong>
-                    indir! Masadaki perlere taş işle, soldan al-aç kuralı ve işlek (+101) cezası.
-                  </p>
-                  <div class="game-buttons">
-                    <button class="button primary" id="okey101-create">
-                      101 Masa Aç 💯
-                    </button><button type="button" class="button secondary" id="okey101-help-btn">
-                      ? Nasıl Oynanır
-                    </button>
-                  </div>
-                  <small>
-                    Seri/Çift oto dizici · Anlık per sayacı · Taş işleme · Gizli eller
-                  </small>
-                </article>
-                <article class="game-card game-card-chess">
-                  <div class="game-card-top">
-                    <span class="tag chess-live-tag">3D · KUŞ BAKIŞI · İZLE</span>
-                    <span class="chess-card-emblem" aria-hidden="true">♔ ♛</span>
-                  </div>
-                  <h3>Satranç 3D</h3>
-                  <p>
-                    Kuş bakışı varsayılan kamera ve serbest 3D gezinme ile tam kurallı
-                    FIDE satranç. Arkadaşların uzun maçları <strong>İzle</strong> ile canlı takip edebilir!
-                  </p>
-                  <div class="xox-diff-row">
-                    <label for="chess-difficulty">Bot seviyesi</label>
-                    <select id="chess-difficulty" aria-label="Satranç bot zorluğu">
-                      <option value="easy">Kolay Bot</option>
-                      <option value="medium">Orta Bot</option>
-                      <option value="hard" selected>Usta Bot</option>
-                    </select>
-                  </div>
-                  <div class="game-buttons">
-                    <button class="button primary" id="chess-create">
-                      1v1 Masa Aç ♔
-                    </button>
-                    <button class="button secondary" id="chess-create-bot">
-                      Botla Oyna 🤖
-                    </button>
-                  </div>
-                  <small>
-                    Rok &amp; Geçerken alma · Terfi seçici · Hamle günlüğü · Canlı izleme
-                  </small>
-                </article>
-                <article class="game-card game-card-bj">
-                  <div class="game-card-top">
-                    <span class="tag bj-live-tag">3D · MAX 6 KİŞİ</span>
-                    <span class="bj-card-emblem" aria-hidden="true">A♠ K♥</span>
-                  </div>
-                  <h3>Blackjack 21</h3>
-                  <p>
-                    Canlı kurpiyere karşı 6 kişilik 3D masa. 1 kişi oturduğunda
-                    menü açılır; başlatan olduğunda 10 sn, 6 kişi dolduğunda oto başlar.
-                  </p>
-                  <div class="game-buttons">
-                    <button class="button primary" id="bj-create">
-                      Masa aç ve otur ♠
-                    </button>
-                  </div>
-                  <small>
-                    6 deste · 1.000 başlangıç fişi · Blackjack 3:2 · Çift &amp; Böl
-                  </small>
-                </article>
-                <article class="game-card game-card-dice">
-                  <div class="game-card-top">
-                    <span class="tag dice-live-tag">3D · 1–6 KİŞİ &amp; BOT</span>
-                    <span class="dice-card-emblem" aria-hidden="true">⚄ ⚀</span>
-                  </div>
-                  <h3>Zar Düellosu</h3>
-                  <p>
-                    1v1, 6 arkadaşınla veya Zar Botu ile oyna! Puanlı zarları kilitle,
-                    Sıcak Zar kovalamaya cesaret et veya riske atmadan puanını kasaya yaz.
-                  </p>
-                  <div class="xox-diff-row">
-                    <label for="dice-target">Hedef puan</label>
-                    <select id="dice-target" aria-label="Zar Düellosu hedef puanı">
-                      <option value="2000">2.000 · Hızlı</option>
-                      <option value="3000" selected>3.000 · Standart</option>
-                      <option value="5000">5.000 · Uzun Tur</option>
-                    </select>
-                  </div>
-                  <div class="game-buttons">
-                    <button class="button primary" id="dice-create">
-                      Zar Masası Aç 🎲</button><button class="button secondary" id="dice-create-bot">
-                      Botla 1v1 Başla 🤖</button><button type="button" class="button secondary" id="dice-help-btn">
-                      ? Nasıl Oynanır
-                    </button>
-                  </div>
-                  <small>
-                    1=100 · 5=50 · Üçlüler · 1-6 Sıralı=1.500 · Sıcak Zar · Altın Kupa
-                  </small>
-                </article>
-                <article class="game-card game-card-xox">
-                  <div class="game-card-top">
-                    <span class="tag">KLASİK &amp; SONSUZ</span>
-                    <div class="mini-board" aria-hidden="true">
-                      <span>×</span><span></span><span>○</span><span></span><span>×</span><span></span><span>○</span><span></span><span>×</span>
-                    </div>
-                  </div>
-                  <h3>XOX · Strateji Arenası</h3>
-                  <p>
-                    Klasik 3×3 veya berabere bitmeyen <strong>Sonsuz 3 Taş</strong> modu!
-                    Gelişmiş tuzak kuran Yenilmez Bot ve dönüşümlü ilk hamle ile 1v1 oyna.
-                  </p>
-                  <div class="xox-diff-row">
-                    <label for="xox-mode">Oyun modu</label>
-                    <select id="xox-mode" aria-label="XOX oyun modu">
-                      <option value="classic" selected>Klasik 3×3</option>
-                      <option value="infinite">Sonsuz 3 Taş</option>
-                    </select>
-                  </div>
-                  <div class="xox-diff-row">
-                    <label for="xox-difficulty">Bot seviyesi</label>
-                    <select id="xox-difficulty" aria-label="Bot zorluk seviyesi">
-                      <option value="easy">Kolay Bot</option>
-                      <option value="medium">Orta Bot</option>
-                      <option value="hard" selected>Yenilmez Bot</option>
-                    </select>
-                  </div>
-                  <div class="game-buttons">
-                    <button class="button primary" id="create-game">
-                      1v1 Oda oluştur ↗</button><button class="button secondary" id="play-bot">
-                      Botla oyna ×○
-                    </button>
-                  </div>
-                  <small>
-                    Alternatif başlayan · 1v1 kabul ekranı · Canlı skor
-                  </small>
-                </article>
+              <button type="button" id="sfx-toggle" class="button small secondary"
+                aria-label="Oyun seslerini aç veya kapat">
+                🔊 Ses açık
+              </button>
+            </div>
+            <section class="lobby-dock" id="lobby-dock" aria-label="Canlı Oyun Lobisi">
+              <div class="lobby-heading">
+                <h3>
+                  Canlı Masalar &amp; Bekleyenler <span class="tag" id="lobby-count">0 ODA</span>
+                </h3>
+                <span>Anlık güncellenir <i class="status-dot"></i></span>
               </div>
-              <div id="active-game" class="active-game" hidden>
-                <div class="xox-meta-row" id="xox-meta"></div>
-                <div class="game-player-row" id="game-players"></div>
-                <p id="game-status" class="game-status" aria-live="polite"></p>
-                <div id="xox-rematch-prompt" class="xox-rematch-prompt" hidden></div>
-                <div class="xox-board-stage">
-                  <div class="game-board" id="game-board" aria-label="XOX tahtası"></div>
+              <div class="lobby-controls" id="lobby-controls">
+                <div class="lobby-filters" id="lobby-filters" role="group" aria-label="Oyun türü filtresi">
+                  <button type="button" class="lobby-chip active" data-filter="all">Tümü</button>
+                  <button type="button" class="lobby-chip" data-filter="waiting">⏳ Bekleyen</button>
+                  <button type="button" class="lobby-chip" data-filter="okey">🁣 Okey</button>
+                  <button type="button" class="lobby-chip" data-filter="okey101">💯 101</button>
+                  <button type="button" class="lobby-chip" data-filter="chess">♔ Satranç</button>
+                  <button type="button" class="lobby-chip" data-filter="blackjack">♠ Blackjack</button>
+                  <button type="button" class="lobby-chip" data-filter="dice">🎲 Zar</button>
+                  <button type="button" class="lobby-chip" data-filter="xox">×○ XOX</button>
+                  <button type="button" class="lobby-chip" data-filter="watchable">👁 İzle</button>
                 </div>
+                <input id="lobby-search" type="search" maxlength="40" placeholder="Masa veya oyuncu ara…"
+                  aria-label="Aktif odalarda ara" />
+              </div>
+              <div class="game-lobby" id="game-lobby"></div>
+            </section>
+            <div class="game-hub" id="game-intro">
+              <article class="game-card game-card-okey">
+                <div class="game-card-top">
+                  <span class="tag okey-live-tag">3D · 4 KİŞİ ZORUNLU</span>
+                  <span class="okey-card-emblem" aria-hidden="true">🁣 7★</span>
+                </div>
+                <h3>Klasik Okey 3D</h3>
+                <p>
+                  106 taşlı klasik ahşap ıstaka masası. <strong>4 oyuncu</strong> dolmadan
+                  başlamaz; rakiplerin taşları gizlidir. Manuel veya otomatik taş diz!
+                </p>
                 <div class="game-buttons">
-                  <button class="button secondary" id="game-leave">
-                    Oyundan çık</button><button class="button primary" id="game-add-bot" hidden>
-                    Beklemek yerine bot ekle</button><button class="button primary" id="game-rematch" hidden>
-                    Tekrar oyna ↻
+                  <button class="button primary" id="okey-create">
+                    Klasik Masa Aç 🁣
+                  </button><button type="button" class="button secondary" id="okey-help-btn">
+                    ? Nasıl Oynanır
                   </button>
                 </div>
+                <small>
+                  12-13-1 &amp; 7 Çift · Zeki Seri/Çift Diz · 60 sn Süre &amp; Bot Devralma · İzle
+                </small>
+              </article>
+              <article class="game-card game-card-okey101">
+                <div class="game-card-top">
+                  <span class="tag okey101-live-tag">3D · 4 KİŞİ · 101+ / 5 ÇİFT</span>
+                  <span class="okey-card-emblem gold" aria-hidden="true">101</span>
+                </div>
+                <h3>101 Okey 3D</h3>
+                <p>
+                  21 taşla açılışta <strong>101+ seri</strong> veya <strong>5+ çift</strong>
+                  indir! Masadaki perlere taş işle, soldan al-aç kuralı ve işlek (+101) cezası.
+                </p>
+                <div class="game-buttons">
+                  <button class="button primary" id="okey101-create">
+                    101 Masa Aç 💯
+                  </button><button type="button" class="button secondary" id="okey101-help-btn">
+                    ? Nasıl Oynanır
+                  </button>
+                </div>
+                <small>
+                  Akıllı 101+ Seri/Çift Dizici · 60 sn Süre &amp; Bot Devralma · İzleyiciden Oturma
+                </small>
+              </article>
+              <article class="game-card game-card-chess">
+                <div class="game-card-top">
+                  <span class="tag chess-live-tag">3D · KUŞ BAKIŞI · İZLE</span>
+                  <span class="chess-card-emblem" aria-hidden="true">♔ ♛</span>
+                </div>
+                <h3>Satranç 3D</h3>
+                <p>
+                  Kuş bakışı varsayılan kamera ve serbest 3D gezinme ile tam kurallı
+                  FIDE satranç. Arkadaşların uzun maçları <strong>İzle</strong> ile canlı takip edebilir!
+                </p>
+                <div class="xox-diff-row">
+                  <label for="chess-difficulty">Bot seviyesi</label>
+                  <select id="chess-difficulty" aria-label="Satranç bot zorluğu">
+                    <option value="easy">Kolay Bot</option>
+                    <option value="medium">Orta Bot</option>
+                    <option value="hard" selected>Usta Bot</option>
+                  </select>
+                </div>
+                <div class="game-buttons">
+                  <button class="button primary" id="chess-create">
+                    1v1 Masa Aç ♔
+                  </button>
+                  <button class="button secondary" id="chess-create-bot">
+                    Botla Oyna 🤖
+                  </button>
+                </div>
+                <small>
+                  Rok &amp; Geçerken alma · Terfi seçici · Hamle günlüğü · Canlı izleme
+                </small>
+              </article>
+              <article class="game-card game-card-bj">
+                <div class="game-card-top">
+                  <span class="tag bj-live-tag">3D · MAX 6 KİŞİ</span>
+                  <span class="bj-card-emblem" aria-hidden="true">A♠ K♥</span>
+                </div>
+                <h3>Blackjack 21</h3>
+                <p>
+                  Canlı kurpiyere karşı 6 kişilik 3D masa. 1 kişi oturduğunda
+                  menü açılır; başlatan olduğunda 10 sn, 6 kişi dolduğunda oto başlar.
+                </p>
+                <div class="game-buttons">
+                  <button class="button primary" id="bj-create">
+                    Masa aç ve otur ♠
+                  </button>
+                </div>
+                <small>
+                  6 deste · 1.000 başlangıç fişi · Blackjack 3:2 · Çift &amp; Böl
+                </small>
+              </article>
+              <article class="game-card game-card-dice">
+                <div class="game-card-top">
+                  <span class="tag dice-live-tag">3D · 1–6 KİŞİ &amp; BOT</span>
+                  <span class="dice-card-emblem" aria-hidden="true">⚄ ⚀</span>
+                </div>
+                <h3>Zar Düellosu</h3>
+                <p>
+                  1v1, 6 arkadaşınla veya Zar Botu ile oyna! Puanlı zarları kilitle,
+                  Sıcak Zar kovalamaya cesaret et veya riske atmadan puanını kasaya yaz.
+                </p>
+                <div class="xox-diff-row">
+                  <label for="dice-target">Hedef puan</label>
+                  <select id="dice-target" aria-label="Zar Düellosu hedef puanı">
+                    <option value="2000">2.000 · Hızlı</option>
+                    <option value="3000" selected>3.000 · Standart</option>
+                    <option value="5000">5.000 · Uzun Tur</option>
+                  </select>
+                </div>
+                <div class="game-buttons">
+                  <button class="button primary" id="dice-create">
+                    Zar Masası Aç 🎲</button><button class="button secondary" id="dice-create-bot">
+                    Botla 1v1 Başla 🤖</button><button type="button" class="button secondary" id="dice-help-btn">
+                    ? Nasıl Oynanır
+                  </button>
+                </div>
+                <small>
+                  1=100 · 5=50 · Üçlüler · 1-6 Sıralı=1.500 · Sıcak Zar · Altın Kupa
+                </small>
+              </article>
+              <article class="game-card game-card-xox">
+                <div class="game-card-top">
+                  <span class="tag">KLASİK &amp; SONSUZ</span>
+                  <div class="mini-board" aria-hidden="true">
+                    <span>×</span><span></span><span>○</span><span></span><span>×</span><span></span><span>○</span><span></span><span>×</span>
+                  </div>
+                </div>
+                <h3>XOX · Strateji Arenası</h3>
+                <p>
+                  Klasik 3×3 veya berabere bitmeyen <strong>Sonsuz 3 Taş</strong> modu!
+                  Gelişmiş tuzak kuran Yenilmez Bot ve dönüşümlü ilk hamle ile 1v1 oyna.
+                </p>
+                <div class="xox-diff-row">
+                  <label for="xox-mode">Oyun modu</label>
+                  <select id="xox-mode" aria-label="XOX oyun modu">
+                    <option value="classic" selected>Klasik 3×3</option>
+                    <option value="infinite">Sonsuz 3 Taş</option>
+                  </select>
+                </div>
+                <div class="xox-diff-row">
+                  <label for="xox-difficulty">Bot seviyesi</label>
+                  <select id="xox-difficulty" aria-label="Bot zorluk seviyesi">
+                    <option value="easy">Kolay Bot</option>
+                    <option value="medium">Orta Bot</option>
+                    <option value="hard" selected>Yenilmez Bot</option>
+                  </select>
+                </div>
+                <div class="game-buttons">
+                  <button class="button primary" id="create-game">
+                    1v1 Oda oluştur ↗</button><button class="button secondary" id="play-bot">
+                    Botla oyna ×○
+                  </button>
+                </div>
+                <small>
+                  Alternatif başlayan · 1v1 kabul ekranı · Canlı skor
+                </small>
+              </article>
+            </div>
+            <div id="active-game" class="active-game" hidden>
+              <div class="xox-meta-row" id="xox-meta"></div>
+              <div class="game-player-row" id="game-players"></div>
+              <p id="game-status" class="game-status" aria-live="polite"></p>
+              <div id="xox-rematch-prompt" class="xox-rematch-prompt" hidden></div>
+              <div class="xox-board-stage">
+                <div class="game-board" id="game-board" aria-label="XOX tahtası"></div>
               </div>
-              <div id="active-okey" class="active-blackjack active-okey" hidden></div>
-              <div id="active-chess" class="active-blackjack active-chess" hidden></div>
-              <div id="active-blackjack" class="active-blackjack" hidden></div>
-              <div id="active-dice" class="active-blackjack" hidden></div>
+              <div class="game-buttons">
+                <button class="button secondary" id="game-leave">
+                  Oyundan çık</button><button class="button primary" id="game-add-bot" hidden>
+                  Beklemek yerine bot ekle</button><button class="button primary" id="game-rematch" hidden>
+                  Tekrar oyna ↻
+                </button>
+              </div>
+            </div>
+            <div id="active-okey" class="active-blackjack active-okey" hidden></div>
+            <div id="active-chess" class="active-blackjack active-chess" hidden></div>
+            <div id="active-blackjack" class="active-blackjack" hidden></div>
+            <div id="active-dice" class="active-blackjack" hidden></div>
           </section>
           <aside class="right-rail" aria-label="Topluluk bilgileri">
             <section class="online-panel">
@@ -768,11 +764,12 @@
       </div>
       <div class="dice-rule-card dice-rule-hot">
         <div class="dice-svg-row" aria-hidden="true">
-          <span class="dice-combo-badge hot">Manuel &amp; Oto Diz</span>
+          <span class="dice-combo-badge hot">60 sn · 🤖 Bot</span>
         </div>
-        <strong>Istaka Kontrolü</strong>
-        <span>Mobilde/PC'de taşları sürükleyerek veya <strong>1 taş seç + hedef yuvaya dokun</strong> ile
-          dizebilir; dilersen <strong>Seri Diz / Çift Diz</strong> butonlarını kullanabilirsin.</span>
+        <strong>Süre, Oto Diz &amp; Bot Devralma</strong>
+        <span>Her elde <strong>60 saniye</strong> düşünme süresi vardır; süre dolarsa bot yerine oynar.
+          Bir oyuncu masadan çıkarsa masa dağılmaz, <strong>🤖 Akıllı Bot</strong> devam eder ve izleyiciler
+          <strong>Bot Yerine Otur</strong> ile koltuğu devralabilir.</span>
       </div>
     </div>
   </dialog>
@@ -817,8 +814,8 @@
         </div>
         <strong>Ceza &amp; El Sonu Puanı</strong>
         <span>Masaya işleyebileceğin <strong>işlek taşı</strong> veya Okey'i yere atarsan anında <strong>+101
-            ceza</strong> yazılır! Biten <strong>-101</strong>, elini hiç açamayanlar <strong>+202</strong> ceza
-          alır.</span>
+        ceza</strong> yazılır! 60 sn süre bitiminde otomatik hamle yapılır; masadan çıkanın yerine
+        <strong>🤖 Akıllı Bot</strong> geçer, izleyiciler dilediğinde koltuğu devralabilir.</span>
       </div>
     </div>
   </dialog>

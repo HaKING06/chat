@@ -33,7 +33,8 @@ Modern oyun merkezi düzeniyle **Canlı Masalar & Bekleyenler** çubuğu sayfan�
    - **Gerçek kurallar & Gizli El Koruması**: 4 koltuk dolmadan el başlamaz; rakiplerin ıstaka taşları ve kapalı deste asla sunucu dışına sızdırılmaz.
    - **Klasik Okey**: `12-13-1` sarmal seri (13-1-2 hariç), 3–4 farklı renk aynı sayı set, **Gösterge / Okey / Sahte Okey**, **7 Çift**, gösterge gösterme, normal / çift / Okey atarak bitme puanlaması.
    - **101 Okey**: 21/22 taş dağıtımı, seri toplamı **≥ 101** veya **≥ 5 Çift** açma, anlık per puanı sayacı, soldan al-aç kuralı (taşı geri bırakma hakkıyla), açılmış seri perlere doğrudan **taş işleme**, **işlek / Okey atma `+101` cezası** ve el sonu (`-101` / `+202`) puan tablosu.
-   - **Manuel & Otomatik Taş Dizme**: Bilgisayarda sürükle-bırak ve mobilde (dikey & yatay) tek dokunuş taşı-yerleştir ile manuel düzenleme yanında tek tık **Seri Diz** ve **Çift Diz** algoritmaları.
+   - **Manuel & Otomatik Taş Dizme**: Bilgisayarda sürükle-bırak ve mobilde (dikey & yatay) tek dokunuş taşı-yerleştir ile manuel düzenleme yanında `12-13-1`, 6–13'lü perler, Okey jokerleri ve 101+ açılış hedefini önceliklendiren gelişmiş **Seri Diz** / **Çift Diz** çözücüsü.
+   - **60 sn Tur Süresi, Akıllı Bot Devralma & İzleyiciden Koltuğa Oturma**: Oyuncuya taş çekme ve olasılık hesaplama için rahat `60 sn` süre tanınır (süre dolarsa güvenli otomatik hamle oynanır; 2 ardışık AFK veya masadan ayrılmada masa dağılmadan **🤖 Akıllı Bot** devam eder). İzleyiciler ya da lobideki oyuncular **Bot Yerine Otur** ile doğrudan botun yerine geçebilir.
 
 2. **Satranç 3D (Kuş Bakışı · Serbest Gezinme · İzle Modu & Bot)**
    - **Aşırı kuş bakışı varsayılan kamera**: Üstten tam hâkimiyet sunan dik açıyla açılır; `OrbitControls` ile serbest 3D gezinme, `Kuş Bakışı` / `3D Açı` ön ayarları ve `Tahtayı Çevir` desteği (WebGL yoksa otomatik 2D tahta).
