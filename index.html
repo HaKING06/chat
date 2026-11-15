@@ -9,14 +9,16 @@
   <meta name="apple-mobile-web-app-title" content="Haking Chat" />
   <title>Haking Chat — Sohbet, Kod Paylaşımı ve 3D Oyun Arenası</title>
   <meta name="description"
-    content="Haking Chat (chat.haking.tr): Türkçe geliştirici topluluğu. Gerçek zamanlı sohbet, kod paylaşımı, 6 kişilik 3D Blackjack, 3D Zar Düellosu 5.000 ve Sonsuz XOX." />
+  content="Haking Chat (chat.haking.tr): Türkçe geliştirici topluluğu. Gerçek zamanlı sohbet, kod paylaşımı, 3D Satranç
+  (İzle modu), 6 kişilik 3D Blackjack, 3D Zar Düellosu ve Klasik / Sonsuz XOX." />
   <link rel="canonical" href="https://chat.haking.tr/" />
   <meta property="og:site_name" content="Haking Chat" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="tr_TR" />
   <meta property="og:title" content="Haking Chat — Sohbet. Kod. 3D Çok Oyunculu Arena." />
   <meta property="og:description"
-    content="Sohbet et, kod paylaş, 6 kişilik 3D Blackjack, ekran ghostlanmayan 3D Zar Düellosu 5.000 ve Sonsuz 3 Taş XOX oyna." />
+  content="Sohbet et, kod paylaş, 3D Satranç (İzle modu), 6 kişilik 3D Blackjack, 3D Zar Düellosu ve Klasik / Sonsuz XOX
+  oyna." />
   <meta property="og:url" content="https://chat.haking.tr/" />
   <meta property="og:image" content="https://chat.haking.tr/assets/og-image.png" />
   <meta property="og:image:width" content="1200" />
@@ -25,7 +27,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Haking Chat — Sohbet, Kod Paylaşımı ve 3D Arena" />
   <meta name="twitter:description"
-    content="6 kişilik 3D Blackjack, 3D Zar Düellosu 5.000 ve Sonsuz XOX — PC ve mobilde anında oyna." />
+  content="3D Satranç, 6 kişilik 3D Blackjack, 3D Zar Düellosu ve XOX — PC ve mobilde anında oyna." />
   <meta name="twitter:image" content="https://chat.haking.tr/assets/og-image.png" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
@@ -63,7 +65,8 @@
         </button>
         <p class="nav-label second-label">OYUN</p>
         <button class="nav-item" data-view="games">
-          <span class="nav-symbol game-symbol">×○</span><span>oyun-alanı<small>Blackjack · Zar 5K · XOX</small></span><span class="mini-badge">OYNA</span>
+          <span class="nav-symbol game-symbol">×○</span><span>oyun-alanı<small>Blackjack · Zar 5K ·
+              XOX</small></span><span class="mini-badge">OYNA</span>
         </button>
       </nav>
       <div class="sidebar-note">
@@ -166,8 +169,8 @@
               <div>
                 <h2 id="games-title">Oyun Alanı · Sıra sende.</h2>
                 <p>
-                  6 kişilik 3D Blackjack, ekran ghostlanmayan 3D Zar Düellosu 5.000
-                  ve beraberesiz Sonsuz XOX — PC &amp; mobilde oyna.
+                  Kuş bakışı 3D Satranç (İzle modu), 6 kişilik 3D Blackjack, 3D Zar
+                  Düellosu ve Klasik / Sonsuz XOX — PC &amp; mobilde oyna.
                 </p>
               </div>
               <button type="button" id="sfx-toggle" class="button small secondary"
@@ -176,6 +179,36 @@
               </button>
             </div>
             <div class="game-hub" id="game-intro">
+              <article class="game-card game-card-chess">
+                <div class="game-card-top">
+                  <span class="tag chess-live-tag">3D · KUŞ BAKIŞI · İZLE MODU</span>
+                  <span class="chess-card-emblem" aria-hidden="true">♔ ♛</span>
+                </div>
+                <h3>Satranç 3D</h3>
+                <p>
+                  Kuş bakışı varsayılan kamera ve serbest 3D gezinme ile tam kurallı
+                  FIDE satranç. Arkadaşların uzun maçları <strong>İzle</strong> ile canlı takip edebilir!
+                </p>
+                <div class="xox-diff-row">
+                  <label for="chess-difficulty">Bot seviyesi</label>
+                  <select id="chess-difficulty" aria-label="Satranç bot zorluğu">
+                    <option value="easy">Kolay Bot</option>
+                    <option value="medium">Orta Bot</option>
+                    <option value="hard" selected>Usta Bot</option>
+                  </select>
+                </div>
+                <div class="game-buttons">
+                  <button class="button primary" id="chess-create">
+                    1v1 Masa Aç ♔
+                  </button>
+                  <button class="button secondary" id="chess-create-bot">
+                    Botla Oyna 🤖
+                  </button>
+                </div>
+                <small>
+                  Rok &amp; Geçerken alma · Terfi seçici · Hamle günlüğü · Canlı izleme
+                </small>
+              </article>
               <article class="game-card game-card-bj">
                 <div class="game-card-top">
                   <span class="tag bj-live-tag">3D · MAX 6 KİŞİ</span>
@@ -197,49 +230,50 @@
               </article>
               <article class="game-card game-card-dice">
                 <div class="game-card-top">
-                  <span class="tag dice-live-tag">3D · ANTI-GHOST · 1–6 KİŞİ</span>
+                  <span class="tag dice-live-tag">3D · 1–6 KİŞİ &amp; BOT</span>
                   <span class="dice-card-emblem" aria-hidden="true">⚄ ⚀</span>
                 </div>
-                <h3>Zar Düellosu 5.000</h3>
+                <h3>Zar Düellosu</h3>
                 <p>
-                  Yan yana ekranlarda ghostlama imkansız: tüm zarlar açıktır. 1v1 veya
-                  6 arkadaşınla ya da Zar Botu ile risk al, komboları topla ve kasaya yaz!
+                  1v1, 6 arkadaşınla veya Zar Botu ile oyna! Puanlı zarları kilitle,
+                  Sıcak Zar kovalamaya cesaret et veya riske atmadan puanını kasaya yaz.
                 </p>
                 <div class="xox-diff-row">
                   <label for="dice-target">Hedef puan</label>
                   <select id="dice-target" aria-label="Zar Düellosu hedef puanı">
-                    <option value="3000">3.000 · Hızlı</option>
-                    <option value="5000" selected>5.000 · Standart</option>
-                    <option value="10000">10.000 · Maraton</option>
+                    <option value="2000">2.000 · Hızlı</option>
+                    <option value="3000" selected>3.000 · Standart</option>
+                    <option value="5000">5.000 · Uzun Tur</option>
                   </select>
                 </div>
                 <div class="game-buttons">
                   <button class="button primary" id="dice-create">
                     Zar Masası Aç 🎲</button><button class="button secondary" id="dice-create-bot">
-                    Botla 1v1 Başla 🤖
+                    Botla 1v1 Başla 🤖</button><button type="button" class="button secondary" id="dice-help-btn">
+                    ? Nasıl Oynanır
                   </button>
                 </div>
                 <small>
-                  1=100 · 5=50 · Üçlüler · 1-6 Sıralı=1500 · Sıcak Zar · Sıfır gizli bilgi
+                  1=100 · 5=50 · Üçlüler · 1-6 Sıralı=1.500 · Sıcak Zar · Altın Kupa
                 </small>
               </article>
               <article class="game-card game-card-xox">
                 <div class="game-card-top">
-                  <span class="tag">SONSUZ &amp; KLASİK</span>
+                  <span class="tag">KLASİK &amp; SONSUZ</span>
                   <div class="mini-board" aria-hidden="true">
                     <span>×</span><span></span><span>○</span><span></span><span>×</span><span></span><span>○</span><span></span><span>×</span>
                   </div>
                 </div>
                 <h3>XOX · Strateji Arenası</h3>
                 <p>
-                  Gelişmiş tuzak kuran Yenilmez Bot! Berabereden sıkıldıysan
-                  <strong>Sonsuz 3 Taş</strong> modunda oyna — 4. taşta en eski taşın kalkar, berabere bitemez!
+                  Klasik 3×3 veya berabere bitmeyen <strong>Sonsuz 3 Taş</strong> modu!
+                  Gelişmiş tuzak kuran Yenilmez Bot ve dönüşümlü ilk hamle ile 1v1 oyna.
                 </p>
                 <div class="xox-diff-row">
                   <label for="xox-mode">Oyun modu</label>
                   <select id="xox-mode" aria-label="XOX oyun modu">
-                    <option value="infinite" selected>Sonsuz 3 Taş</option>
-                    <option value="classic">Klasik 3×3</option>
+                    <option value="classic" selected>Klasik 3×3</option>
+                    <option value="infinite">Sonsuz 3 Taş</option>
                   </select>
                 </div>
                 <div class="xox-diff-row">
@@ -277,6 +311,7 @@
                 </button>
               </div>
             </div>
+            <div id="active-chess" class="active-blackjack active-chess" hidden></div>
             <div id="active-blackjack" class="active-blackjack" hidden></div>
             <div id="active-dice" class="active-blackjack" hidden></div>
             <div class="lobby-heading">
@@ -284,6 +319,18 @@
                 Oyun lobisi <span class="tag" id="lobby-count">0 ODA</span>
               </h3>
               <span>Canlı güncellenir <i class="status-dot"></i></span>
+            </div>
+            <div class="lobby-controls" id="lobby-controls">
+              <div class="lobby-filters" id="lobby-filters" role="group" aria-label="Oyun türü filtresi">
+                <button type="button" class="lobby-chip active" data-filter="all">Tümü</button>
+                <button type="button" class="lobby-chip" data-filter="chess">♔ Satranç</button>
+                <button type="button" class="lobby-chip" data-filter="blackjack">♠ Blackjack</button>
+                <button type="button" class="lobby-chip" data-filter="dice">🎲 Zar</button>
+                <button type="button" class="lobby-chip" data-filter="xox">×○ XOX</button>
+                <button type="button" class="lobby-chip" data-filter="watchable">👁 İzlenebilir</button>
+              </div>
+              <input id="lobby-search" type="search" maxlength="40" placeholder="Oda veya oyuncu ara…"
+                aria-label="Aktif odalarda ara" />
             </div>
             <div class="game-lobby" id="game-lobby"></div>
           </section>
@@ -477,91 +524,195 @@
     </div>
     <div id="staff-repository-help" hidden></div>
   </dialog>
-    <dialog id="admin-dialog" class="modal admin-modal">
-      <button class="modal-close icon-button" data-close="admin-dialog" aria-label="Pencereyi kapat">
-        ×
-      </button>
+  <dialog id="admin-dialog" class="modal admin-modal">
+    <button class="modal-close icon-button" data-close="admin-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
 
-      <h2 id="admin-dialog-title">Topluluk yönetimi</h2>
-      <div class="admin-section">
-        <div class="admin-section-head">
-          <h3 id="admin-channel-heading">Seçili kanal kontrolleri</h3>
-          <span id="admin-channel-badge" class="tag">#genel-sohbet</span>
-        </div>
-        <div class="admin-control-row">
-          <label for="admin-slowmode">Yavaş mod
-            <select id="admin-slowmode">
-              <option value="0">Kapalı (0 sn)</option>
-              <option value="5">5 saniye</option>
-              <option value="10">10 saniye</option>
-              <option value="15">15 saniye</option>
-              <option value="30">30 saniye</option>
-              <option value="60">60 saniye</option>
-            </select></label>
-          <button type="button" class="button secondary founder-only" id="toggle-channel-lock">
-            Kanalı kilitle 🔒
-          </button>
-        </div>
-        <div class="admin-actions-grid founder-only" id="founder-channel-actions">
-          <button type="button" class="button danger" id="clear-channel">
-            Bu kanalı temizle
-          </button>
-          <button type="button" class="button secondary" id="clear-games-btn">
-            Oyun lobisini sıfırla
-          </button>
-        </div>
+    <h2 id="admin-dialog-title">Topluluk yönetimi</h2>
+    <div class="admin-section">
+      <div class="admin-section-head">
+        <h3 id="admin-channel-heading">Seçili kanal kontrolleri</h3>
+        <span id="admin-channel-badge" class="tag">#genel-sohbet</span>
       </div>
-
-      <form id="announce-form" class="admin-section founder-only">
-        <h3>Resmi duyuru yayınla</h3>
-        <div class="admin-control-row">
-          <input id="announce-text" maxlength="280" placeholder="Tüm topluluğa veya aktif kanala duyuru yaz…" />
-          <button type="submit" class="button primary">Yayınla</button>
-          <button type="button" class="button secondary" id="clear-announce">Kaldır</button>
-        </div>
-      </form>
-
-      <div class="admin-section">
-        <h3>Susturulan kullanıcılar</h3>
-        <div id="muted-users-list" class="muted-users-list"></div>
-      </div>
-
-      <div class="founder-only" id="audit-section">
-        <h3 class="audit-title">Son yönetim işlemleri</h3>
-        <div id="audit-list" class="audit-list"></div>
-      </div>
-    </dialog>
-    <dialog id="user-actions-dialog" class="modal user-actions-modal" aria-labelledby="user-actions-name">
-      <button class="modal-close icon-button" data-close="user-actions-dialog" aria-label="Pencereyi kapat">
-        ×
-      </button>
-      <h2 id="user-actions-name">Kullanıcı</h2>
-      <p id="user-actions-meta" class="user-actions-meta"></p>
-      <div id="mute-options-box" class="mute-options-box">
-        <label>Susturma süresi
-          <select id="mute-duration">
-            <option value="0">Süresiz (manuel açılana kadar)</option>
-            <option value="5">5 dakika</option>
-            <option value="15" selected>15 dakika</option>
-            <option value="60">1 saat</option>
+      <div class="admin-control-row">
+        <label for="admin-slowmode">Yavaş mod
+          <select id="admin-slowmode">
+            <option value="0">Kapalı (0 sn)</option>
+            <option value="5">5 saniye</option>
+            <option value="10">10 saniye</option>
+            <option value="15">15 saniye</option>
+            <option value="30">30 saniye</option>
+            <option value="60">60 saniye</option>
           </select></label>
-        <label>Sebep (isteğe bağlı)
-          <input id="mute-reason" maxlength="100" placeholder="Örn. Spam / Kurallar" /></label>
+        <button type="button" class="button secondary founder-only" id="toggle-channel-lock">
+          Kanalı kilitle 🔒
+        </button>
       </div>
-      <div id="user-actions-list"></div>
-    </dialog>
-    <dialog id="people-dialog" class="modal people-modal" aria-label="Çevrimiçi topluluk">
-      <button class="modal-close icon-button" data-close="people-dialog" aria-label="Pencereyi kapat">
-        ×
-      </button>
-      <div id="people-content"></div>
-    </dialog>
-    <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
-    <noscript>
-      <div class="noscript">
-        Sohbeti kullanmak için tarayıcında JavaScript'i etkinleştir.
+      <div class="admin-actions-grid founder-only" id="founder-channel-actions">
+        <button type="button" class="button danger" id="clear-channel">
+          Bu kanalı temizle
+        </button>
+        <button type="button" class="button secondary" id="clear-games-btn">
+          Oyun lobisini sıfırla
+        </button>
       </div>
-    </noscript>
+    </div>
+
+    <form id="announce-form" class="admin-section founder-only">
+      <h3>Resmi duyuru yayınla</h3>
+      <div class="admin-control-row">
+        <input id="announce-text" maxlength="280" placeholder="Tüm topluluğa veya aktif kanala duyuru yaz…" />
+        <button type="submit" class="button primary">Yayınla</button>
+        <button type="button" class="button secondary" id="clear-announce">Kaldır</button>
+      </div>
+    </form>
+
+    <div class="admin-section">
+      <h3>Susturulan kullanıcılar</h3>
+      <div id="muted-users-list" class="muted-users-list"></div>
+    </div>
+
+    <div class="founder-only" id="audit-section">
+      <h3 class="audit-title">Son yönetim işlemleri</h3>
+      <div id="audit-list" class="audit-list"></div>
+    </div>
+  </dialog>
+  <dialog id="user-actions-dialog" class="modal user-actions-modal" aria-labelledby="user-actions-name">
+    <button class="modal-close icon-button" data-close="user-actions-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
+    <h2 id="user-actions-name">Kullanıcı</h2>
+    <p id="user-actions-meta" class="user-actions-meta"></p>
+    <div id="mute-options-box" class="mute-options-box">
+      <label>Susturma süresi
+        <select id="mute-duration">
+          <option value="0">Süresiz (manuel açılana kadar)</option>
+          <option value="5">5 dakika</option>
+          <option value="15" selected>15 dakika</option>
+          <option value="60">1 saat</option>
+        </select></label>
+      <label>Sebep (isteğe bağlı)
+        <input id="mute-reason" maxlength="100" placeholder="Örn. Spam / Kurallar" /></label>
+    </div>
+    <div id="user-actions-list"></div>
+  </dialog>
+  <dialog id="people-dialog" class="modal people-modal" aria-label="Çevrimiçi topluluk">
+    <button class="modal-close icon-button" data-close="people-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
+    <div id="people-content"></div>
+  </dialog>
+  <dialog id="dice-help-dialog" class="modal dice-help-modal" aria-labelledby="dice-help-title">
+    <button type="button" class="modal-close icon-button" data-close="dice-help-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
+    <h2 id="dice-help-title">🎲 Zar Düellosu Nasıl Oynanır?</h2>
+    <p class="dice-help-lead">
+      Her turda 6 zarla başlarsın. Puan getiren zarları kilitleyip kalan zarlarla devam edebilir
+      ya da biriktirdiğin tur puanını riske atmadan <strong>Kasaya Yaz</strong>abilirsin.
+      Hedef puana (Hızlı 2.000 · Standart 3.000 · Uzun Tur 5.000) ilk ulaşan kazanır!
+    </p>
+    <div class="dice-help-grid">
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <svg viewBox="0 0 36 36" class="dice-mini-svg">
+            <rect x="2" y="2" width="32" height="32" rx="7" class="die-bg" />
+            <circle cx="18" cy="18" r="3.6" class="die-pip" />
+          </svg>
+          <svg viewBox="0 0 36 36" class="dice-mini-svg">
+            <rect x="2" y="2" width="32" height="32" rx="7" class="die-bg" />
+            <circle cx="10" cy="10" r="3" class="die-pip" />
+            <circle cx="26" cy="10" r="3" class="die-pip" />
+            <circle cx="18" cy="18" r="3" class="die-pip" />
+            <circle cx="10" cy="26" r="3" class="die-pip" />
+            <circle cx="26" cy="26" r="3" class="die-pip" />
+          </svg>
+        </div>
+        <strong>Tekli Puan Zarları</strong>
+        <span>Her <strong>1 = 100 p</strong> · Her <strong>5 = 50 p</strong></span>
+      </div>
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <svg viewBox="0 0 36 36" class="dice-mini-svg">
+            <rect x="2" y="2" width="32" height="32" rx="7" class="die-bg" />
+            <circle cx="11" cy="11" r="3" class="die-pip" />
+            <circle cx="18" cy="18" r="3" class="die-pip" />
+            <circle cx="25" cy="25" r="3" class="die-pip" />
+          </svg>
+          <svg viewBox="0 0 36 36" class="dice-mini-svg">
+            <rect x="2" y="2" width="32" height="32" rx="7" class="die-bg" />
+            <circle cx="11" cy="11" r="3" class="die-pip" />
+            <circle cx="18" cy="18" r="3" class="die-pip" />
+            <circle cx="25" cy="25" r="3" class="die-pip" />
+          </svg>
+          <svg viewBox="0 0 36 36" class="dice-mini-svg">
+            <rect x="2" y="2" width="32" height="32" rx="7" class="die-bg" />
+            <circle cx="11" cy="11" r="3" class="die-pip" />
+            <circle cx="18" cy="18" r="3" class="die-pip" />
+            <circle cx="25" cy="25" r="3" class="die-pip" />
+          </svg>
+        </div>
+        <strong>Üçlü &amp; Katları</strong>
+        <span>3× sayı = <strong>sayı × 100</strong> (3×1 = 1.000). 4× iki katı, 5× üç katı, 6× dört katı!</span>
+      </div>
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge">1–2–3–4–5–6</span>
+        </div>
+        <strong>6 Zar Özel Kombolar</strong>
+        <span>1-6 Sıralı = <strong>1.500 p</strong> · Üç Çift = <strong>1.500 p</strong> · İki Üçlü = <strong>2.500
+            p</strong></span>
+      </div>
+      <div class="dice-rule-card dice-rule-hot">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge hot">🔥 Sıcak Zar / 💥 Yandın</span>
+        </div>
+        <strong>Risk Yönetimi</strong>
+        <span>6 zarın tamamını puanlarsan <strong>Sıcak Zar</strong> açılır ve tüm puanla 6 yeni zar atarsın! Atışta hiç
+          puanlı zar gelmezse tur potun yanar (Farkle).</span>
+      </div>
+    </div>
+    <div class="dice-help-steps">
+      <span><strong>1.</strong> Zarları at ve parlayan puanlı zarlara tıkla.</span>
+      <span><strong>2.</strong> Seçimini kilitleyip tekrar at veya kasaya yaz.</span>
+      <span><strong>3.</strong> Bir oyuncu hedef puana ulaşırsa diğerleri son tur hakkı oynar.</span>
+    </div>
+  </dialog>
+  <aside id="mini-chat-shell" class="mini-chat-shell" hidden aria-label="Masa içi mini sohbet">
+    <div id="mini-chat-drawer" class="mini-chat-drawer" hidden>
+      <div class="mini-chat-head">
+        <div class="mini-chat-tabs" role="tablist">
+          <button type="button" class="mini-tab active" data-mini-ch="general"># genel</button>
+          <button type="button" class="mini-tab" data-mini-ch="code">&lt;/&gt; kod</button>
+        </div>
+        <div class="mini-chat-head-right">
+          <span id="mini-chat-mention-tag" class="mini-mention-tag" hidden>@</span>
+          <button type="button" id="mini-chat-close" class="icon-button mini-close-btn"
+            aria-label="Mini sohbeti küçült">
+            ×
+          </button>
+        </div>
+      </div>
+      <div id="mini-chat-messages" class="mini-chat-messages" aria-live="polite"></div>
+      <form id="mini-chat-form" class="mini-chat-form">
+        <input id="mini-chat-input" maxlength="4000" autocomplete="off" placeholder="Masadan yaz (@ad ile etiketle)…"
+          aria-label="Mini sohbet mesajı" />
+        <button type="submit" class="button small primary">Gönder</button>
+      </form>
+    </div>
+    <button type="button" id="mini-chat-toggle" class="mini-chat-toggle" aria-expanded="false">
+      <span class="mini-chat-icon">💬</span>
+      <span class="mini-chat-lbl">Sohbet</span>
+      <span id="mini-chat-badge" class="mini-chat-badge" hidden>0</span>
+    </button>
+  </aside>
+  <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+  <noscript>
+    <div class="noscript">
+      Sohbeti kullanmak için tarayıcında JavaScript'i etkinleştir.
+    </div>
+  </noscript>
 </body>
 
 </html>

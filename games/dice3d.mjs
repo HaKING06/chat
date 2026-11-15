@@ -11,7 +11,7 @@ import {
 } from "./sfx.mjs";
 
 const MAX_SEATS = 6;
-const TARGET_PRESETS = [3000, 5000, 10000];
+const TARGET_PRESETS = [2000, 3000, 5000];
 const REACTIONS = ["🔥", "👏", "😎", "😱", "🍀", "🎲"];
 const SEAT_COLORS = ["#c5f273", "#60b8ff", "#ffb347", "#ff7b89", "#b794ff", "#49e3c1"];
 
@@ -225,10 +225,7 @@ export class DiceArena {
     this.tableTitle.textContent = "Zar Arenası";
     this.phaseBadge = document.createElement("span");
     this.phaseBadge.className = "tag bj-phase-tag";
-    this.antiGhostBadge = document.createElement("span");
-    this.antiGhostBadge.className = "tag dice-antighost-tag";
-    this.antiGhostBadge.textContent = "🛡 Anti-Ghost · Açık Bilgi";
-    titleWrap.append(this.tableTitle, this.phaseBadge, this.antiGhostBadge);
+    titleWrap.append(this.tableTitle, this.phaseBadge);
 
     const rightControls = document.createElement("div");
     rightControls.className = "bj-top-right";
@@ -236,6 +233,12 @@ export class DiceArena {
     this.potPill = document.createElement("div");
     this.potPill.className = "bj-chips-pill";
     this.potPill.textContent = "Pot: 0 puan";
+
+    this.helpBtn = document.createElement("button");
+    this.helpBtn.type = "button";
+    this.helpBtn.className = "button small secondary";
+    this.helpBtn.textContent = "? Nasıl Oynanır";
+    this.helpBtn.addEventListener("click", () => this.cb.onHelp?.());
 
     this.camBtn = document.createElement("button");
     this.camBtn.type = "button";
@@ -249,7 +252,7 @@ export class DiceArena {
     this.leaveBtn.textContent = "Masadan kalk";
     this.leaveBtn.addEventListener("click", () => this.cb.onLeave?.());
 
-    rightControls.append(this.potPill, this.camBtn, this.leaveBtn);
+    rightControls.append(this.potPill, this.helpBtn, this.camBtn, this.leaveBtn);
     top.append(titleWrap, rightControls);
 
     // 3D viewport + overlays
@@ -568,15 +571,15 @@ export class DiceArena {
     const isNarrow = window.innerWidth <= 680;
     const presets = isNarrow
       ? [
-          [0, 3.05, 2.75],
-          [0, 3.85, 0.35],
-          [1.65, 2.55, 2.25],
-        ]
+        [0, 3.05, 2.75],
+        [0, 3.85, 0.35],
+        [1.65, 2.55, 2.25],
+      ]
       : [
-          [0, 2.65, 2.45],
-          [0, 3.45, 0.3],
-          [1.85, 2.1, 2.05],
-        ];
+        [0, 2.65, 2.45],
+        [0, 3.45, 0.3],
+        [1.85, 2.1, 2.05],
+      ];
     const [x, y, z] = presets[this.camMode % presets.length];
     this.camera.position.set(x, y, z);
     this.controls.target.set(0, 0.1, 0.04);
@@ -948,7 +951,7 @@ export class DiceArena {
     if (!isMyTurn) {
       const waitTag = document.createElement("span");
       waitTag.className = "bj-wait-note";
-      waitTag.textContent = `Sıra ${t.seats[t.turnSeatIndex]?.name || "oyuncuda"} · Tüm zarlar şeffaftır (Ghost engelli).`;
+      waitTag.textContent = `Sıra ${t.seats[t.turnSeatIndex]?.name || "oyuncuda"} · Tüm zarlar canlı izlenebilir.`;
       this.controlsRow.append(waitTag);
       return;
     }

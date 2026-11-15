@@ -162,3 +162,22 @@ export function playFarkle() {
   tone({ freq: 310, endFreq: 185, duration: 0.16, gain: 0.045, type: "sawtooth", delay: 0 });
   tone({ freq: 210, endFreq: 110, duration: 0.24, gain: 0.04, type: "triangle", delay: 0.12 });
 }
+
+export function playChessMove() {
+  tone({ freq: 185, endFreq: 120, duration: 0.055, gain: 0.045, type: "triangle" });
+}
+
+export function playChessCapture() {
+  tone({ freq: 260, endFreq: 110, duration: 0.08, gain: 0.055, type: "triangle", delay: 0 });
+  tone({ freq: 145, endFreq: 85, duration: 0.09, gain: 0.045, type: "sine", delay: 0.04 });
+}
+
+export function playChessCheck() {
+  tone({ freq: 620, endFreq: 780, duration: 0.09, gain: 0.045, type: "triangle", delay: 0 });
+  tone({ freq: 780, endFreq: 940, duration: 0.12, gain: 0.045, type: "triangle", delay: 0.07 });
+}
+
+export function playMention() {
+  tone({ freq: 880, duration: 0.08, gain: 0.04, type: "sine", delay: 0 });
+  tone({ freq: 1174.66, duration: 0.14, gain: 0.045, type: "sine", delay: 0.075 });
+}
