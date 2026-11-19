@@ -23,6 +23,9 @@ Canlı adres: **[https://chat.haking.tr/](https://chat.haking.tr/)**
 - **Ayrıştırılmış Kurucu & Moderatör yetkileri** *(tamamı backend doğrulamalı)*:
   - **Moderatör (`Moderasyon`)**: Süreli (`5 dk / 15 dk / 1 saat / süresiz`) ve sebepli susturma, ses açma, kanal yavaş modu (`5–60 sn`), odadan çıkarma, mesaj silme ve kanal başına 3 mesaj sabitleme.
   - **Kurucu (`Yönetim`)**: Tüm moderasyon yetkilerine ek olarak moderatör ekleme/çıkarma, ad değiştirme, kanalı kilitleme/temizleme, resmi duyuru yayınlama, oyun lobisini sıfırlama ve tam denetim günlüğü.
+- **Kalıcı Oturum (`sessionToken` + `localStorage`) & 20 dk Hareketsizlik Zaman Aşımı**:
+  - Sohbete katılan tüm kullanıcılar (üye, moderatör, kurucu) tarayıcı `localStorage` (`haking.sessionToken`) ve sunucu RAM'inde eşlenen UUID oturum jetonu ile sayfayı yenilediğinde veya sekmeden döndüğünde şifre girmeden/atılmadan otomatik geri bağlanır.
+  - 20 dakika hareketsiz kalan oturumlar sunucu temizleyicisi tarafından `session_expired` olayı ile sonlandırılıp RAM'den silinir; **Çıkış yap** butonunda hem `localStorage` hem sunucu RAM oturumu anında temizlenir.
 - **Açık / Koyu tema & Mobil kısayollar**: Mobilden yalnızca oyun için giren kullanıcılar için üst çubukta tek dokunuş **♠ Oyunlar** geçişi ve taşmasız responsive yerleşim.
 
 ### Oyun Alanı (`oyun-alanı`)

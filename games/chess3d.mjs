@@ -1049,7 +1049,7 @@ export class ChessArena {
       card.className =
         "chess-player-card" +
         (isActive ? " active-turn" : "") +
-        (t.winnerColor === color ? " winner" : "") +
+      (t.winnerColor === color ? " winner" : "") +
         (seat?.disconnected ? " disconnected" : "");
 
       const topRow = document.createElement("div");
