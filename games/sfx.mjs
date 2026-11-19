@@ -208,3 +208,31 @@ export function playTilePenalty() {
   tone({ freq: 240, endFreq: 140, duration: 0.16, gain: 0.045, type: "sawtooth", delay: 0 });
   tone({ freq: 180, endFreq: 110, duration: 0.2, gain: 0.04, type: "triangle", delay: 0.09 });
 }
+
+export function playTavlaRoll() {
+  for (let i = 0; i < 4; i++) {
+    tone({
+      freq: 210 + i * 55,
+      endFreq: 130 + i * 25,
+      duration: 0.045,
+      gain: 0.042,
+      type: "triangle",
+      delay: i * 0.045,
+    });
+  }
+}
+
+export function playTavlaMove() {
+  tone({ freq: 240, endFreq: 115, duration: 0.052, gain: 0.048, type: "triangle" });
+  tone({ freq: 520, endFreq: 310, duration: 0.032, gain: 0.022, type: "sine", delay: 0.012 });
+}
+
+export function playTavlaHit() {
+  tone({ freq: 340, endFreq: 95, duration: 0.095, gain: 0.06, type: "triangle", delay: 0 });
+  tone({ freq: 170, endFreq: 75, duration: 0.11, gain: 0.05, type: "sawtooth", delay: 0.03 });
+}
+
+export function playTavlaBearOff() {
+  tone({ freq: 440, endFreq: 660, duration: 0.075, gain: 0.04, type: "sine", delay: 0 });
+  tone({ freq: 660, endFreq: 880, duration: 0.09, gain: 0.036, type: "triangle", delay: 0.05 });
+}

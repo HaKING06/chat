@@ -56,14 +56,14 @@
       <nav class="navigation" aria-label="Kanallar">
         <p class="nav-label">KANALLAR</p>
         <button class="nav-item active" data-channel="general">
-          <span class="nav-symbol">#</span><span>genel-sohbet</span><i class="nav-dot"></i>
+          <span class="nav-symbol">#</span><span>genel-sohbet</span><span class="nav-badge" data-unread-channel="general" hidden>0</span><i class="nav-dot"></i>
         </button>
         <button class="nav-item" data-channel="code">
-          <span class="nav-symbol">&lt;/&gt;</span><span>kod-paylaşımı</span>
+          <span class="nav-symbol">&lt;/&gt;</span><span>kod-paylaşımı</span><span class="nav-badge" data-unread-channel="code" hidden>0</span>
         </button>
         <p class="nav-label second-label">OYUN</p>
         <button class="nav-item" data-view="games">
-          <span class="nav-symbol game-symbol">×○</span><span>oyun-alanı<small>Okey · 101 · Satranç ·
+          <span class="nav-symbol game-symbol">×○</span><span>oyun-alanı<small>Tavla · Okey · Satranç ·
               BJ</small></span><span class="mini-badge">OYNA</span>
         </button>
       </nav>
@@ -135,6 +135,7 @@
             <div class="messages" id="messages" role="log" aria-label="Sohbet mesajları" aria-live="polite"></div>
             <div id="typing-status" class="typing-status" aria-live="polite"></div>
             <div class="composer-wrap">
+              <div id="mention-suggest" class="mention-popup" hidden></div>
               <div id="reply-preview" class="reply-preview" hidden>
                 <span></span><button class="icon-button" aria-label="Yanıtı iptal et" id="cancel-reply">
                   ×
@@ -167,7 +168,7 @@
               <div>
                 <h2 id="games-title">Oyun Merkezi · Sıra sende.</h2>
                 <p>
-                  Klasik Okey 3D, 101 Okey 3D, Satranç 3D (İzle modu), Blackjack 21,
+                  Tavla 3D, Klasik Okey 3D, 101 Okey 3D, Satranç 3D (İzle modu), Blackjack 21,
                   Zar Düellosu &amp; XOX — PC ve mobilde (dikey / yatay) oyna.
                 </p>
               </div>
@@ -187,6 +188,7 @@
                 <div class="lobby-filters" id="lobby-filters" role="group" aria-label="Oyun türü filtresi">
                   <button type="button" class="lobby-chip active" data-filter="all">Tümü</button>
                   <button type="button" class="lobby-chip" data-filter="waiting">⏳ Bekleyen</button>
+                  <button type="button" class="lobby-chip" data-filter="tavla">⛀ Tavla</button>
                   <button type="button" class="lobby-chip" data-filter="okey">🁣 Okey</button>
                   <button type="button" class="lobby-chip" data-filter="okey101">💯 101</button>
                   <button type="button" class="lobby-chip" data-filter="chess">♔ Satranç</button>
@@ -201,6 +203,47 @@
               <div class="game-lobby" id="game-lobby"></div>
             </section>
             <div class="game-hub" id="game-intro">
+              <article class="game-card game-card-tavla">
+                <div class="game-card-top">
+                  <span class="tag tavla-live-tag">3D · TAVLA · RÖVANŞ</span>
+                  <span class="tavla-card-emblem" aria-hidden="true">⛀ ⚄</span>
+                </div>
+                <h3>Tavla 3D</h3>
+                <p>
+                  Ceviz kasalı 3D tavla tahtası ve gerçek zarlarla tam kurallı Türk tavlası!
+                  Kırık taş, mars/üçlü mars ve <strong>aynı masada rövanş</strong>.
+                </p>
+                <div class="xox-diff-row">
+                  <label for="tavla-target">El hedefi</label>
+                  <select id="tavla-target" aria-label="Tavla hedef el sayısı">
+                    <option value="1">1 El (Hızlı)</option>
+                    <option value="3" selected>3 El (Klasik)</option>
+                    <option value="5">5 El (Uzun)</option>
+                  </select>
+                </div>
+                <div class="xox-diff-row">
+                  <label for="tavla-difficulty">Bot seviyesi</label>
+                  <select id="tavla-difficulty" aria-label="Tavla bot zorluğu">
+                    <option value="easy">Kolay Bot</option>
+                    <option value="medium">Orta Bot</option>
+                    <option value="hard" selected>Usta Bot</option>
+                  </select>
+                </div>
+                <div class="game-buttons">
+                  <button class="button primary" id="tavla-create">
+                    1v1 Masa Aç ⛀
+                  </button>
+                  <button class="button secondary" id="tavla-create-bot">
+                    Botla Oyna 🤖
+                  </button>
+                  <button type="button" class="button secondary" id="tavla-help-btn">
+                    ? Nasıl Oynanır
+                  </button>
+                </div>
+                <small>
+                  Açılış zarı · Zorunlu maksimum &amp; büyük zar · Mars (×2) / Üçlü Mars (×3) · İzle
+                </small>
+              </article>
               <article class="game-card game-card-okey">
                 <div class="game-card-top">
                   <span class="tag okey-live-tag">3D · 4 KİŞİ ZORUNLU</span>
@@ -375,6 +418,7 @@
                 </button>
               </div>
             </div>
+            <div id="active-tavla" class="active-blackjack active-tavla" hidden></div>
             <div id="active-okey" class="active-blackjack active-okey" hidden></div>
             <div id="active-chess" class="active-blackjack active-chess" hidden></div>
             <div id="active-blackjack" class="active-blackjack" hidden></div>
@@ -819,6 +863,54 @@
       </div>
     </div>
   </dialog>
+  <dialog id="tavla-help-dialog" class="modal dice-help-modal" aria-labelledby="tavla-help-title">
+    <button type="button" class="modal-close icon-button" data-close="tavla-help-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
+    <h2 id="tavla-help-title">⛀ Tavla Nasıl Oynanır?</h2>
+    <p class="dice-help-lead">
+      Her oyuncu <strong>15 pulla</strong> başlar ve pullarını kendi evine (Beyaz: 1–6, Siyah: 19–24)
+      taşıyıp toplamaya çalışır. İlk hedef el sayısına (1, 3 veya 5) ulaşan maçı kazanır!
+    </p>
+    <div class="dice-help-grid">
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge">Çift = ×4 · Kırık = Öncelikli</span>
+        </div>
+        <strong>Hareket &amp; Taş Kırma</strong>
+        <span>Tek zarlarda iki zar ayrı ayrı ya da peş peşe oynanır; <strong>Çift (örn. 6-6)</strong> 4 kez
+          oynanır! Rakibin <strong>tek puluna</strong> inersen pulu kırıp ortaya (bar) gönderirsin. Kırık pulun
+          varken önce onu rakibin evine sokmak zorundasın.</span>
+      </div>
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge">Maksimum Zar · Büyük Zar</span>
+        </div>
+        <strong>Resmî Zar Kuralı</strong>
+        <span>Mümkün olan <strong>en fazla zar</strong> oynanmalıdır. İki zardan yalnızca biri oynanabiliyorsa
+          daima <strong>büyük zarı</strong> oynamak zorundasın; hiç hamle yoksa sıra otomatik rakibe
+          (<em>Gele</em>) geçer.</span>
+      </div>
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge hot">Normal +1 · Mars +2 · Üçlü +3</span>
+        </div>
+        <strong>Taş Toplama &amp; Mars</strong>
+        <span>Tüm 15 pulunu kendi evine topladığında pulları dışarı alabilirsin. Rakip hiç pul
+          toplayamadan bitirirsen <strong>Mars (2 Puan)</strong>, rakibin hâlâ kırığı veya senin evinde pulu
+          varsa <strong>Üçlü Mars (3 Puan)</strong> yazılır!</span>
+      </div>
+      <div class="dice-rule-card dice-rule-hot">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge hot">↻ Aynı Masada Rövanş</span>
+        </div>
+        <strong>3D Kontroller &amp; Rövanş</strong>
+        <span><code>[Boşluk]</code> Zar At · <code>[Z]</code> Hamleyi Geri Al · <code>[R]</code> Üstten/3D
+          Kamera · <code>[F]</code> Yön Çevir. Maç sonunda <strong>Rövanş</strong> derseniz aynı masada
+          renkler değişerek anında devam edersiniz!</span>
+      </div>
+    </div>
+  </dialog>
   <aside id="mini-chat-shell" class="mini-chat-shell" hidden aria-label="Masa içi mini sohbet">
     <div id="mini-chat-drawer" class="mini-chat-drawer" hidden>
       <div class="mini-chat-head">
@@ -835,7 +927,9 @@
         </div>
       </div>
       <div id="mini-chat-messages" class="mini-chat-messages" aria-live="polite"></div>
+      <div id="mini-mention-suggest" class="mention-popup mini-mention-popup" hidden></div>
       <form id="mini-chat-form" class="mini-chat-form">
+        <button type="button" class="composer-tool mini-emoji-btn" id="mini-emoji-button" aria-label="Mini sohbette emoji ekle">☺</button>
         <input id="mini-chat-input" maxlength="4000" autocomplete="off" placeholder="Masadan yaz (@ad ile etiketle)…"
           aria-label="Mini sohbet mesajı" />
         <button type="submit" class="button small primary">Gönder</button>

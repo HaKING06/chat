@@ -2,6 +2,7 @@ import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 
 const root = new URL("../", import.meta.url);
 await mkdir(new URL("vendor/three/", root), { recursive: true });
+await mkdir(new URL("vendor/emoji/", root), { recursive: true });
 
 for (const [from, to] of [
   ["socket.io-client/dist/socket.io.min.js", "socket.io.min.js"],
@@ -10,11 +11,25 @@ for (const [from, to] of [
   ["socket.io-client/LICENSE", "socket.io.LICENSE"],
   ["@highlightjs/cdn-assets/LICENSE", "highlight.LICENSE"],
   ["three/LICENSE", "three/LICENSE"],
+  ["emoji-picker-element/index.js", "emoji/index.js"],
+  ["emoji-picker-element/i18n/tr.js", "emoji/tr.js"],
+  ["emoji-picker-element/LICENSE", "emoji/LICENSE"],
+  ["emoji-picker-element-data/LICENSE", "emoji/data.LICENSE"],
+  ["emoji-picker-element-data/en/emojibase/data.json", "emoji/data.json"],
 ]) {
   await copyFile(
     new URL("node_modules/" + from, root),
     new URL("vendor/" + to, root),
   );
+}
+
+const LOCAL_EMOJI_DATA_URL = "https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/en/emojibase/data.json";
+for (const modName of ["picker.js", "database.js"]) {
+  let src = await readFile(new URL("node_modules/emoji-picker-element/" + modName, root), "utf8");
+  src = src
+    .replaceAll(`'${LOCAL_EMOJI_DATA_URL}'`, "new URL('./data.json', import.meta.url).href")
+    .replaceAll(`"${LOCAL_EMOJI_DATA_URL}"`, "new URL('./data.json', import.meta.url).href");
+  await writeFile(new URL("vendor/emoji/" + modName, root), src, "utf8");
 }
 
 const threeModules = [

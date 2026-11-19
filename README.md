@@ -15,7 +15,8 @@ Canlı adres: **[https://chat.haking.tr/](https://chat.haking.tr/)**
 
 ### Sohbet, URL Rotaları ve Yetki Düzeni
 - **Kanallara uyumlu arayüz**: `#genel-sohbet` yalnızca `Sohbet akışı` ve `Sabitlenenler` sekmelerini sunar; kod araçları sadece `#kod-paylaşımı` kanalında aktiftir.
-- **Masa İçi Mini Sohbet Çekmecesi & `@kullanıcı` Bildirimi**: 3D Satranç, Blackjack, Zar veya XOX oynarken sağ altta açılıp kapanabilen şeffaf mini sohbet penceresi (`#genel` / `#kod` kanal geçişi, isme tıklayarak tek dokunuş `@etiketle`) ve biri `@adın` diye seslendiğinde sesli uyarı + sekme başlığı / rozet bildirimi.
+- **Tam Çevrimdışı Türkçe Emoji Seçici & Tepkiler (`emoji-picker-element`)**: CDN bağımlılığı olmadan yerel `vendor/emoji/` veri setiyle sohbet yazma alanı, masa içi mini sohbet ve tüm mesaj tepkilerinde tam Unicode emoji desteği (arama, kategoriler, sık kullanılanlar ve açık/koyu tema uyumu).
+- **Masa İçi Mini Sohbet Çekmecesi, `@kullanıcı` Otomatik Tamamlama & Bildirimler**: Yazarken `@` tuşuyla çevrimiçi üye seçimi, kenar çubuğunda okunmamış kanal mesaj sayacı ve oyun oynarken sağ altta şeffaf mini sohbet penceresi (`#genel` / `#kod`, sesli/başlık `@` uyarısı).
 - **Paylaşılabilir akıllı URL rotaları**:
   - `https://chat.haking.tr/` → `#genel-sohbet`
   - `https://chat.haking.tr/?kanal=kod` → doğrudan `#kod-paylaşımı`
@@ -29,7 +30,12 @@ Canlı adres: **[https://chat.haking.tr/](https://chat.haking.tr/)**
 - **Açık / Koyu tema & Mobil kısayollar**: Mobilden yalnızca oyun için giren kullanıcılar için üst çubukta tek dokunuş **♠ Oyunlar** geçişi ve taşmasız responsive yerleşim.
 
 ### Oyun Alanı (`oyun-alanı`)
-Modern oyun merkezi düzeniyle **Canlı Masalar & Bekleyenler** çubuğu sayfanın **en üstünde** kaydırmadan anında görünür (bekleyen masalar öncelikli sıralanır); `Tümü`, `Bekleyen`, `Okey`, `101`, `Satranç`, `Blackjack`, `Zar`, `XOX`, `İzle` filtreleri + anlık arama ve masaüstü/mobil dikey + yatay (*landscape*) tam uyumlu 6 oyun içerir:
+Modern oyun merkezi düzeniyle **Canlı Masalar & Bekleyenler** çubuğu sayfanın **en üstünde** kaydırmadan anında görünür (bekleyen masalar öncelikli sıralanır); `Tümü`, `Bekleyen`, `Tavla`, `Okey`, `101`, `Satranç`, `Blackjack`, `Zar`, `XOX`, `İzle` filtreleri + anlık arama ve masaüstü/mobil dikey + yatay (*landscape*) tam uyumlu 7 oyun içerir:
+
+0. **Tavla 3D (Resmî Türk Tavlası · Yapay Zekâ Bot & Aynı Masada Rövanş)**
+   - **Three.js 3D sahne + Ceviz Kasalı Tavla & Zarlar (`assets/models/tavla.glb` + `dice.glb`)**: Sedef/maun kakma oyun zemini, tornalanmış içbükey Beyaz & Siyah pullar, fiziksel 3D zar atışı animasyonu, `[Boşluk] Zar At` / `[Z] Geri Al` / `[R] Üstten Kamera` / `[F] Yön Çevir` kısayolları ve WebGL yoksa otomatik 2D tahta.
+   - **%100 Resmî Tavla Kuralları**: Açılış zarı (eşitte tekrar atış, kazanan doğrudan oynar), çift zarda **×4** hamle, tek pul kırma ve mecburi kırık girişi, **en fazla zar + büyük zar zorunluluğu**, ev içinde taş toplama kuralları, _Gele_ oto-geçiş, **Normal (1) / Mars (2) / Üçlü Mars (3)** skorlama ve `1 / 3 / 5` el hedefi.
+   - **Bot Modu & Aynı Masada Rövanş**: `Kolay / Orta / Usta` yapay zekâ botuna karşı veya 1v1 canlı oyunda maç bitiminde lobiye dönmeden **aynı masada rövanş** teklif/kabulü (Beyaz ↔ Siyah değişimi), **İzle** modu ve mobil ekran kilidi `playerId` **5 dk** geri bağlanma koruması.
 
 1. **Klasik Okey 3D & 101 Okey 3D (4 Kişi Zorunlu · Gizli Eller · Manuel & Otomatik Dizme)**
    - **Three.js 3D sahne + Özel Taş/Istaka Modeli (`assets/models/okey.glb`)**: Pürüzsüz pahlı taşlar, ahşap 2 katlı ıstaka, `Kuş Bakışı` / `Masa Açısı` kamera ön ayarları, ortadan deste & soldan atık çekme, canlı **İzle** modu ve her iki oyun için görselli **? Nasıl Oynanır** rehberi.
