@@ -1,19 +1,19 @@
 # Yayına geçiş
 
-Bu sürüm mevcut `chat.haking.tr` ve `site--chat-backend--nz86hcc69k9m.code.run` adresleri için hazırdır. Kurucu Halit ve moderatörler Panda, Nurullah, Sosyal Enik önceki parolalarıyla giriş yapabilir. Parola doğrulama özetleri yalnızca backend `config/staff.json` dosyasındadır. Yeni bir SQL hizmeti veya parola ayarı gerekmez. Önce backend deposunu, ardından frontend deposunu push edin.
+Bu sürüm mevcut `chat.haking.tr` ve `chat-api.haking.tr` adresleri için hazırdır. Kurucu Halit ve moderatörler Panda, Nurullah, Sosyal Enik önceki parolalarıyla giriş yapabilir. Parola doğrulama özetleri yalnızca backend `config/staff.json` dosyasındadır. Yeni bir SQL hizmeti veya parola ayarı gerekmez. Önce backend deposunu, ardından frontend deposunu push edin.
 
-## 1. Backend / Render
+## 1. Backend / Northflank
 
-1. `chat-backend` deposundaki README ve `.env.example` dosyasını okuyun.
-2. Render servisinde kurulum komutunu `npm ci`, başlatma komutunu `npm start` olarak ayarlayın. Node.js sürümünü backend'in belirttiği sürümle eşleştirin.
-3. Mevcut girişler `config/staff.json` ile otomatik çalışır. İsterseniz `ADMIN_PASSWORD`, `ADMIN_NAME` ve `MODERATORS_JSON` ile backend README'sinde açıklanan şekilde üzerine yazabilirsiniz; bu sürümü kullanmak için zorunlu değiller. Gerçek `.env` ve Render erişim bilgilerini GitHub'a göndermeyin.
-4. `https://chat.haking.tr` zaten izin verilen origin listesindedir. Render üzerinde proxy ayarı otomatik `1`, yerelde `0` seçilir. Özel bir proxy zinciri kullanıyorsanız `TRUST_PROXY` ile açıkça ayarlayabilirsiniz. Geçici Pages önizlemelerine erişim gerekiyorsa ilgili tam adresi ayrıca ekleyin.
-5. Backend'i yayınlayın; sağlık kontrolünü ve Render loglarını doğrulayın. Ücretsiz servis uykuya geçerse ilk bağlantı gecikebilir.
+1. `chat-backend` reposu `hakings-team` takımının `default` projesinde, Default ortamındaki `chat-backend` servisine bağlıdır.
+2. Uygulama `0.0.0.0:8080` üzerinde dinler; public HTTP portunun adı `site` olmalıdır. Node.js sürümünü backend'in belirttiği sürümle eşleştirin.
+3. `haking.tr` domain doğrulama TXT kaydını koruyun. `chat-api.haking.tr` için DNS Only CNAME hedefi `chat-api.haking.tr.haki-h8bx.dns.northflank.app` olarak Northflank tarafından verilir. Bu alt alan adını `site` portuna bağlayın; TLS sertifikasını Northflank yönetir.
+4. CORS / Socket.IO için izin verilen origin listesi `https://chat.haking.tr` adresini kapsamalıdır. Proxy arkasında backend'in `TRUST_PROXY` ayarını kontrol edin. Gerçek ortam değişkenlerini veya erişim bilgilerini GitHub'a göndermeyin.
+5. `https://chat-api.haking.tr/health` yanıtını ve `https://chat.haking.tr` origin'iyle gerçek WSS/Socket.IO bağlantısını doğrulayın.
 
 ## 2. Frontend / Cloudflare Pages
 
 1. `chat` deposunu Pages projesine bağlayın. Framework: **None**, build komutu: **boş**, çıktı dizini: **`/`**.
-2. `config.js` içindeki `window.HAKING_CONFIG.backendUrl` değerinin `https://site--chat-backend--nz86hcc69k9m.code.run` veya kullandığınız gerçek servis adresi olduğundan emin olun. Adres değişirse `_headers` dosyasında HTTPS ve WSS adreslerini de değiştirin. Yerelde `npm install` ve `npm run vendor` çalıştırıp üretilen yerel kütüphaneleri depoya ekleyin.
+2. `config.js` içindeki `window.HAKING_CONFIG.backendUrl` değerinin `https://chat-api.haking.tr` veya kullandığınız gerçek servis adresi olduğundan emin olun. Adres değişirse `_headers` dosyasında HTTPS ve WSS adreslerini de değiştirin. Yerelde `npm install` ve `npm run vendor` çalıştırıp üretilen yerel kütüphaneleri depoya ekleyin.
 3. GitHub'a push ederek Pages dağıtımını başlatın. Özel alan adı `chat.haking.tr` için Cloudflare'ın DNS ve sertifika kontrolünün tamamlanmasını bekleyin.
 4. Yeni sürüm görünmüyorsa Pages dağıtım commit'ini kontrol edip tarayıcıda zorla yenileyin. Eski HTML'yi süresiz önbelleğe alan özel Cache Rules kullanmayın.
 

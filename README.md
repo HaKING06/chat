@@ -71,7 +71,7 @@ npm run vendor
 npm run dev
 ```
 
-Tarayıcıda `http://localhost:5173` adresini açın. `config.js` içindeki `window.HAKING_CONFIG.backendUrl` yerelde `http://localhost:3000`, canlıda `https://site--chat-backend--nz86hcc69k9m.code.run` adresine bağlanır.
+Tarayıcıda `http://localhost:5173` adresini açın. `config.js` içindeki `window.HAKING_CONFIG.backendUrl` yerelde `http://localhost:3000`, canlıda `https://chat-api.haking.tr` adresine bağlanır.
 
 Doğrulama ve üçüncü taraf kontrolleri:
 
