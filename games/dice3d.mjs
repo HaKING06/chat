@@ -7,6 +7,7 @@ import {
   playDiceLock,
   playDiceRoll,
   playFarkle,
+  playTavlaDiceBounce,
   playTick,
 } from "./sfx.mjs";
 
@@ -566,8 +567,16 @@ export class DiceArena {
     this.renderer.setSize(w, h);
   }
 
-  _applyCameraPreset() {
+  _applyCameraPreset(immediate = false) {
     if (!this.camera || !this.controls) return;
+    if (!this._camTargetPos) {
+      this._camTargetPos = new THREE.Vector3();
+      this._camTargetLook = new THREE.Vector3();
+      this._camGliding = false;
+      this.controls.addEventListener("start", () => {
+        this._camGliding = false;
+      });
+    }
     const isNarrow = window.innerWidth <= 680;
     const presets = isNarrow
       ? [
@@ -581,19 +590,42 @@ export class DiceArena {
         [1.85, 2.1, 2.05],
       ];
     const [x, y, z] = presets[this.camMode % presets.length];
-    this.camera.position.set(x, y, z);
-    this.controls.target.set(0, 0.1, 0.04);
-    this.controls.update();
+    this._camTargetPos.set(x, y, z);
+    this._camTargetLook.set(0, 0.1, 0.04);
+    if (immediate) {
+      this._camGliding = false;
+      this.camera.position.copy(this._camTargetPos);
+      this.controls.target.copy(this._camTargetLook);
+      this.controls.update();
+    } else {
+      this._camGliding = true;
+    }
   }
 
   cycleCamera() {
     this.camMode = (this.camMode + 1) % 3;
-    this._applyCameraPreset();
+    this._applyCameraPreset(false);
   }
 
   _stepDiceAnimations(dt) {
     const t = this.table;
     const showActive = t?.status === "playing" && (t.activeDice?.length || 0) > 0;
+    const nowSec = performance.now() * 0.001;
+
+    if (this._camGliding && this.camera && this.controls) {
+      const ck = 1 - Math.exp(-8.5 * dt);
+      this.camera.position.lerp(this._camTargetPos, ck);
+      this.controls.target.lerp(this._camTargetLook, ck);
+      if (
+        this.camera.position.distanceToSquared(this._camTargetPos) < 0.0005 &&
+        this.controls.target.distanceToSquared(this._camTargetLook) < 0.0005
+      ) {
+        this.camera.position.copy(this._camTargetPos);
+        this.controls.target.copy(this._camTargetLook);
+        this._camGliding = false;
+      }
+    }
+
     for (let i = 0; i < this.diceActors.length; i++) {
       const a = this.diceActors[i];
       const ring = this.ringMeshes[i];
@@ -612,16 +644,30 @@ export class DiceArena {
       if (!visible) continue;
 
       if (a.animElapsed < a.animDuration) {
+        const prevU = a.animElapsed / a.animDuration;
         a.animElapsed = Math.min(a.animDuration, a.animElapsed + dt);
         const u = a.animElapsed / a.animDuration;
         const ease = 1 - Math.pow(1 - u, 3);
-        const bounce =
-          u < 0.7
-            ? Math.sin((u / 0.7) * Math.PI) * a.jumpHeight
-            : Math.abs(Math.sin(((u - 0.7) / 0.3) * Math.PI)) * 0.11;
-        a.holder.position.set(a.basePos.x, DIE_REST_Y + bounce, a.basePos.z);
 
-        const spinAngle = (1 - ease) * Math.PI * 2 * a.tumbleSpins;
+        // Thrown parabolic horizontal travel across the octagonal tray + 3 damped realistic bounces
+        let bounce = 0;
+        if (u < 0.56) {
+          bounce = Math.sin((u / 0.56) * Math.PI) * a.jumpHeight;
+        } else if (u < 0.82) {
+          bounce = Math.sin(((u - 0.56) / 0.26) * Math.PI) * (a.jumpHeight * 0.34);
+          if (prevU < 0.56 && i < 3) playTavlaDiceBounce(0.72);
+        } else {
+          bounce = Math.sin(((u - 0.82) / 0.18) * Math.PI) * (a.jumpHeight * 0.11);
+          if (prevU < 0.82 && i < 2) playTavlaDiceBounce(0.36);
+        }
+
+        const startX = a.throwStart ? a.throwStart.x : a.basePos.x;
+        const startZ = a.throwStart ? a.throwStart.z : a.basePos.z;
+        const curX = startX + (a.basePos.x - startX) * ease;
+        const curZ = startZ + (a.basePos.z - startZ) * ease;
+        a.holder.position.set(curX, DIE_REST_Y + bounce, curZ);
+
+        const spinAngle = Math.pow(1 - u, 1.8) * Math.PI * 2 * a.tumbleSpins;
         const extraSpin = new THREE.Quaternion().setFromAxisAngle(
           a.tumbleAxis,
           spinAngle,
@@ -629,7 +675,8 @@ export class DiceArena {
         const q = a.targetQuat.clone().premultiply(extraSpin);
         a.holder.quaternion.copy(q);
       } else {
-        const lift = this.selected.has(i) ? 0.11 : 0;
+        const isSel = this.selected.has(i);
+        const lift = isSel ? 0.13 + Math.sin(nowSec * 5.8 + i) * 0.022 : 0;
         a.holder.position.y += (DIE_REST_Y + lift - a.holder.position.y) * Math.min(1, dt * 14);
         a.holder.position.x = a.basePos.x;
         a.holder.position.z = a.basePos.z;
@@ -723,16 +770,24 @@ export class DiceArena {
       this.lastRollSeq = table.rollSeq;
       if (table.activeDice?.length) {
         playDiceRoll();
+        const throwAngle = ((table.turnSeatIndex || 0) / MAX_SEATS) * Math.PI * 2 + Math.PI * 0.5;
+        const originX = Math.cos(throwAngle) * 1.15;
+        const originZ = Math.sin(throwAngle) * 1.15;
         for (let i = 0; i < table.activeDice.length; i++) {
           const a = this.diceActors[i];
           if (!a) continue;
           const val = table.activeDice[i];
           a.value = val;
-          a.targetQuat.copy(faceTargetQuaternion(val, (i - 2.5) * 0.16));
+          a.targetQuat.copy(faceTargetQuaternion(val, (i - 2.5) * 0.16 + (Math.random() - 0.5) * 0.35));
+          a.throwStart = new THREE.Vector3(
+            originX + (Math.random() - 0.5) * 0.4,
+            DIE_REST_Y + 0.55,
+            originZ + (Math.random() - 0.5) * 0.4,
+          );
           a.animElapsed = 0;
-          a.animDuration = 0.68 + (i % 3) * 0.08;
-          a.tumbleSpins = 2.5 + (i % 3) * 0.6;
-          a.jumpHeight = 0.62 + (i % 2) * 0.18;
+          a.animDuration = 0.78 + (i % 3) * 0.08;
+          a.tumbleSpins = 2.8 + (i % 3) * 0.7;
+          a.jumpHeight = 0.72 + (i % 2) * 0.2;
         }
       }
     }

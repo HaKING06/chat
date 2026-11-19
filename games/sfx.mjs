@@ -222,6 +222,26 @@ export function playTavlaRoll() {
   }
 }
 
+export function playTavlaDiceBounce(intensity = 0.8) {
+  const k = Math.max(0.18, Math.min(1.0, Number(intensity) || 0.5));
+  const jitter = (Math.random() - 0.5) * 42;
+  tone({
+    freq: 310 + k * 140 + jitter,
+    endFreq: 115 + k * 45,
+    duration: 0.036 + k * 0.018,
+    gain: 0.052 * k,
+    type: "triangle",
+  });
+  tone({
+    freq: 760 + k * 240 + jitter,
+    endFreq: 420,
+    duration: 0.022,
+    gain: 0.022 * k,
+    type: "sine",
+    delay: 0.004,
+  });
+}
+
 export function playTavlaMove() {
   tone({ freq: 240, endFreq: 115, duration: 0.052, gain: 0.048, type: "triangle" });
   tone({ freq: 520, endFreq: 310, duration: 0.032, gain: 0.022, type: "sine", delay: 0.012 });

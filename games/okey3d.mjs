@@ -497,7 +497,18 @@ export class OkeyArena {
     this.tileGeo = new THREE.BoxGeometry(0.58, 0.86, 0.22);
     this.rackGeo = new THREE.BoxGeometry(9.4, 0.68, 0.55);
 
-    this.setCameraPreset("birdseye");
+    this.animGroup = new THREE.Group();
+    this.scene.add(this.animGroup);
+    this.flyingTiles = [];
+    this.fxRings = [];
+    this.camTargetPos = new THREE.Vector3();
+    this.camTargetLook = new THREE.Vector3();
+    this.camGliding = false;
+    this.controls.addEventListener("start", () => {
+      this.camGliding = false;
+    });
+
+    this.setCameraPreset("birdseye", true);
 
     // 3D canvas tap handler (click Deste or Sol Atık directly on the 3D table!)
     this.renderer.domElement.addEventListener("pointerdown", (e) => {
@@ -514,12 +525,72 @@ export class OkeyArena {
     this.resizeObs = new ResizeObserver(() => this.handleResize());
     this.resizeObs.observe(wrap);
 
-    const loop = () => {
+    let lastTs = performance.now();
+    const loop = (now = performance.now()) => {
       if (this.disposed) return;
       this.animFrame = requestAnimationFrame(loop);
+      const dt = Math.min(0.05, Math.max(0.001, (now - lastTs) / 1000));
+      lastTs = now;
+
+      // Animate flying Okey tiles (draw from deck, draw from left discard, discard arc)
+      if (this.flyingTiles.length) {
+        const keep = [];
+        for (const f of this.flyingTiles) {
+          f.elapsed = Math.min(f.dur, f.elapsed + dt);
+          const u = f.elapsed / f.dur;
+          const ease = 1 - Math.pow(1 - u, 3);
+          f.mesh.position.lerpVectors(f.startPos, f.endPos, ease);
+          f.mesh.position.y += Math.sin(u * Math.PI) * f.arcH;
+          f.mesh.rotation.x = f.startRotX + (f.endRotX - f.startRotX) * ease;
+          f.mesh.rotation.y = f.startRotY + (f.endRotY - f.startRotY) * ease;
+          f.mesh.rotation.z = f.startRotZ + (f.endRotZ - f.startRotZ) * ease;
+          if (u < 1) {
+            keep.push(f);
+          } else {
+            this.animGroup.remove(f.mesh);
+            f.onLand?.();
+          }
+        }
+        this.flyingTiles = keep;
+      }
+
+      // Expanding landing & meld rings
+      if (this.fxRings.length) {
+        const keep = [];
+        for (const r of this.fxRings) {
+          r.elapsed += dt;
+          const u = Math.min(1, r.elapsed / r.dur);
+          const ease = 1 - Math.pow(1 - u, 2);
+          r.mesh.scale.setScalar(1 + ease * r.maxScale);
+          r.mesh.material.opacity = (1 - u) * 0.85;
+          if (u < 1) keep.push(r);
+          else {
+            this.animGroup.remove(r.mesh);
+            r.mesh.geometry.dispose();
+            r.mesh.material.dispose();
+          }
+        }
+        this.fxRings = keep;
+      }
+
+      // Smooth camera preset glide
+      if (this.camGliding && this.camera && this.controls) {
+        const ck = 1 - Math.exp(-8.5 * dt);
+        this.camera.position.lerp(this.camTargetPos, ck);
+        this.controls.target.lerp(this.camTargetLook, ck);
+        if (
+          this.camera.position.distanceToSquared(this.camTargetPos) < 0.001 &&
+          this.controls.target.distanceToSquared(this.camTargetLook) < 0.001
+        ) {
+          this.camera.position.copy(this.camTargetPos);
+          this.controls.target.copy(this.camTargetLook);
+          this.camGliding = false;
+        }
+      }
+
       this.controls.update();
       if (this.drawGlowRing && this.drawGlowRing.visible) {
-        this.drawGlowRing.scale.setScalar(1 + 0.06 * Math.sin(Date.now() * 0.006));
+        this.drawGlowRing.scale.setScalar(1 + 0.07 * Math.sin(now * 0.006));
       }
       this.renderer.render(this.scene, this.camera);
     };
@@ -546,20 +617,27 @@ export class OkeyArena {
     );
   }
 
-  setCameraPreset(preset) {
+  setCameraPreset(preset, immediate = false) {
     this.cameraPreset = preset;
     this.camBirdsBtn?.classList.toggle("active", preset === "birdseye");
     this.camAngleBtn?.classList.toggle("active", preset === "player");
     const aspect = (this.canvasWrap.clientWidth || 640) / Math.max(1, this.canvasWrap.clientHeight || 380);
     const portraitBoost = aspect < 1.05 ? 1.24 : 1.0;
     if (preset === "birdseye") {
-      this.camera.position.set(0, 14.5 * portraitBoost, 4.6 * portraitBoost);
-      this.controls.target.set(0, 0.2, 0.15);
+      this.camTargetPos.set(0, 14.5 * portraitBoost, 4.6 * portraitBoost);
+      this.camTargetLook.set(0, 0.2, 0.15);
     } else {
-      this.camera.position.set(0, 7.6 * portraitBoost, 10.6 * portraitBoost);
-      this.controls.target.set(0, 0.35, -0.2);
+      this.camTargetPos.set(0, 7.6 * portraitBoost, 10.6 * portraitBoost);
+      this.camTargetLook.set(0, 0.35, -0.2);
     }
-    this.controls.update();
+    if (immediate) {
+      this.camGliding = false;
+      this.camera.position.copy(this.camTargetPos);
+      this.controls.target.copy(this.camTargetLook);
+      this.controls.update();
+    } else {
+      this.camGliding = true;
+    }
   }
 
   handleResize() {
@@ -759,12 +837,121 @@ export class OkeyArena {
     }
   }
 
+  spawnFxRing(x, z, color = 0xc5f273, maxScale = 2.0, dur = 0.42) {
+    if (!this.animGroup) return;
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.32, 0.46, 28),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.88,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(x, 0.14, z);
+    this.animGroup.add(ring);
+    this.fxRings.push({ mesh: ring, elapsed: 0, dur, maxScale });
+  }
+
+  triggerActionAnimation(prev, table, typ) {
+    if (!this.animGroup || !table || table.status === "waiting") return;
+    const viewSeat = table.mySeat >= 0 ? table.mySeat : 0;
+    const seatTransforms = [
+      { pos: [0, 0.72, 4.9], rotY: 0, disc: [3.95, 0.24, 4.35] },
+      { pos: [4.9, 0.72, 0], rotY: Math.PI / 2, disc: [4.35, 0.24, -3.95] },
+      { pos: [0, 0.72, -4.9], rotY: Math.PI, disc: [-3.95, 0.24, -4.35] },
+      { pos: [-4.9, 0.72, 0], rotY: -Math.PI / 2, disc: [-4.35, 0.24, 3.95] },
+    ];
+
+    if (typ === "draw") {
+      const actor = Number.isInteger(table.turn) ? table.turn : 0;
+      const rel = (actor - viewSeat + 4) % 4;
+      const xf = seatTransforms[rel];
+      const tile = this.build3DTileMesh(null, false);
+      const startPos = new THREE.Vector3(-0.95, 0.85, 0);
+      const endPos = new THREE.Vector3(...xf.pos);
+      tile.position.copy(startPos);
+      this.animGroup.add(tile);
+      this.flyingTiles.push({
+        mesh: tile,
+        startPos,
+        endPos,
+        startRotX: -Math.PI / 2,
+        endRotX: 0,
+        startRotY: 0,
+        endRotY: xf.rotY,
+        startRotZ: 0,
+        endRotZ: 0,
+        arcH: 1.65,
+        elapsed: 0,
+        dur: 0.36,
+      });
+      this.spawnFxRing(-0.95, 0, 0xc5f273, 1.4, 0.34);
+    } else if (typ === "drawDiscard") {
+      const actor = Number.isInteger(table.turn) ? table.turn : 0;
+      const rel = (actor - viewSeat + 4) % 4;
+      const srcRel = (rel + 3) % 4;
+      const srcSeatIdx = (actor + 3) % 4;
+      const prevTop = prev?.seats?.[srcSeatIdx]?.topDiscard || null;
+      const tile = this.build3DTileMesh(prevTop, Boolean(prevTop), table.okeyTarget);
+      const startPos = new THREE.Vector3(...seatTransforms[srcRel].disc);
+      const endPos = new THREE.Vector3(...seatTransforms[rel].pos);
+      tile.position.copy(startPos);
+      this.animGroup.add(tile);
+      this.flyingTiles.push({
+        mesh: tile,
+        startPos,
+        endPos,
+        startRotX: -Math.PI / 2,
+        endRotX: 0,
+        startRotY: 0,
+        endRotY: seatTransforms[rel].rotY,
+        startRotZ: seatTransforms[srcRel].rotY,
+        endRotZ: 0,
+        arcH: 1.55,
+        elapsed: 0,
+        dur: 0.38,
+      });
+    } else if (typ === "discard") {
+      const actor = Number.isInteger(prev?.turn) ? prev.turn : (table.turn + 3) % 4;
+      const rel = (actor - viewSeat + 4) % 4;
+      const xf = seatTransforms[rel];
+      const topTile = table.seats?.[actor]?.topDiscard || null;
+      const tile = this.build3DTileMesh(topTile, Boolean(topTile), table.okeyTarget);
+      const startPos = new THREE.Vector3(...xf.pos);
+      const endPos = new THREE.Vector3(...xf.disc);
+      tile.position.copy(startPos);
+      this.animGroup.add(tile);
+      this.flyingTiles.push({
+        mesh: tile,
+        startPos,
+        endPos,
+        startRotX: 0,
+        endRotX: -Math.PI / 2,
+        startRotY: xf.rotY,
+        endRotY: 0,
+        startRotZ: 0,
+        endRotZ: xf.rotY,
+        arcH: 1.45,
+        elapsed: 0,
+        dur: 0.34,
+        onLand: () => {
+          this.spawnFxRing(endPos.x, endPos.z, 0xf4c44e, 1.55, 0.36);
+        },
+      });
+    } else if (typ === "openSeries" || typ === "openPairs" || typ === "openMore" || typ === "layoff") {
+      this.spawnFxRing(0, 0, 0xc5f273, 3.2, 0.55);
+    }
+  }
+
   update(table, myId) {
     const prev = this.table;
     this.table = table;
     if (!table) return;
 
-    // Tactile sound effects on state transitions
+    // Tactile sound effects & 3D tile flight animations on state transitions
     if (table.lastAction?.at && table.lastAction.at !== this.lastActionAt) {
       this.lastActionAt = table.lastAction.at;
       const typ = table.lastAction.type;
@@ -776,6 +963,8 @@ export class OkeyArena {
       else if (typ === "win") playWin();
       else if (typ === "draw" && table.status === "finished") playDraw();
       else if (typ === "join") playChip();
+
+      this.triggerActionAnimation(prev, table, typ);
     }
 
     const is101 = table.variant === "101";

@@ -484,7 +484,7 @@ export class BlackjackArena {
 
       this._buildCasinoEnvironment();
       this._loadDealerModel();
-      this.setCameraMode(w < 540 ? "masa" : "masa");
+      this.setCameraMode("masa", true);
 
       this.resizeObs = new ResizeObserver(() => this._resize());
       this.resizeObs.observe(stage);
@@ -818,36 +818,52 @@ export class BlackjackArena {
     }
   }
 
-  setCameraMode(mode) {
+  setCameraMode(mode, immediate = false) {
     this.cameraMode = mode;
     for (const [m, btn] of Object.entries(this.hudNodes.camBtns)) {
       btn.classList.toggle("active", m === mode);
     }
     if (!this.camera || !this.controls) return;
+    if (!this._camTargetPos) {
+      this._camTargetPos = new THREE.Vector3();
+      this._camTargetLook = new THREE.Vector3();
+      this._camGliding = false;
+      this.controls.addEventListener("start", () => {
+        this._camGliding = false;
+      });
+    }
 
     const aspect = this.camera.aspect || 1.5;
     const isNarrow = aspect < 0.95;
 
     if (mode === "ustten") {
-      this.camera.position.set(0, isNarrow ? 3.55 : 2.95, isNarrow ? 1.15 : 0.88);
-      this.controls.target.set(0, TABLE_Y, 0.05);
+      this._camTargetPos.set(0, isNarrow ? 3.55 : 2.95, isNarrow ? 1.15 : 0.88);
+      this._camTargetLook.set(0, TABLE_Y, 0.05);
     } else if (mode === "elim") {
       const mySeat = this._mySeat();
       if (mySeat) {
         const pt = seatWorldPoint(mySeat.seatIndex, 1.05);
         const camPt = seatWorldPoint(mySeat.seatIndex, 2.05);
-        this.camera.position.set(camPt.x * 0.95, TABLE_Y + 0.92, camPt.z + 0.18);
-        this.controls.target.set(pt.x * 0.55, TABLE_Y + 0.05, -0.02);
+        this._camTargetPos.set(camPt.x * 0.95, TABLE_Y + 0.92, camPt.z + 0.18);
+        this._camTargetLook.set(pt.x * 0.55, TABLE_Y + 0.05, -0.02);
       } else {
-        this.camera.position.set(0, TABLE_Y + 0.98, 2.05);
-        this.controls.target.set(0, TABLE_Y + 0.06, -0.05);
+        this._camTargetPos.set(0, TABLE_Y + 0.98, 2.05);
+        this._camTargetLook.set(0, TABLE_Y + 0.06, -0.05);
       }
     } else {
       // Wide croupier + full 6-seat table
-      this.camera.position.set(0, isNarrow ? 2.65 : 2.15, isNarrow ? 3.25 : 2.52);
-      this.controls.target.set(0, 0.98, -0.22);
+      this._camTargetPos.set(0, isNarrow ? 2.65 : 2.15, isNarrow ? 3.25 : 2.52);
+      this._camTargetLook.set(0, 0.98, -0.22);
     }
-    this.controls.update();
+
+    if (immediate) {
+      this._camGliding = false;
+      this.camera.position.copy(this._camTargetPos);
+      this.controls.target.copy(this._camTargetLook);
+      this.controls.update();
+    } else {
+      this._camGliding = true;
+    }
   }
 
   _resize() {
@@ -867,24 +883,67 @@ export class BlackjackArena {
   }
 
   _animateScene(time, dt) {
-    // Card flight & flip interpolation
+    // Smooth camera preset glide
+    if (this._camGliding && this.camera && this.controls) {
+      const ck = 1 - Math.exp(-8.5 * dt);
+      this.camera.position.lerp(this._camTargetPos, ck);
+      this.controls.target.lerp(this._camTargetLook, ck);
+      if (
+        this.camera.position.distanceToSquared(this._camTargetPos) < 0.0005 &&
+        this.controls.target.distanceToSquared(this._camTargetLook) < 0.0005
+      ) {
+        this.camera.position.copy(this._camTargetPos);
+        this.controls.target.copy(this._camTargetLook);
+        this._camGliding = false;
+      }
+    }
+
+    // Card flight & crisp elevated flip reveal interpolation
     for (const entry of this.cardEntries.values()) {
       const k = 1 - Math.exp(-11 * dt);
       entry.mesh.position.lerp(entry.targetPos, k);
       const dy = entry.targetPos.distanceTo(entry.mesh.position);
-      entry.mesh.position.y = entry.targetPos.y + Math.min(0.14, dy * 0.25);
+      let flipLift = 0;
+      if (entry.flipElapsed !== undefined && entry.flipElapsed < 0.36) {
+        entry.flipElapsed = Math.min(0.36, entry.flipElapsed + dt);
+        flipLift = Math.sin((entry.flipElapsed / 0.36) * Math.PI) * 0.24;
+      }
+      entry.mesh.position.y = entry.targetPos.y + Math.min(0.18, dy * 0.32) + flipLift;
       entry.mesh.rotation.y += (entry.targetRotY - entry.mesh.rotation.y) * k;
       entry.mesh.rotation.z += (entry.targetRotZ - entry.mesh.rotation.z) * k;
     }
 
-    // Pulse active turn betting circle
+    // Flying bet chips tossed into betting circle
+    if (this._chipAnims?.length) {
+      const keep = [];
+      for (const c of this._chipAnims) {
+        c.elapsed = Math.min(c.dur, c.elapsed + dt);
+        const u = c.elapsed / c.dur;
+        const ease = 1 - Math.pow(1 - u, 3);
+        c.mesh.position.lerpVectors(c.startPos, c.endPos, ease);
+        c.mesh.position.y += Math.sin(u * Math.PI) * 0.16;
+        if (u < 1) keep.push(c);
+        else c.mesh.position.copy(c.endPos);
+      }
+      this._chipAnims = keep;
+    }
+
+    // Pulse active turn betting circle & celebrate winning hands on settle
     const activeIdx =
       this.table?.status === "playing" && this.table?.turn
         ? this.table.turn.seatIndex
         : -1;
     this.seatRingMeshes.forEach((ring, i) => {
-      const occupied = !!this.table?.seats[i];
-      if (i === activeIdx) {
+      const seat = this.table?.seats[i];
+      const occupied = !!seat;
+      const wonHand =
+        this.table?.status === "settled" &&
+        seat?.activeInRound &&
+        seat.hands?.some((h) => h.outcome === "win" || h.outcome === "blackjack");
+      if (wonHand) {
+        ring.material.color.setHex(0xffe066);
+        ring.material.opacity = 0.65 + Math.sin(time * 8) * 0.3;
+      } else if (i === activeIdx) {
         ring.material.color.setHex(0xc5f273);
         ring.material.opacity = 0.55 + Math.sin(time * 5.5) * 0.28;
       } else if (occupied) {
@@ -1090,6 +1149,7 @@ export class BlackjackArena {
           entry.faceMat.map = getCardFaceTexture(cardData);
           entry.faceMat.needsUpdate = true;
           entry.wasHidden = false;
+          entry.flipElapsed = 0;
         }
         entry.targetPos.copy(pos);
         entry.targetRotY = rotY;
@@ -1174,17 +1234,38 @@ export class BlackjackArena {
         );
       }
     }
+    this._chipAnims = [];
+    this._prevSeatBets ||= new Array(SEAT_COUNT).fill(0);
     for (let s = 0; s < SEAT_COUNT; s++) {
       const seat = table.seats[s];
-      if (!seat) continue;
+      if (!seat) {
+        this._prevSeatBets[s] = 0;
+        continue;
+      }
       const shownBet = seat.activeInRound
         ? seat.hands.reduce((a, h) => a + h.bet, 0)
         : seat.bet;
+      const betIncreased = shownBet > (this._prevSeatBets[s] || 0);
+      this._prevSeatBets[s] = shownBet;
       const tokens = chipBreakdown(shownBet);
       const cPos = seatWorldPoint(s, 1.32);
+      const railPos = seatWorldPoint(s, 1.62);
       tokens.forEach((t, idx) => {
         const chip = new THREE.Mesh(chipGeo, this._chipMats.get(t.val));
-        chip.position.set(cPos.x, TABLE_Y + 0.005 + idx * 0.0085, cPos.z);
+        const endPos = new THREE.Vector3(cPos.x, TABLE_Y + 0.005 + idx * 0.0085, cPos.z);
+        if (betIncreased) {
+          const startPos = new THREE.Vector3(railPos.x, TABLE_Y + 0.04, railPos.z);
+          chip.position.copy(startPos);
+          this._chipAnims.push({
+            mesh: chip,
+            startPos,
+            endPos,
+            elapsed: 0,
+            dur: 0.24 + idx * 0.025,
+          });
+        } else {
+          chip.position.copy(endPos);
+        }
         chip.castShadow = true;
         this.chipsGroup.add(chip);
       });
