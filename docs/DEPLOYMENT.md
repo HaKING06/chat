@@ -1,6 +1,6 @@
 # Yayına geçiş
 
-Bu sürüm mevcut `chat.haking.tr` ve `chat-backend-qmzo.onrender.com` adresleri için hazırdır. Kurucu Halit ve moderatörler Panda, Nurullah, Sosyal Enik önceki parolalarıyla giriş yapabilir. Parola doğrulama özetleri yalnızca backend `config/staff.json` dosyasındadır. Yeni bir SQL hizmeti veya parola ayarı gerekmez. Önce backend deposunu, ardından frontend deposunu push edin.
+Bu sürüm mevcut `chat.haking.tr` ve `site--chat-backend--nz86hcc69k9m.code.run` adresleri için hazırdır. Kurucu Halit ve moderatörler Panda, Nurullah, Sosyal Enik önceki parolalarıyla giriş yapabilir. Parola doğrulama özetleri yalnızca backend `config/staff.json` dosyasındadır. Yeni bir SQL hizmeti veya parola ayarı gerekmez. Önce backend deposunu, ardından frontend deposunu push edin.
 
 ## 1. Backend / Render
 
@@ -13,7 +13,7 @@ Bu sürüm mevcut `chat.haking.tr` ve `chat-backend-qmzo.onrender.com` adresleri
 ## 2. Frontend / Cloudflare Pages
 
 1. `chat` deposunu Pages projesine bağlayın. Framework: **None**, build komutu: **boş**, çıktı dizini: **`/`**.
-2. `config.js` içindeki `window.HAKING_CONFIG.backendUrl` değerinin `https://chat-backend-qmzo.onrender.com` veya kullandığınız gerçek servis adresi olduğundan emin olun. Adres değişirse `_headers` dosyasında HTTPS ve WSS adreslerini de değiştirin. Yerelde `npm install` ve `npm run vendor` çalıştırıp üretilen yerel kütüphaneleri depoya ekleyin.
+2. `config.js` içindeki `window.HAKING_CONFIG.backendUrl` değerinin `https://site--chat-backend--nz86hcc69k9m.code.run` veya kullandığınız gerçek servis adresi olduğundan emin olun. Adres değişirse `_headers` dosyasında HTTPS ve WSS adreslerini de değiştirin. Yerelde `npm install` ve `npm run vendor` çalıştırıp üretilen yerel kütüphaneleri depoya ekleyin.
 3. GitHub'a push ederek Pages dağıtımını başlatın. Özel alan adı `chat.haking.tr` için Cloudflare'ın DNS ve sertifika kontrolünün tamamlanmasını bekleyin.
 4. Yeni sürüm görünmüyorsa Pages dağıtım commit'ini kontrol edip tarayıcıda zorla yenileyin. Eski HTML'yi süresiz önbelleğe alan özel Cache Rules kullanmayın.
 
