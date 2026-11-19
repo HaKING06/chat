@@ -23,10 +23,91 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
   let chessArena = null;
   let okeyModulePromise = null;
   let okeyArena = null;
+  const PLAYER_ID_KEY = "haking.playerId";
+  const ACTIVE_CHESS_KEY = "haking.chess.active";
+  function createPlayerUuid() {
+    try {
+      if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+      }
+      if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      }
+    } catch { }
+    return `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  }
+  function getOrCreatePlayerId() {
+    try {
+      const existing = localStorage.getItem(PLAYER_ID_KEY);
+      if (existing && /^[a-zA-Z0-9_-]{8,64}$/.test(existing)) return existing;
+      const fresh = createPlayerUuid();
+      localStorage.setItem(PLAYER_ID_KEY, fresh);
+      return fresh;
+    } catch {
+      return createPlayerUuid();
+    }
+  }
+  function getActiveChessSession() {
+    try {
+      const raw = localStorage.getItem(ACTIVE_CHESS_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || !parsed.roomId) return null;
+      if (parsed.playerId && parsed.playerId !== state.playerId) return null;
+      if (parsed.savedAt && Date.now() - parsed.savedAt > 30 * 60 * 1000) {
+        localStorage.removeItem(ACTIVE_CHESS_KEY);
+        return null;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+  function clearActiveChessSession() {
+    if (typeof state !== "undefined") state.lastChessTableId = "";
+    try {
+      localStorage.removeItem(ACTIVE_CHESS_KEY);
+    } catch { }
+  }
+  function syncActiveChessSession(table) {
+    if (!table) return;
+    if (table.status === "finished") {
+      clearActiveChessSession();
+      return;
+    }
+    const mySeat = table.seats?.find(
+      (s) => s && !s.isBot && s.userId === state.socket?.id,
+    );
+    if (mySeat && (table.status === "playing" || table.status === "waiting")) {
+      state.lastChessTableId = table.id;
+      try {
+        localStorage.setItem(
+          ACTIVE_CHESS_KEY,
+          JSON.stringify({
+            roomId: table.id,
+            gameId: table.id,
+            playerId: state.playerId,
+            name: state.user?.name || mySeat.name,
+            role: state.user?.role || "user",
+            color: mySeat.color,
+            savedAt: Date.now(),
+          }),
+        );
+      } catch { }
+    }
+  }
   const state = {
     socket: null,
+    playerId: getOrCreatePlayerId(),
     user: null,
     credentials: null,
+    reconnectingChess: false,
+    lastChessTableId: "",
     channel: "general",
     view: "chat",
     messages: new Map(),
@@ -374,11 +455,62 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     renderChannelNotices();
     syncMiniChatUI();
   }
+  async function tryRestoreChessSession({ silent = false } = {}) {
+    if (!state.socket?.connected || !state.user || state.reconnectingChess) return;
+    const saved = getActiveChessSession();
+    const tableId = saved?.roomId || state.chessTable?.id || state.lastChessTableId || "";
+    if (!saved && !state.chessTable && !state.lastChessTableId) return;
+    state.reconnectingChess = true;
+    try {
+      const res = await emit("chessReconnect", {
+        playerId: state.playerId,
+        tableId: tableId || undefined,
+      });
+      if (!res.success) return;
+      if (res.restored && res.table) {
+        state.game = null;
+        state.table = null;
+        state.diceTable = null;
+        state.okeyTable = null;
+        if (bjArena) {
+          bjArena.dispose();
+          bjArena = null;
+        }
+        if (diceArena) {
+          diceArena.dispose();
+          diceArena = null;
+        }
+        if (okeyArena) {
+          okeyArena.dispose();
+          okeyArena = null;
+        }
+        state.chessTable = res.table;
+        syncActiveChessSession(res.table);
+        if (state.view !== "games") navigate("games");
+        renderGame();
+        if (!silent) {
+          toast("Satranç oyununa kaldığın yerden yeniden bağlandın ♟");
+        }
+      } else {
+        clearActiveChessSession();
+        if (res.reason === "finished" && res.table) {
+          state.chessTable = res.table;
+          if (state.view !== "games") navigate("games");
+          renderGame();
+        }
+      }
+    } finally {
+      state.reconnectingChess = false;
+    }
+  }
   async function authenticate() {
     if (!state.credentials || state.joining) return;
     state.joining = true;
     const attempt = ++state.authAttempt;
-    const result = await emit("joinRoom", state.credentials);
+    const result = await emit("joinRoom", {
+      ...state.credentials,
+      playerId: state.playerId,
+    });
     if (attempt !== state.authAttempt) return;
     state.joining = false;
     $("login-submit").disabled = false;
@@ -404,10 +536,16 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     renderMessages(true);
     renderMiniChat();
     renderLobby();
-    toast("Hoş geldin, " + state.user.name + ". İyi ki geldin!");
+    const hasSavedChess = Boolean(getActiveChessSession() || state.lastChessTableId);
+    if (!hasSavedChess) {
+      toast("Hoş geldin, " + state.user.name + ". İyi ki geldin!");
+    }
     try {
       localStorage.setItem("haking.nickname", state.user.name);
     } catch { }
+    if (hasSavedChess) {
+      tryRestoreChessSession();
+    }
   }
   function setupSocket() {
     if (state.socket) {
@@ -443,8 +581,17 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       $("login-submit").textContent = "Tekrar dene ↗";
     });
     socket.on("disconnect", (reason) => {
+      const hadActiveChess = Boolean(
+        state.chessTable &&
+          (state.chessTable.status === "playing" ||
+            state.chessTable.status === "waiting") &&
+          state.chessTable.seats?.some(
+            (s) => s && !s.isBot && s.userId === socket.id,
+          ),
+      );
       state.authAttempt++;
       state.joining = false;
+      state.reconnectingChess = false;
       connection("offline");
       state.user = null;
       state.game = null;
@@ -469,7 +616,9 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         toast(
           reason === "io server disconnect"
             ? "Oturum sona erdi. Yeniden giriş yapabilirsin."
-            : "Bağlantı kesildi. Otomatik yeniden bağlanılıyor.",
+            : hadActiveChess
+              ? "Bağlantı kesildi. Satranç oyunun 5 dk korunuyor; yeniden bağlanılıyor…"
+              : "Bağlantı kesildi. Otomatik yeniden bağlanılıyor.",
           true,
         );
         if (reason === "io server disconnect") state.credentials = null;
@@ -570,6 +719,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       state.stopped = true;
       state.credentials = null;
       state.user = null;
+      clearActiveChessSession();
       toast("Bir yetkili seni odadan çıkardı.", true);
       socket.disconnect();
       setMemberUI();
@@ -670,10 +820,12 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         okeyArena.dispose();
         okeyArena = null;
       }
+      syncActiveChessSession(table);
       renderGame();
     });
     socket.on("chessLeft", () => {
       state.chessTable = null;
+      clearActiveChessSession();
       if (chessArena) {
         chessArena.dispose();
         chessArena = null;
@@ -736,13 +888,25 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       (s) => s && s.userId === state.socket?.id && s.activeInRound,
     );
     const inActiveDice = state.diceTable?.status === "playing";
+    const inActiveChess =
+      state.chessTable?.status === "playing" &&
+      state.chessTable?.seats?.some(
+        (s) => s && !s.isBot && s.userId === state.socket?.id,
+      );
     if (
-      (state.game?.status === "playing" || inActiveBj || inActiveDice) &&
+      (state.game?.status === "playing" ||
+        inActiveBj ||
+        inActiveDice ||
+        inActiveChess) &&
       !confirm(
         "Çıkış yaparsan oyun sona erecek. Oturumu kapatmak istiyor musun?",
       )
     )
       return;
+    if (state.chessTable && state.socket?.connected) {
+      state.socket.emit("chessLeave", { tableId: state.chessTable.id });
+    }
+    clearActiveChessSession();
     state.stopped = true;
     state.credentials = null;
     state.user = null;
@@ -1909,6 +2073,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         }
         resetXoxSoundState();
         state.chessTable = result.table;
+        syncActiveChessSession(result.table);
         renderGame();
       }
     } finally {
@@ -2001,6 +2166,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     const result = await act("chessLeave", { tableId: state.chessTable.id });
     if (result.success) {
       state.chessTable = null;
+      clearActiveChessSession();
       if (chessArena) {
         chessArena.dispose();
         chessArena = null;
@@ -2737,6 +2903,34 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       }
     });
 
+    function handleResumeConnection() {
+      if (state.stopped) return;
+      const savedChess = getActiveChessSession();
+      if (!state.credentials && savedChess?.name && (!savedChess.role || savedChess.role === "user")) {
+        state.credentials = {
+          name: savedChess.name,
+          role: "user",
+          password: "",
+        };
+      }
+      if (!state.credentials) return;
+      if (!state.socket) {
+        setupSocket();
+        return;
+      }
+      if (!state.socket.connected) {
+        connection("connecting");
+        state.socket.connect();
+        return;
+      }
+      if (!state.user) {
+        authenticate();
+        return;
+      }
+      if (savedChess || state.chessTable || state.lastChessTableId) {
+        tryRestoreChessSession({ silent: true });
+      }
+    }
     window.addEventListener("focus", () => {
       if (state.view === "chat" || state.miniChatOpen) {
         clearNotifications({ clearMini: true });
@@ -2746,12 +2940,30 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       if (!document.hidden && (state.view === "chat" || state.miniChatOpen)) {
         clearNotifications({ clearMini: true });
       }
+      if (document.visibilityState === "visible") {
+        handleResumeConnection();
+      }
+    });
+    window.addEventListener("pageshow", () => {
+      handleResumeConnection();
+    });
+    window.addEventListener("online", () => {
+      handleResumeConnection();
     });
     try {
       const params = new URLSearchParams(location.search);
       const page = params.get("sayfa") || location.hash.replace(/^#/, "");
       const ch = params.get("kanal");
-      if (page === "oyunlar") navigate("games");
+      const savedChess = getActiveChessSession();
+      if (savedChess?.name && (!savedChess.role || savedChess.role === "user")) {
+        state.credentials = {
+          name: savedChess.name,
+          role: "user",
+          password: "",
+        };
+        navigate("games");
+        setupSocket();
+      } else if (page === "oyunlar") navigate("games");
       else if (ch === "kod" || ch === "code") navigate("chat", "code");
       else {
         renderMessages();
@@ -2765,5 +2977,5 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       renderLobby();
       setMemberUI();
     }
-    connection("offline");
+    if (!state.socket) connection("offline");
   }) ();

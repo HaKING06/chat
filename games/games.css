@@ -3139,3 +3139,17 @@ body.in-blackjack .games-view {
     padding: 3px 7px;
   }
 }
+
+.chess-player-card.disconnected {
+  border-color: rgba(245, 158, 11, 0.65);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.chess-grace-tag {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.55);
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  font-weight: 700;
+}

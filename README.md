@@ -40,6 +40,7 @@ Modern oyun merkezi düzeniyle **Canlı Masalar & Bekleyenler** çubuğu sayfan�
    - **Aşırı kuş bakışı varsayılan kamera**: Üstten tam hâkimiyet sunan dik açıyla açılır; `OrbitControls` ile serbest 3D gezinme, `Kuş Bakışı` / `3D Açı` ön ayarları ve `Tahtayı Çevir` desteği (WebGL yoksa otomatik 2D tahta).
    - **Tam FIDE kuralları (`chess.js`)**: Rok, geçerken alma (en passant), terfi taşı seçici (`Vezir/Kale/Fil/At`), şah mat/pat/üçlü tekrar, SAN hamle geçmişi, alınan taşlar ve rövanşta Beyaz ↔ Siyah dönüşümü.
    - **Canlı İzle Modu (`İzle 👁`)**: Uzun süren 1v1 veya bot maçlarına lobiden tek tıkla izleyici olarak katıl; hamleleri gerçek zamanlı izlerken sağ alttan mini sohbete katıl.
+   - **Mobil Ekran Kilidi / Kopma Koruması (`localStorage` + 5 dk Grace Period)**: Kalıcı `playerId` ve aktif masa kaydı ile telefon ekranı kilitlenip açılsa ya da sayfa yenilense bile oyun sıfırlanmaz; 5 dakika içinde otomatik olarak kaldığın tahta durumundan devam edersin.
    - **3 seviyeli Yapay Zeka Bot**: Alpha-Beta budamalı `Kolay`, `Orta` ve `Usta Bot`.
 
 3. **Blackjack 21 (3D · Canlı Kurpiyer · Max 6 Kişi)**
@@ -71,7 +72,7 @@ npm run vendor
 npm run dev
 ```
 
-Tarayıcıda `http://localhost:5173` adresini açın. `config.js` içindeki `window.HAKING_CONFIG.backendUrl` yerelde `http://localhost:3000`, canlıda `https://chat-backend-qmzo.onrender.com` adresine bağlanır.
+Tarayıcıda `http://localhost:5173` adresini açın. `config.js` içindeki `window.HAKING_CONFIG.backendUrl` yerelde `http://localhost:3000`, canlıda `https://chat-api.haking.tr` adresine bağlanır.
 
 Doğrulama ve üçüncü taraf kontrolleri:
 

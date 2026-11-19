@@ -916,6 +916,13 @@ export class ChessArena {
       }
       el.textContent = formatClock(total);
     }
+    const graceEls = this.playersBox.querySelectorAll("[data-chess-grace]");
+    for (const gel of graceEls) {
+      const deadline = Number(gel.getAttribute("data-chess-grace")) || 0;
+      const remMs = Math.max(0, deadline - Date.now());
+      gel.textContent =
+        remMs > 0 ? `⏳ Koptu · ${formatClock(remMs)}` : "⏳ Süre doluyor";
+    }
   }
 
   update(table) {
@@ -1042,7 +1049,8 @@ export class ChessArena {
       card.className =
         "chess-player-card" +
         (isActive ? " active-turn" : "") +
-        (t.winnerColor === color ? " winner" : "");
+        (t.winnerColor === color ? " winner" : "") +
+        (seat?.disconnected ? " disconnected" : "");
 
       const topRow = document.createElement("div");
       topRow.className = "chess-player-top";
@@ -1059,6 +1067,13 @@ export class ChessArena {
 
       const rightMeta = document.createElement("div");
       rightMeta.className = "chess-player-meta";
+      if (seat?.disconnected && seat?.reconnectDeadline) {
+        const g = document.createElement("span");
+        g.className = "tag chess-grace-tag";
+        g.setAttribute("data-chess-grace", String(seat.reconnectDeadline));
+        g.textContent = "⏳ Koptu";
+        rightMeta.append(g);
+      }
       if (seat && seat.wins > 0) {
         const w = document.createElement("span");
         w.className = "tag";
