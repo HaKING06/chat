@@ -818,769 +818,768 @@ export class BlackjackArena {
     }
   }
 
-  setCameraMode(mode, immediate = false) {
-    this.cameraMode = mode;
-    for (const [m, btn] of Object.entries(this.hudNodes.camBtns)) {
-      btn.classList.toggle("active", m === mode);
-    }
-    if (!this.camera || !this.controls) return;
-    if (!this._camTargetPos) {
-      this._camTargetPos = new THREE.Vector3();
-      this._camTargetLook = new THREE.Vector3();
-      this._camGliding = false;
-      this.controls.addEventListener("start", () => {
-        this._camGliding = false;
-      });
-    }
-
-    const aspect = this.camera.aspect || 1.5;
-    const isNarrow = aspect < 0.95;
-
-    if (mode === "ustten") {
-      this._camTargetPos.set(0, isNarrow ? 3.55 : 2.95, isNarrow ? 1.15 : 0.88);
-      this._camTargetLook.set(0, TABLE_Y, 0.05);
-    } else if (mode === "elim") {
-      const mySeat = this._mySeat();
-      if (mySeat) {
-        const pt = seatWorldPoint(mySeat.seatIndex, 1.05);
-        const camPt = seatWorldPoint(mySeat.seatIndex, 2.05);
-        this._camTargetPos.set(camPt.x * 0.95, TABLE_Y + 0.92, camPt.z + 0.18);
-        this._camTargetLook.set(pt.x * 0.55, TABLE_Y + 0.05, -0.02);
-      } else {
-        this._camTargetPos.set(0, TABLE_Y + 0.98, 2.05);
-        this._camTargetLook.set(0, TABLE_Y + 0.06, -0.05);
+    setCameraMode(mode, immediate = false) {
+      this.cameraMode = mode;
+      for (const [m, btn] of Object.entries(this.hudNodes.camBtns)) {
+        btn.classList.toggle("active", m === mode);
       }
-    } else {
-      // Wide croupier + full 6-seat table
-      this._camTargetPos.set(0, isNarrow ? 2.65 : 2.15, isNarrow ? 3.25 : 2.52);
-      this._camTargetLook.set(0, 0.98, -0.22);
-    }
+      if (!this.camera || !this.controls) return;
+      if (!this._camTargetPos) {
+        this._camTargetPos = new THREE.Vector3();
+        this._camTargetLook = new THREE.Vector3();
+        this._camGliding = false;
+        this.controls.addEventListener("start", () => {
+          this._camGliding = false;
+        });
+      }
 
-    if (immediate) {
-      this._camGliding = false;
-      this.camera.position.copy(this._camTargetPos);
-      this.controls.target.copy(this._camTargetLook);
-      this.controls.update();
-    } else {
-      this._camGliding = true;
-    }
-  }
+      const aspect = this.camera.aspect || 1.5;
+      const isNarrow = aspect < 0.95;
 
-  _resize() {
-    if (!this.renderer || !this.camera || this.webglFailed) return;
-    const { stage } = this.hudNodes;
-    const w = Math.max(300, stage.clientWidth);
-    const h = Math.max(260, stage.clientHeight);
-    this.camera.aspect = w / h;
-    this.camera.fov = w / h < 0.95 ? 48 : 42;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(w, h, false);
-  }
+      if (mode === "ustten") {
+        this._camTargetPos.set(0, isNarrow ? 3.55 : 2.95, isNarrow ? 1.15 : 0.88);
+        this._camTargetLook.set(0, TABLE_Y, 0.05);
+      } else if (mode === "elim") {
+        const mySeat = this._mySeat();
+        if (mySeat) {
+          const pt = seatWorldPoint(mySeat.seatIndex, 1.05);
+          const camPt = seatWorldPoint(mySeat.seatIndex, 2.05);
+          this._camTargetPos.set(camPt.x * 0.95, TABLE_Y + 0.92, camPt.z + 0.18);
+          this._camTargetLook.set(pt.x * 0.55, TABLE_Y + 0.05, -0.02);
+        } else {
+          this._camTargetPos.set(0, TABLE_Y + 0.98, 2.05);
+          this._camTargetLook.set(0, TABLE_Y + 0.06, -0.05);
+        }
+      } else {
+        // Wide croupier + full 6-seat table
+        this._camTargetPos.set(0, isNarrow ? 2.65 : 2.15, isNarrow ? 3.25 : 2.52);
+        this._camTargetLook.set(0, 0.98, -0.22);
+      }
 
-  _mySeat() {
-    if (!this.table || !this.mySocketId) return null;
-    return this.table.seats.find((s) => s && s.userId === this.mySocketId) || null;
-  }
-
-  _animateScene(time, dt) {
-    // Smooth camera preset glide
-    if (this._camGliding && this.camera && this.controls) {
-      const ck = 1 - Math.exp(-8.5 * dt);
-      this.camera.position.lerp(this._camTargetPos, ck);
-      this.controls.target.lerp(this._camTargetLook, ck);
-      if (
-        this.camera.position.distanceToSquared(this._camTargetPos) < 0.0005 &&
-        this.controls.target.distanceToSquared(this._camTargetLook) < 0.0005
-      ) {
+      if (immediate) {
+        this._camGliding = false;
         this.camera.position.copy(this._camTargetPos);
         this.controls.target.copy(this._camTargetLook);
-        this._camGliding = false;
-      }
-    }
-
-    // Card flight & crisp elevated flip reveal interpolation
-    for (const entry of this.cardEntries.values()) {
-      const k = 1 - Math.exp(-11 * dt);
-      entry.mesh.position.lerp(entry.targetPos, k);
-      const dy = entry.targetPos.distanceTo(entry.mesh.position);
-      let flipLift = 0;
-      if (entry.flipElapsed !== undefined && entry.flipElapsed < 0.36) {
-        entry.flipElapsed = Math.min(0.36, entry.flipElapsed + dt);
-        flipLift = Math.sin((entry.flipElapsed / 0.36) * Math.PI) * 0.24;
-      }
-      entry.mesh.position.y = entry.targetPos.y + Math.min(0.18, dy * 0.32) + flipLift;
-      entry.mesh.rotation.y += (entry.targetRotY - entry.mesh.rotation.y) * k;
-      entry.mesh.rotation.z += (entry.targetRotZ - entry.mesh.rotation.z) * k;
-    }
-
-    // Flying bet chips tossed into betting circle
-    if (this._chipAnims?.length) {
-      const keep = [];
-      for (const c of this._chipAnims) {
-        c.elapsed = Math.min(c.dur, c.elapsed + dt);
-        const u = c.elapsed / c.dur;
-        const ease = 1 - Math.pow(1 - u, 3);
-        c.mesh.position.lerpVectors(c.startPos, c.endPos, ease);
-        c.mesh.position.y += Math.sin(u * Math.PI) * 0.16;
-        if (u < 1) keep.push(c);
-        else c.mesh.position.copy(c.endPos);
-      }
-      this._chipAnims = keep;
-    }
-
-    // Pulse active turn betting circle & celebrate winning hands on settle
-    const activeIdx =
-      this.table?.status === "playing" && this.table?.turn
-        ? this.table.turn.seatIndex
-        : -1;
-    this.seatRingMeshes.forEach((ring, i) => {
-      const seat = this.table?.seats[i];
-      const occupied = !!seat;
-      const wonHand =
-        this.table?.status === "settled" &&
-        seat?.activeInRound &&
-        seat.hands?.some((h) => h.outcome === "win" || h.outcome === "blackjack");
-      if (wonHand) {
-        ring.material.color.setHex(0xffe066);
-        ring.material.opacity = 0.65 + Math.sin(time * 8) * 0.3;
-      } else if (i === activeIdx) {
-        ring.material.color.setHex(0xc5f273);
-        ring.material.opacity = 0.55 + Math.sin(time * 5.5) * 0.28;
-      } else if (occupied) {
-        ring.material.color.setHex(0xe8c670);
-        ring.material.opacity = 0.22;
+        this.controls.update();
       } else {
-        ring.material.opacity = 0;
-      }
-    });
-
-    // Live croupier bone animation (breathing, seat tracking, dealing reach)
-    if (this.dealerRig) {
-      const { poseRig } = this.dealerRig;
-      let desiredYaw = Math.sin(time * 0.45) * 0.14;
-      if (activeIdx >= 0 && activeIdx < SEAT_COUNT) {
-        desiredYaw = SEAT_ANGLES[activeIdx] * 0.36;
-      } else if (this.table?.status === "dealerTurn") {
-        desiredYaw = 0;
-      }
-      this.dealerRig.lookYaw += (desiredYaw - this.dealerRig.lookYaw) * Math.min(1, dt * 4);
-
-      const dealActive = performance.now() < this.dealPulseUntil ? 1 : 0;
-      this.dealerRig.dealMix += (dealActive - this.dealerRig.dealMix) * Math.min(1, dt * 8);
-      const reach = this.dealerRig.dealMix;
-
-      if (poseRig.Spine1?.base) {
-        const q = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(Math.sin(time * 1.55) * 0.018 + reach * 0.04, 0, 0),
-        );
-        poseRig.Spine1.bone.quaternion.copy(poseRig.Spine1.base).multiply(q);
-      }
-      if (poseRig.Neck?.base) {
-        const q = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0.05 + Math.sin(time * 1.55) * 0.012, this.dealerRig.lookYaw * 0.45, 0),
-        );
-        poseRig.Neck.bone.quaternion.copy(poseRig.Neck.base).multiply(q);
-      }
-      if (poseRig.Head?.base) {
-        const q = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0.06, this.dealerRig.lookYaw * 0.55, 0),
-        );
-        poseRig.Head.bone.quaternion.copy(poseRig.Head.base).multiply(q);
-      }
-      if (poseRig.RightArm?.base) {
-        const q = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(-reach * 0.34, reach * 0.18 + Math.sin(time * 1.4) * 0.02, 0),
-        );
-        poseRig.RightArm.bone.quaternion.copy(poseRig.RightArm.base).multiply(q);
-      }
-      if (poseRig.LeftArm?.base) {
-        const q = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(Math.sin(time * 1.3 + 1) * 0.02, 0, 0),
-        );
-        poseRig.LeftArm.bone.quaternion.copy(poseRig.LeftArm.base).multiply(q);
+        this._camGliding = true;
       }
     }
-  }
 
-  _projectOverlays() {
-    if (this.webglFailed || !this.table || !this.camera) return;
-    const { stage, overlays } = this.hudNodes;
-    const w = stage.clientWidth;
-    const h = stage.clientHeight;
-    if (!w || !h) return;
-
-    const project = (worldVec) => {
-      const v = worldVec.clone().project(this.camera);
-      const x = ((v.x + 1) / 2) * w;
-      const y = ((-v.y + 1) / 2) * h;
-      return {
-        x: Math.max(46, Math.min(w - 46, x)),
-        y: Math.max(48, Math.min(h - 24, y)),
-        visible: v.z < 1,
-      };
-    };
-
-    const dealerBadge = overlays.querySelector(".bj-dealer-pill");
-    if (dealerBadge) {
-      const p = project(new THREE.Vector3(0, TABLE_Y + 0.15, ARC_CENTER_Z + 0.18));
-      dealerBadge.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50%, -100%)`;
-      dealerBadge.style.opacity = p.visible ? "1" : "0";
+    _resize() {
+      if (!this.renderer || !this.camera || this.webglFailed) return;
+      const { stage } = this.hudNodes;
+      const w = Math.max(300, stage.clientWidth);
+      const h = Math.max(260, stage.clientHeight);
+      this.camera.aspect = w / h;
+      this.camera.fov = w / h < 0.95 ? 48 : 42;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(w, h, false);
     }
 
-    for (let i = 0; i < SEAT_COUNT; i++) {
-      const pill = overlays.querySelector(`[data-seat="${i}"]`);
-      if (!pill) continue;
-      const p = project(this.seatAnchors[i]);
-      pill.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50%, -50%)`;
-      pill.style.opacity = p.visible ? "1" : "0";
-    }
-  }
-
-  update(table, mySocketId) {
-    this.table = table;
-    this.mySocketId = mySocketId;
-    if (!table) return;
-
-    const {
-      nameEl,
-      roundBadge,
-      seatBadge,
-      shoeBadge,
-      balanceEl,
-    } = this.hudNodes;
-
-    nameEl.textContent = table.name;
-    roundBadge.textContent = table.round > 0 ? `${table.round}. EL` : "HAZIRLIK";
-    seatBadge.textContent = `${table.seatedCount}/${table.maxSeats} Koltuk`;
-    shoeBadge.textContent = `Deste: ${table.shoeCount}/${table.shoeTotal}`;
-
-    const mySeat = this._mySeat();
-    balanceEl.replaceChildren();
-    if (mySeat) {
-      const chipIcon = document.createElement("span");
-      chipIcon.className = "bj-chip-dot";
-      chipIcon.textContent = "◉";
-      const val = document.createElement("strong");
-      val.textContent = `${mySeat.chips.toLocaleString("tr-TR")} fiş`;
-      const betText = document.createElement("small");
-      betText.textContent = `Bahis: ${mySeat.bet}`;
-      balanceEl.append(chipIcon, val, betText);
-    } else {
-      balanceEl.textContent = "İzleyici · Boş bir koltuğa tıkla";
+    _mySeat() {
+      if (!this.table || !this.mySocketId) return null;
+      return this.table.seats.find((s) => s && s.userId === this.mySocketId) || null;
     }
 
-    this._handleSounds(table, mySeat);
-    if (!this.webglFailed) {
-      this._syncCardsAndChips(table);
-      this._syncOverlays(table);
-    } else {
-      this._renderFallback2D();
-    }
-    this._renderDock(table, mySeat);
-    this._refreshCountdowns();
-  }
-
-  _handleSounds(table, mySeat) {
-    const cardTotal =
-      table.dealer.cards.length +
-      table.seats.reduce(
-        (sum, s) =>
-          sum + (s ? s.hands.reduce((hs, h) => hs + h.cards.length, 0) : 0),
-        0,
-      );
-    const dealSig = `${table.round}:${cardTotal}:${table.dealer.hiddenHole}`;
-    if (this.lastDealSignature && dealSig !== this.lastDealSignature && cardTotal > 0) {
-      playCard();
-      this.dealPulseUntil = performance.now() + 650;
-    }
-    this.lastDealSignature = dealSig;
-
-    const resultKey = `${table.round}:${table.status}`;
-    if (resultKey !== this.lastResultKey && table.status === "settled" && mySeat?.activeInRound) {
-      const hasBJ = mySeat.hands.some((h) => h.outcome === "blackjack");
-      const hasWin = mySeat.hands.some((h) => h.outcome === "win");
-      const hasPush = mySeat.hands.some((h) => h.outcome === "push");
-      if (hasBJ) playBlackjack();
-      else if (hasWin) playWin();
-      else if (hasPush) playDraw();
-    }
-    this.lastResultKey = resultKey;
-  }
-
-  _syncCardsAndChips(table) {
-    if (!this.scene) return;
-    const activeIds = new Set();
-    const shoeOrigin = new THREE.Vector3(0.86, TABLE_Y + 0.12, ARC_CENTER_Z + 0.12);
-
-    const placeCard = (key, cardData, pos, rotY, hidden, orderIndex) => {
-      activeIds.add(key);
-      let entry = this.cardEntries.get(key);
-      if (!entry) {
-        const edgeMat = new THREE.MeshStandardMaterial({ color: 0xebe3cf, roughness: 0.45 });
-        const backMat = new THREE.MeshStandardMaterial({
-          map: createCardBackTexture(),
-          roughness: 0.35,
-          metalness: 0.06,
-        });
-        const faceMat = new THREE.MeshStandardMaterial({
-          map: hidden ? createCardBackTexture() : getCardFaceTexture(cardData),
-          roughness: 0.35,
-          metalness: 0.04,
-        });
-        const mesh = new THREE.Mesh(
-          new THREE.BoxGeometry(CARD_W, CARD_T, CARD_H),
-          [edgeMat, edgeMat, faceMat, backMat, edgeMat, edgeMat],
-        );
-        mesh.position.copy(shoeOrigin);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        this.cardsGroup.add(mesh);
-        entry = {
-          mesh,
-          faceMat,
-          wasHidden: hidden,
-          targetPos: pos.clone(),
-          targetRotY: rotY,
-          targetRotZ: hidden ? Math.PI : 0,
-        };
-        this.cardEntries.set(key, entry);
-      } else {
-        if (entry.wasHidden && !hidden && cardData?.rank) {
-          entry.faceMat.map = getCardFaceTexture(cardData);
-          entry.faceMat.needsUpdate = true;
-          entry.wasHidden = false;
-          entry.flipElapsed = 0;
+    _animateScene(time, dt) {
+      // Smooth camera preset glide
+      if (this._camGliding && this.camera && this.controls) {
+        const ck = 1 - Math.exp(-8.5 * dt);
+        this.camera.position.lerp(this._camTargetPos, ck);
+        this.controls.target.lerp(this._camTargetLook, ck);
+        if (
+          this.camera.position.distanceToSquared(this._camTargetPos) < 0.0005 &&
+          this.controls.target.distanceToSquared(this._camTargetLook) < 0.0005
+        ) {
+          this.camera.position.copy(this._camTargetPos);
+          this.controls.target.copy(this._camTargetLook);
+          this._camGliding = false;
         }
-        entry.targetPos.copy(pos);
-        entry.targetRotY = rotY;
-        entry.targetRotZ = hidden ? Math.PI : 0;
       }
-      entry.mesh.renderOrder = orderIndex;
-    };
 
-    // Dealer cards
-    const dCards = table.dealer?.cards || [];
-    const dCount = dCards.length;
-    dCards.forEach((c, idx) => {
-      const key = `d-${table.round}-${idx}`;
-      const xOff = (idx - (dCount - 1) / 2) * (CARD_W + 0.022);
-      placeCard(
-        key,
-        c,
-        new THREE.Vector3(xOff, TABLE_Y + 0.008 + idx * 0.001, ARC_CENTER_Z + 0.24),
-        0,
-        !!c.hidden,
-        idx,
-      );
-    });
+      // Card flight & crisp elevated flip reveal interpolation
+      for (const entry of this.cardEntries.values()) {
+        const k = 1 - Math.exp(-11 * dt);
+        entry.mesh.position.lerp(entry.targetPos, k);
+        const dy = entry.targetPos.distanceTo(entry.mesh.position);
+        let flipLift = 0;
+        if (entry.flipElapsed !== undefined && entry.flipElapsed < 0.36) {
+          entry.flipElapsed = Math.min(0.36, entry.flipElapsed + dt);
+          flipLift = Math.sin((entry.flipElapsed / 0.36) * Math.PI) * 0.24;
+        }
+        entry.mesh.position.y = entry.targetPos.y + Math.min(0.18, dy * 0.32) + flipLift;
+        entry.mesh.rotation.y += (entry.targetRotY - entry.mesh.rotation.y) * k;
+        entry.mesh.rotation.z += (entry.targetRotZ - entry.mesh.rotation.z) * k;
+      }
 
-    // Player hands around semicircular felt
-    for (let s = 0; s < SEAT_COUNT; s++) {
-      const seat = table.seats[s];
-      if (!seat || !seat.activeInRound) continue;
-      const angle = SEAT_ANGLES[s];
-      const rightVec = new THREE.Vector3(Math.cos(angle), 0, -Math.sin(angle));
-      const basePos = seatWorldPoint(s, 0.98);
-      const handsCount = seat.hands.length;
+      // Flying bet chips tossed into betting circle
+      if (this._chipAnims?.length) {
+        const keep = [];
+        for (const c of this._chipAnims) {
+          c.elapsed = Math.min(c.dur, c.elapsed + dt);
+          const u = c.elapsed / c.dur;
+          const ease = 1 - Math.pow(1 - u, 3);
+          c.mesh.position.lerpVectors(c.startPos, c.endPos, ease);
+          c.mesh.position.y += Math.sin(u * Math.PI) * 0.16;
+          if (u < 1) keep.push(c);
+          else c.mesh.position.copy(c.endPos);
+        }
+        this._chipAnims = keep;
+      }
 
-      seat.hands.forEach((hand, hIdx) => {
-        const splitShift = handsCount > 1 ? (hIdx - 0.5) * 0.24 : 0;
-        const hCenter = basePos.clone().addScaledVector(rightVec, splitShift);
-        const cards = hand.cards || [];
-        cards.forEach((card, cIdx) => {
-          const offset = (cIdx - (cards.length - 1) / 2) * 0.044;
-          const cardPos = hCenter
-            .clone()
-            .addScaledVector(rightVec, offset)
-            .add(new THREE.Vector3(0, 0.008 + cIdx * 0.002, -cIdx * 0.012));
-          placeCard(
-            `p-${table.round}-${s}-${hIdx}-${cIdx}-${card.id || cIdx}`,
-            card,
-            cardPos,
-            angle,
-            false,
-            cIdx + 2,
+      // Pulse active turn betting circle & celebrate winning hands on settle
+      const activeIdx =
+        this.table?.status === "playing" && this.table?.turn
+          ? this.table.turn.seatIndex
+          : -1;
+      this.seatRingMeshes.forEach((ring, i) => {
+          const seat = this.table?.seats[i];
+          const occupied = !!seat;
+          const wonHand =
+            this.table?.status === "settled" &&
+            seat?.activeInRound &&
+            seat.hands?.some((h) => h.outcome === "win" || h.outcome === "blackjack");
+          if (wonHand) {
+            ring.material.color.setHex(0xffe066);
+            ring.material.opacity = 0.65 + Math.sin(time * 8) * 0.3;
+          } else if (i === activeIdx) {
+            ring.material.color.setHex(0xc5f273);
+            ring.material.opacity = 0.55 + Math.sin(time * 5.5) * 0.28;
+          } else if (occupied) {
+            ring.material.color.setHex(0xe8c670);
+            ring.material.opacity = 0.22;
+          } else {
+            ring.material.opacity = 0;
+          }
+        });
+
+      // Live croupier bone animation (breathing, seat tracking, dealing reach)
+      if (this.dealerRig) {
+        const { poseRig } = this.dealerRig;
+        let desiredYaw = Math.sin(time * 0.45) * 0.14;
+        if (activeIdx >= 0 && activeIdx < SEAT_COUNT) {
+          desiredYaw = SEAT_ANGLES[activeIdx] * 0.36;
+        } else if (this.table?.status === "dealerTurn") {
+          desiredYaw = 0;
+        }
+        this.dealerRig.lookYaw += (desiredYaw - this.dealerRig.lookYaw) * Math.min(1, dt * 4);
+
+        const dealActive = performance.now() < this.dealPulseUntil ? 1 : 0;
+        this.dealerRig.dealMix += (dealActive - this.dealerRig.dealMix) * Math.min(1, dt * 8);
+        const reach = this.dealerRig.dealMix;
+
+        if (poseRig.Spine1?.base) {
+          const q = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(Math.sin(time * 1.55) * 0.018 + reach * 0.04, 0, 0),
           );
-        });
-      });
-    }
-
-    for (const [key, entry] of this.cardEntries.entries()) {
-      if (!activeIds.has(key)) {
-        this.cardsGroup.remove(entry.mesh);
-        entry.mesh.geometry.dispose();
-        this.cardEntries.delete(key);
+          poseRig.Spine1.bone.quaternion.copy(poseRig.Spine1.base).multiply(q);
+        }
+        if (poseRig.Neck?.base) {
+          const q = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(0.05 + Math.sin(time * 1.55) * 0.012, this.dealerRig.lookYaw * 0.45, 0),
+          );
+          poseRig.Neck.bone.quaternion.copy(poseRig.Neck.base).multiply(q);
+        }
+        if (poseRig.Head?.base) {
+          const q = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(0.06, this.dealerRig.lookYaw * 0.55, 0),
+          );
+          poseRig.Head.bone.quaternion.copy(poseRig.Head.base).multiply(q);
+        }
+        if (poseRig.RightArm?.base) {
+          const q = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(-reach * 0.34, reach * 0.18 + Math.sin(time * 1.4) * 0.02, 0),
+          );
+          poseRig.RightArm.bone.quaternion.copy(poseRig.RightArm.base).multiply(q);
+        }
+        if (poseRig.LeftArm?.base) {
+          const q = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(Math.sin(time * 1.3 + 1) * 0.02, 0, 0),
+          );
+          poseRig.LeftArm.bone.quaternion.copy(poseRig.LeftArm.base).multiply(q);
+        }
       }
     }
 
-    // Rebuild lightweight chip stacks on betting circles
-    while (this.chipsGroup.children.length) {
-      const child = this.chipsGroup.children[0];
-      this.chipsGroup.remove(child);
+    _projectOverlays() {
+      if (this.webglFailed || !this.table || !this.camera) return;
+      const { stage, overlays } = this.hudNodes;
+      const w = stage.clientWidth;
+      const h = stage.clientHeight;
+      if (!w || !h) return;
+
+      const project = (worldVec) => {
+        const v = worldVec.clone().project(this.camera);
+        const x = ((v.x + 1) / 2) * w;
+        const y = ((-v.y + 1) / 2) * h;
+        return {
+          x: Math.max(46, Math.min(w - 46, x)),
+          y: Math.max(48, Math.min(h - 24, y)),
+          visible: v.z < 1,
+        };
+      };
+
+      const dealerBadge = overlays.querySelector(".bj-dealer-pill");
+      if (dealerBadge) {
+        const p = project(new THREE.Vector3(0, TABLE_Y + 0.15, ARC_CENTER_Z + 0.18));
+        dealerBadge.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50%, -100%)`;
+        dealerBadge.style.opacity = p.visible ? "1" : "0";
+      }
+
+      for (let i = 0; i < SEAT_COUNT; i++) {
+        const pill = overlays.querySelector(`[data-seat="${i}"]`);
+        if (!pill) continue;
+        const p = project(this.seatAnchors[i]);
+        pill.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50%, -50%)`;
+        pill.style.opacity = p.visible ? "1" : "0";
+      }
     }
-    const chipGeo =
-      this._chipGeo ||
-      (this._chipGeo = new THREE.CylinderGeometry(0.032, 0.032, 0.008, 20));
-    if (!this._chipMats) {
-      this._chipMats = new Map();
-      for (const d of CHIP_DENOMS) {
-        this._chipMats.set(
-          d.val,
-          new THREE.MeshStandardMaterial({
-            color: d.color,
-            roughness: 0.32,
-            metalness: 0.28,
-          }),
+
+    update(table, mySocketId) {
+      this.table = table;
+      this.mySocketId = mySocketId;
+      if (!table) return;
+
+      const {
+        nameEl,
+        roundBadge,
+        seatBadge,
+        shoeBadge,
+        balanceEl,
+      } = this.hudNodes;
+
+      nameEl.textContent = table.name;
+      roundBadge.textContent = table.round > 0 ? `${table.round}. EL` : "HAZIRLIK";
+      seatBadge.textContent = `${table.seatedCount}/${table.maxSeats} Koltuk`;
+      shoeBadge.textContent = `Deste: ${table.shoeCount}/${table.shoeTotal}`;
+
+      const mySeat = this._mySeat();
+      balanceEl.replaceChildren();
+      if (mySeat) {
+        const chipIcon = document.createElement("span");
+        chipIcon.className = "bj-chip-dot";
+        chipIcon.textContent = "◉";
+        const val = document.createElement("strong");
+        val.textContent = `${mySeat.chips.toLocaleString("tr-TR")} fiş`;
+        const betText = document.createElement("small");
+        betText.textContent = `Bahis: ${mySeat.bet}`;
+        balanceEl.append(chipIcon, val, betText);
+      } else {
+        balanceEl.textContent = "İzleyici · Boş bir koltuğa tıkla";
+      }
+
+      this._handleSounds(table, mySeat);
+      if (!this.webglFailed) {
+        this._syncCardsAndChips(table);
+        this._syncOverlays(table);
+      } else {
+        this._renderFallback2D();
+      }
+      this._renderDock(table, mySeat);
+      this._refreshCountdowns();
+    }
+
+    _handleSounds(table, mySeat) {
+      const cardTotal =
+        table.dealer.cards.length +
+        table.seats.reduce(
+          (sum, s) =>
+            sum + (s ? s.hands.reduce((hs, h) => hs + h.cards.length, 0) : 0),
+          0,
         );
+      const dealSig = `${table.round}:${cardTotal}:${table.dealer.hiddenHole}`;
+      if (this.lastDealSignature && dealSig !== this.lastDealSignature && cardTotal > 0) {
+        playCard();
+        this.dealPulseUntil = performance.now() + 650;
       }
+      this.lastDealSignature = dealSig;
+
+      const resultKey = `${table.round}:${table.status}`;
+      if (resultKey !== this.lastResultKey && table.status === "settled" && mySeat?.activeInRound) {
+        const hasBJ = mySeat.hands.some((h) => h.outcome === "blackjack");
+        const hasWin = mySeat.hands.some((h) => h.outcome === "win");
+        const hasPush = mySeat.hands.some((h) => h.outcome === "push");
+        if (hasBJ) playBlackjack();
+        else if (hasWin) playWin();
+        else if (hasPush) playDraw();
+      }
+      this.lastResultKey = resultKey;
     }
-    this._chipAnims = [];
-    this._prevSeatBets ||= new Array(SEAT_COUNT).fill(0);
-    for (let s = 0; s < SEAT_COUNT; s++) {
-      const seat = table.seats[s];
-      if (!seat) {
-        this._prevSeatBets[s] = 0;
-        continue;
-      }
-      const shownBet = seat.activeInRound
-        ? seat.hands.reduce((a, h) => a + h.bet, 0)
-        : seat.bet;
-      const betIncreased = shownBet > (this._prevSeatBets[s] || 0);
-      this._prevSeatBets[s] = shownBet;
-      const tokens = chipBreakdown(shownBet);
-      const cPos = seatWorldPoint(s, 1.32);
-      const railPos = seatWorldPoint(s, 1.62);
-      tokens.forEach((t, idx) => {
-        const chip = new THREE.Mesh(chipGeo, this._chipMats.get(t.val));
-        const endPos = new THREE.Vector3(cPos.x, TABLE_Y + 0.005 + idx * 0.0085, cPos.z);
-        if (betIncreased) {
-          const startPos = new THREE.Vector3(railPos.x, TABLE_Y + 0.04, railPos.z);
-          chip.position.copy(startPos);
-          this._chipAnims.push({
-            mesh: chip,
-            startPos,
-            endPos,
-            elapsed: 0,
-            dur: 0.24 + idx * 0.025,
+
+    _syncCardsAndChips(table) {
+      if (!this.scene) return;
+      const activeIds = new Set();
+      const shoeOrigin = new THREE.Vector3(0.86, TABLE_Y + 0.12, ARC_CENTER_Z + 0.12);
+
+      const placeCard = (key, cardData, pos, rotY, hidden, orderIndex) => {
+        activeIds.add(key);
+        let entry = this.cardEntries.get(key);
+        if (!entry) {
+          const edgeMat = new THREE.MeshStandardMaterial({ color: 0xebe3cf, roughness: 0.45 });
+          const backMat = new THREE.MeshStandardMaterial({
+            map: createCardBackTexture(),
+            roughness: 0.35,
+            metalness: 0.06,
           });
+          const faceMat = new THREE.MeshStandardMaterial({
+            map: hidden ? createCardBackTexture() : getCardFaceTexture(cardData),
+            roughness: 0.35,
+            metalness: 0.04,
+          });
+          const mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(CARD_W, CARD_T, CARD_H),
+            [edgeMat, edgeMat, faceMat, backMat, edgeMat, edgeMat],
+          );
+          mesh.position.copy(shoeOrigin);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          this.cardsGroup.add(mesh);
+          entry = {
+            mesh,
+            faceMat,
+            wasHidden: hidden,
+            targetPos: pos.clone(),
+            targetRotY: rotY,
+            targetRotZ: hidden ? Math.PI : 0,
+          };
+          this.cardEntries.set(key, entry);
         } else {
-          chip.position.copy(endPos);
+          if (entry.wasHidden && !hidden && cardData?.rank) {
+            entry.faceMat.map = getCardFaceTexture(cardData);
+            entry.faceMat.needsUpdate = true;
+            entry.wasHidden = false;
+            entry.flipElapsed = 0;
+          }
+          entry.targetPos.copy(pos);
+          entry.targetRotY = rotY;
+          entry.targetRotZ = hidden ? Math.PI : 0;
         }
-        chip.castShadow = true;
-        this.chipsGroup.add(chip);
+        entry.mesh.renderOrder = orderIndex;
+      };
+
+      // Dealer cards
+      const dCards = table.dealer?.cards || [];
+      const dCount = dCards.length;
+      dCards.forEach((c, idx) => {
+        const key = `d-${table.round}-${idx}`;
+        const xOff = (idx - (dCount - 1) / 2) * (CARD_W + 0.022);
+        placeCard(
+          key,
+          c,
+          new THREE.Vector3(xOff, TABLE_Y + 0.008 + idx * 0.001, ARC_CENTER_Z + 0.24),
+          0,
+          !!c.hidden,
+          idx,
+        );
       });
+
+      // Player hands around semicircular felt
+      for (let s = 0; s < SEAT_COUNT; s++) {
+        const seat = table.seats[s];
+        if (!seat || !seat.activeInRound) continue;
+        const angle = SEAT_ANGLES[s];
+        const rightVec = new THREE.Vector3(Math.cos(angle), 0, -Math.sin(angle));
+        const basePos = seatWorldPoint(s, 0.98);
+        const handsCount = seat.hands.length;
+
+        seat.hands.forEach((hand, hIdx) => {
+          const splitShift = handsCount > 1 ? (hIdx - 0.5) * 0.24 : 0;
+          const hCenter = basePos.clone().addScaledVector(rightVec, splitShift);
+          const cards = hand.cards || [];
+          cards.forEach((card, cIdx) => {
+            const offset = (cIdx - (cards.length - 1) / 2) * 0.044;
+            const cardPos = hCenter
+              .clone()
+              .addScaledVector(rightVec, offset)
+              .add(new THREE.Vector3(0, 0.008 + cIdx * 0.002, -cIdx * 0.012));
+            placeCard(
+              `p-${table.round}-${s}-${hIdx}-${cIdx}-${card.id || cIdx}`,
+              card,
+              cardPos,
+              angle,
+              false,
+              cIdx + 2,
+            );
+          });
+        });
+      }
+
+      for (const [key, entry] of this.cardEntries.entries()) {
+        if (!activeIds.has(key)) {
+          this.cardsGroup.remove(entry.mesh);
+          entry.mesh.geometry.dispose();
+          this.cardEntries.delete(key);
+        }
+      }
+
+      // Rebuild lightweight chip stacks on betting circles
+      while (this.chipsGroup.children.length) {
+        const child = this.chipsGroup.children[0];
+        this.chipsGroup.remove(child);
+      }
+      const chipGeo =
+        this._chipGeo ||
+        (this._chipGeo = new THREE.CylinderGeometry(0.032, 0.032, 0.008, 20));
+      if (!this._chipMats) {
+        this._chipMats = new Map();
+        for (const d of CHIP_DENOMS) {
+          this._chipMats.set(
+            d.val,
+            new THREE.MeshStandardMaterial({
+              color: d.color,
+              roughness: 0.32,
+              metalness: 0.28,
+            }),
+          );
+        }
+      }
+      this._chipAnims = [];
+      this._prevSeatBets ||= new Array(SEAT_COUNT).fill(0);
+      for (let s = 0; s < SEAT_COUNT; s++) {
+        const seat = table.seats[s];
+        if (!seat) {
+          this._prevSeatBets[s] = 0;
+          continue;
+        }
+        const shownBet = seat.activeInRound
+          ? seat.hands.reduce((a, h) => a + h.bet, 0)
+          : seat.bet;
+        const betIncreased = shownBet > (this._prevSeatBets[s] || 0);
+        this._prevSeatBets[s] = shownBet;
+        const tokens = chipBreakdown(shownBet);
+        const cPos = seatWorldPoint(s, 1.32);
+        const railPos = seatWorldPoint(s, 1.62);
+        tokens.forEach((t, idx) => {
+          const chip = new THREE.Mesh(chipGeo, this._chipMats.get(t.val));
+          const endPos = new THREE.Vector3(cPos.x, TABLE_Y + 0.005 + idx * 0.0085, cPos.z);
+          if (betIncreased) {
+            const startPos = new THREE.Vector3(railPos.x, TABLE_Y + 0.04, railPos.z);
+            chip.position.copy(startPos);
+            this._chipAnims.push({
+              mesh: chip,
+              startPos,
+              endPos,
+              elapsed: 0,
+              dur: 0.24 + idx * 0.025,
+            });
+          } else {
+            chip.position.copy(endPos);
+          }
+          chip.castShadow = true;
+          this.chipsGroup.add(chip);
+        });
+      }
     }
-  }
 
-  _syncOverlays(table) {
-    const { overlays } = this.hudNodes;
-    overlays.replaceChildren();
+    _syncOverlays(table) {
+      const { overlays } = this.hudNodes;
+      overlays.replaceChildren();
 
-    // Dealer score floating pill
-    const dealerPill = document.createElement("div");
-    dealerPill.className = "bj-dealer-pill";
-    const dEval = table.dealer.evaluation || { total: 0 };
-    if (table.dealer.cards?.length) {
-      dealerPill.textContent = table.dealer.hiddenHole
-        ? `Kasa: ${dEval.total} + ?`
-        : dEval.isBust
-          ? `Kasa: ${dEval.total} (Patladı)`
-          : dEval.isBlackjack
-            ? "Kasa: BLACKJACK!"
-            : `Kasa: ${dEval.total}`;
-    } else {
-      dealerPill.textContent = "Kurpiyer";
-    }
-    overlays.append(dealerPill);
-
-    // 6 projected seat badges
-    for (let i = 0; i < SEAT_COUNT; i++) {
-      const seat = table.seats[i];
-      const isTurn =
-        table.status === "playing" && table.turn?.seatIndex === i;
-      const isMe = seat && seat.userId === this.mySocketId;
-      const pill = document.createElement("button");
-      pill.type = "button";
-      pill.dataset.seat = String(i);
-      pill.className =
-        "bj-seat-pill" +
-        (seat ? " occupied" : " empty") +
-        (isMe ? " is-me" : "") +
-        (isTurn ? " is-turn" : "");
-
-      if (!seat) {
-        pill.textContent = `+ Koltuk ${i + 1}`;
-        pill.addEventListener("click", () => this.cb.onSwitchSeat(i));
+      // Dealer score floating pill
+      const dealerPill = document.createElement("div");
+      dealerPill.className = "bj-dealer-pill";
+      const dEval = table.dealer.evaluation || { total: 0 };
+      if (table.dealer.cards?.length) {
+        dealerPill.textContent = table.dealer.hiddenHole
+          ? `Kasa: ${dEval.total} + ?`
+          : dEval.isBust
+            ? `Kasa: ${dEval.total} (Patladı)`
+            : dEval.isBlackjack
+              ? "Kasa: BLACKJACK!"
+              : `Kasa: ${dEval.total}`;
       } else {
-        const top = document.createElement("div");
-        top.className = "bj-seat-name";
-        top.textContent = seat.name + (isMe ? " ★" : "");
-        const sub = document.createElement("div");
-        sub.className = "bj-seat-score";
-        if (seat.activeInRound && seat.hands.length) {
-          sub.textContent = seat.hands
-            .map((h) => {
-              const tag = h.outcome
-                ? OUTCOME_LABELS[h.outcome] || ""
-                : h.busted
-                  ? "Patladı"
-                  : h.blackjack
-                    ? "BJ!"
-                    : `${h.evaluation?.total || 0}`;
-              return `${tag}`;
-            })
-            .join(" / ");
+        dealerPill.textContent = "Kurpiyer";
+      }
+      overlays.append(dealerPill);
+
+      // 6 projected seat badges
+      for (let i = 0; i < SEAT_COUNT; i++) {
+        const seat = table.seats[i];
+        const isTurn =
+          table.status === "playing" && table.turn?.seatIndex === i;
+        const isMe = seat && seat.userId === this.mySocketId;
+        const pill = document.createElement("button");
+        pill.type = "button";
+        pill.dataset.seat = String(i);
+        pill.className =
+          "bj-seat-pill" +
+          (seat ? " occupied" : " empty") +
+          (isMe ? " is-me" : "") +
+          (isTurn ? " is-turn" : "");
+
+        if (!seat) {
+          pill.textContent = `+ Koltuk ${i + 1}`;
+          pill.addEventListener("click", () => this.cb.onSwitchSeat(i));
         } else {
-          sub.textContent = `Bahis ${seat.bet}`;
+          const top = document.createElement("div");
+          top.className = "bj-seat-name";
+          top.textContent = seat.name + (isMe ? " ★" : "");
+          const sub = document.createElement("div");
+          sub.className = "bj-seat-score";
+          if (seat.activeInRound && seat.hands.length) {
+            sub.textContent = seat.hands
+              .map((h) => {
+                const tag = h.outcome
+                  ? OUTCOME_LABELS[h.outcome] || ""
+                  : h.busted
+                    ? "Patladı"
+                    : h.blackjack
+                      ? "BJ!"
+                      : `${h.evaluation?.total || 0}`;
+                return `${tag}`;
+              })
+              .join(" / ");
+          } else {
+            sub.textContent = `Bahis ${seat.bet}`;
+          }
+          pill.append(top, sub);
+          if (seat.reaction?.emoji) {
+            const rx = document.createElement("span");
+            rx.className = "bj-seat-reaction";
+            rx.textContent = seat.reaction.emoji;
+            pill.append(rx);
+          }
+          if (isMe) pill.disabled = true;
+          else pill.disabled = true;
         }
-        pill.append(top, sub);
-        if (seat.reaction?.emoji) {
-          const rx = document.createElement("span");
-          rx.className = "bj-seat-reaction";
-          rx.textContent = seat.reaction.emoji;
-          pill.append(rx);
-        }
-        if (isMe) pill.disabled = true;
-        else pill.disabled = true;
+        overlays.append(pill);
       }
-      overlays.append(pill);
+      this._projectOverlays();
     }
-    this._projectOverlays();
-  }
 
-  _renderFallback2D() {
-    const table = this.table;
-    const box = this.hudNodes.fallback2d;
-    box.replaceChildren();
+    _renderFallback2D() {
+      const table = this.table;
+      const box = this.hudNodes.fallback2d;
+      box.replaceChildren();
 
-    const dealerZone = document.createElement("div");
-    dealerZone.className = "bj2d-dealer";
-    const dEval = table.dealer.evaluation || { total: 0 };
-    const dLabel = document.createElement("div");
-    dLabel.className = "bj2d-label";
-    dLabel.textContent = table.dealer.cards?.length
-      ? `Kasa: ${table.dealer.hiddenHole ? dEval.total + " + ?" : dEval.total}`
-      : "Kurpiyer masada bekliyor";
-    const dCards = document.createElement("div");
-    dCards.className = "bj2d-cards";
-    for (const c of table.dealer.cards || []) {
-      const chip = document.createElement("span");
-      chip.className =
-        "bj2d-card" +
-        (c.hidden ? " back" : c.suit === "H" || c.suit === "D" ? " red" : "");
-      chip.textContent = c.hidden ? "HK" : `${c.rank}${SUIT_SYMBOLS[c.suit]}`;
-      dCards.append(chip);
-    }
-    dealerZone.append(dLabel, dCards);
-
-    const seatsGrid = document.createElement("div");
-    seatsGrid.className = "bj2d-seats";
-    for (let i = 0; i < SEAT_COUNT; i++) {
-      const seat = table.seats[i];
-      const el = document.createElement("div");
-      const isTurn = table.status === "playing" && table.turn?.seatIndex === i;
-      const isMe = seat && seat.userId === this.mySocketId;
-      el.className =
-        "bj2d-seat" +
-        (seat ? " occupied" : " empty") +
-        (isMe ? " is-me" : "") +
-        (isTurn ? " is-turn" : "");
-
-      if (!seat) {
-        const sitBtn = document.createElement("button");
-        sitBtn.type = "button";
-        sitBtn.className = "bj2d-sit-btn";
-        sitBtn.textContent = `+ Koltuk ${i + 1}`;
-        sitBtn.addEventListener("click", () => this.cb.onSwitchSeat(i));
-        el.append(sitBtn);
-      } else {
-        const title = document.createElement("strong");
-        title.textContent = `${seat.name}${isMe ? " ★" : ""}`;
-        const bet = document.createElement("small");
-        bet.textContent = `Bahis ${seat.bet} · Fiş ${seat.chips}`;
-        el.append(title, bet);
-        for (const h of seat.hands || []) {
-          const hRow = document.createElement("div");
-          hRow.className = "bj2d-hand";
-          const txt = h.cards.map((c) => `${c.rank}${SUIT_SYMBOLS[c.suit]}`).join(" ");
-          hRow.textContent = `${txt} (${h.evaluation?.total || 0})${
-            h.outcome ? " · " + OUTCOME_LABELS[h.outcome] : ""
-          }`;
-          el.append(hRow);
-        }
+      const dealerZone = document.createElement("div");
+      dealerZone.className = "bj2d-dealer";
+      const dEval = table.dealer.evaluation || { total: 0 };
+      const dLabel = document.createElement("div");
+      dLabel.className = "bj2d-label";
+      dLabel.textContent = table.dealer.cards?.length
+        ? `Kasa: ${table.dealer.hiddenHole ? dEval.total + " + ?" : dEval.total}`
+        : "Kurpiyer masada bekliyor";
+      const dCards = document.createElement("div");
+      dCards.className = "bj2d-cards";
+      for (const c of table.dealer.cards || []) {
+        const chip = document.createElement("span");
+        chip.className =
+          "bj2d-card" +
+          (c.hidden ? " back" : c.suit === "H" || c.suit === "D" ? " red" : "");
+        chip.textContent = c.hidden ? "HK" : `${c.rank}${SUIT_SYMBOLS[c.suit]}`;
+        dCards.append(chip);
       }
-      seatsGrid.append(el);
+      dealerZone.append(dLabel, dCards);
+
+      const seatsGrid = document.createElement("div");
+      seatsGrid.className = "bj2d-seats";
+      for (let i = 0; i < SEAT_COUNT; i++) {
+        const seat = table.seats[i];
+        const el = document.createElement("div");
+        const isTurn = table.status === "playing" && table.turn?.seatIndex === i;
+        const isMe = seat && seat.userId === this.mySocketId;
+        el.className =
+          "bj2d-seat" +
+          (seat ? " occupied" : " empty") +
+          (isMe ? " is-me" : "") +
+          (isTurn ? " is-turn" : "");
+
+        if (!seat) {
+          const sitBtn = document.createElement("button");
+          sitBtn.type = "button";
+          sitBtn.className = "bj2d-sit-btn";
+          sitBtn.textContent = `+ Koltuk ${i + 1}`;
+          sitBtn.addEventListener("click", () => this.cb.onSwitchSeat(i));
+          el.append(sitBtn);
+        } else {
+          const title = document.createElement("strong");
+          title.textContent = `${seat.name}${isMe ? " ★" : ""}`;
+          const bet = document.createElement("small");
+          bet.textContent = `Bahis ${seat.bet} · Fiş ${seat.chips}`;
+          el.append(title, bet);
+          for (const h of seat.hands || []) {
+            const hRow = document.createElement("div");
+            hRow.className = "bj2d-hand";
+            const txt = h.cards.map((c) => `${c.rank}${SUIT_SYMBOLS[c.suit]}`).join(" ");
+            hRow.textContent = `${txt} (${h.evaluation?.total || 0})${h.outcome ? " · " + OUTCOME_LABELS[h.outcome] : ""
+              }`;
+            el.append(hRow);
+          }
+        }
+        seatsGrid.append(el);
+      }
+
+      box.append(dealerZone, seatsGrid);
     }
 
-    box.append(dealerZone, seatsGrid);
-  }
+    _renderDock(table, mySeat) {
+      const dock = this.hudNodes.dockControls;
+      dock.replaceChildren();
+      if (!mySeat) return;
 
-  _renderDock(table, mySeat) {
-    const dock = this.hudNodes.dockControls;
-    dock.replaceChildren();
-    if (!mySeat) return;
+      if (["waiting", "countdown"].includes(table.status)) {
+        if (mySeat.chips < 10) {
+          const rebuyBtn = document.createElement("button");
+          rebuyBtn.type = "button";
+          rebuyBtn.className = "button primary bj-action-main";
+          rebuyBtn.textContent = "Bakiyen bitti · +500 Fiş Yenile ↻";
+          rebuyBtn.addEventListener("click", () => {
+            playChip();
+            this.cb.onRebuy();
+          });
+          dock.append(rebuyBtn);
+        } else {
+          const chipsBar = document.createElement("div");
+          chipsBar.className = "bj-chip-bar";
+          for (const amt of CHIP_PRESETS) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className =
+              "bj-chip-btn" + (mySeat.bet === amt ? " active" : "");
+            btn.textContent = String(amt);
+            btn.disabled = mySeat.chips < amt;
+            btn.addEventListener("click", () => {
+              playChip();
+              this.cb.onBet(amt);
+            });
+            chipsBar.append(btn);
+          }
 
-    if (["waiting", "countdown"].includes(table.status)) {
-      if (mySeat.chips < 10) {
+          const startBtn = document.createElement("button");
+          startBtn.type = "button";
+          startBtn.id = "bj-start-btn";
+          startBtn.className = "button primary bj-start-btn";
+          startBtn.disabled = table.status === "countdown";
+          startBtn.textContent =
+            table.status === "countdown"
+              ? `Başlıyor (${formatSecLeft(table.countdownEndsAt)}s)…`
+              : "Başlat (10 sn) ▶";
+          startBtn.addEventListener("click", () => {
+            playTick();
+            this.cb.onStart();
+          });
+          dock.append(chipsBar, startBtn);
+        }
+        return;
+      }
+
+      if (table.status === "playing") {
+        const myTurn =
+          table.turn && table.turn.seatIndex === mySeat.seatIndex;
+        const activeHand = mySeat.hands?.[table.turn?.handIndex || 0];
+
+        const actionBar = document.createElement("div");
+        actionBar.className = "bj-play-bar";
+
+        const hitBtn = document.createElement("button");
+        hitBtn.type = "button";
+        hitBtn.className = "button primary";
+        hitBtn.textContent = "Kart Çek";
+        hitBtn.disabled = !myTurn;
+        hitBtn.addEventListener("click", () => this.cb.onAction("hit"));
+
+        const standBtn = document.createElement("button");
+        standBtn.type = "button";
+        standBtn.className = "button secondary";
+        standBtn.textContent = "Dur";
+        standBtn.disabled = !myTurn;
+        standBtn.addEventListener("click", () => this.cb.onAction("stand"));
+
+        const doubleBtn = document.createElement("button");
+        doubleBtn.type = "button";
+        doubleBtn.className = "button secondary";
+        doubleBtn.textContent = "2× Katla";
+        doubleBtn.disabled =
+          !myTurn ||
+          !activeHand ||
+          activeHand.cards.length !== 2 ||
+          mySeat.chips < activeHand.bet;
+        doubleBtn.addEventListener("click", () => this.cb.onAction("double"));
+
+        const splitBtn = document.createElement("button");
+        splitBtn.type = "button";
+        splitBtn.className = "button secondary";
+        splitBtn.textContent = "Böl";
+        splitBtn.disabled =
+          !myTurn ||
+          !activeHand ||
+          !activeHand.evaluation?.canSplit ||
+          mySeat.hands.length >= 2 ||
+          mySeat.chips < activeHand.bet;
+        splitBtn.addEventListener("click", () => this.cb.onAction("split"));
+
+        actionBar.append(hitBtn, standBtn, doubleBtn, splitBtn);
+        dock.append(actionBar);
+        return;
+      }
+
+      if (table.status === "settled" && mySeat.chips < 10) {
         const rebuyBtn = document.createElement("button");
         rebuyBtn.type = "button";
-        rebuyBtn.className = "button primary bj-action-main";
-        rebuyBtn.textContent = "Bakiyen bitti · +500 Fiş Yenile ↻";
-        rebuyBtn.addEventListener("click", () => {
-          playChip();
-          this.cb.onRebuy();
-        });
+        rebuyBtn.className = "button primary";
+        rebuyBtn.textContent = "+500 Fiş Yenile ↻";
+        rebuyBtn.addEventListener("click", () => this.cb.onRebuy());
         dock.append(rebuyBtn);
       } else {
-        const chipsBar = document.createElement("div");
-        chipsBar.className = "bj-chip-bar";
-        for (const amt of CHIP_PRESETS) {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className =
-            "bj-chip-btn" + (mySeat.bet === amt ? " active" : "");
-          btn.textContent = String(amt);
-          btn.disabled = mySeat.chips < amt;
-          btn.addEventListener("click", () => {
-            playChip();
-            this.cb.onBet(amt);
-          });
-          chipsBar.append(btn);
-        }
-
-        const startBtn = document.createElement("button");
-        startBtn.type = "button";
-        startBtn.id = "bj-start-btn";
-        startBtn.className = "button primary bj-start-btn";
-        startBtn.disabled = table.status === "countdown";
-        startBtn.textContent =
-          table.status === "countdown"
-            ? `Başlıyor (${formatSecLeft(table.countdownEndsAt)}s)…`
-            : "Başlat (10 sn) ▶";
-        startBtn.addEventListener("click", () => {
-          playTick();
-          this.cb.onStart();
-        });
-        dock.append(chipsBar, startBtn);
+        const note = document.createElement("div");
+        note.className = "bj-wait-note";
+        note.textContent =
+          table.status === "dealerTurn"
+            ? "Kurpiyer sırası · Kartlar açılıyor…"
+            : "El sonuçlandı · Bir sonraki el hazırlanıyor…";
+        dock.append(note);
       }
-      return;
     }
 
-    if (table.status === "playing") {
-      const myTurn =
-        table.turn && table.turn.seatIndex === mySeat.seatIndex;
-      const activeHand = mySeat.hands?.[table.turn?.handIndex || 0];
+    _refreshCountdowns() {
+      if (!this.table) return;
+      const t = this.table;
+      const banner = this.hudNodes.statusBanner;
 
-      const actionBar = document.createElement("div");
-      actionBar.className = "bj-play-bar";
-
-      const hitBtn = document.createElement("button");
-      hitBtn.type = "button";
-      hitBtn.className = "button primary";
-      hitBtn.textContent = "Kart Çek";
-      hitBtn.disabled = !myTurn;
-      hitBtn.addEventListener("click", () => this.cb.onAction("hit"));
-
-      const standBtn = document.createElement("button");
-      standBtn.type = "button";
-      standBtn.className = "button secondary";
-      standBtn.textContent = "Dur";
-      standBtn.disabled = !myTurn;
-      standBtn.addEventListener("click", () => this.cb.onAction("stand"));
-
-      const doubleBtn = document.createElement("button");
-      doubleBtn.type = "button";
-      doubleBtn.className = "button secondary";
-      doubleBtn.textContent = "2× Katla";
-      doubleBtn.disabled =
-        !myTurn ||
-        !activeHand ||
-        activeHand.cards.length !== 2 ||
-        mySeat.chips < activeHand.bet;
-      doubleBtn.addEventListener("click", () => this.cb.onAction("double"));
-
-      const splitBtn = document.createElement("button");
-      splitBtn.type = "button";
-      splitBtn.className = "button secondary";
-      splitBtn.textContent = "Böl";
-      splitBtn.disabled =
-        !myTurn ||
-        !activeHand ||
-        !activeHand.evaluation?.canSplit ||
-        mySeat.hands.length >= 2 ||
-        mySeat.chips < activeHand.bet;
-      splitBtn.addEventListener("click", () => this.cb.onAction("split"));
-
-      actionBar.append(hitBtn, standBtn, doubleBtn, splitBtn);
-      dock.append(actionBar);
-      return;
+      if (t.status === "countdown") {
+        const sec = formatSecLeft(t.countdownEndsAt);
+        if (sec !== this.lastTickSec && sec <= 3 && sec > 0) playTick();
+        this.lastTickSec = sec;
+        banner.textContent = `Oyun başlıyor: ${sec} sn · Bahisleri kilitleyin!`;
+        banner.className = "bj-status-banner countdown";
+        const sb = this.hudNodes.dockControls.querySelector("#bj-start-btn");
+        if (sb) sb.textContent = `Başlıyor (${sec}s)…`;
+      } else if (t.status === "playing" && t.turn) {
+        const sec = formatSecLeft(t.turn.expiresAt);
+        const seat = t.seats[t.turn.seatIndex];
+        const mine = seat?.userId === this.mySocketId;
+        banner.textContent = mine
+          ? `Sıra SENDE · ${sec}s`
+          : `Sıra: ${seat?.name || "Oyuncu"} · ${sec}s`;
+        banner.className =
+          "bj-status-banner" + (mine ? " my-turn" : "");
+      } else if (t.status === "dealerTurn") {
+        banner.textContent = t.lastAction?.text || "Kurpiyer oynuyor…";
+        banner.className = "bj-status-banner";
+      } else if (t.status === "settled") {
+        const sec = formatSecLeft(t.nextRoundAt);
+        banner.textContent = `${t.lastAction?.text || "El tamamlandı."} · Yeni el ${sec}s`;
+        banner.className = "bj-status-banner settled";
+      } else {
+        banner.textContent =
+          t.seatedCount >= 6
+            ? "Masa doldu (6/6) · Otomatik başlıyor…"
+            : t.lastAction?.text || "Hazır olduğunda Başlat'a bas (10 sn · 6/6'da oto başlar)";
+        banner.className = "bj-status-banner";
+      }
     }
 
-    if (table.status === "settled" && mySeat.chips < 10) {
-      const rebuyBtn = document.createElement("button");
-      rebuyBtn.type = "button";
-      rebuyBtn.className = "button primary";
-      rebuyBtn.textContent = "+500 Fiş Yenile ↻";
-      rebuyBtn.addEventListener("click", () => this.cb.onRebuy());
-      dock.append(rebuyBtn);
-    } else {
-      const note = document.createElement("div");
-      note.className = "bj-wait-note";
-      note.textContent =
-        table.status === "dealerTurn"
-          ? "Kurpiyer sırası · Kartlar açılıyor…"
-          : "El sonuçlandı · Bir sonraki el hazırlanıyor…";
-      dock.append(note);
+    dispose() {
+      this.disposed = true;
+      if (this.rafId) cancelAnimationFrame(this.rafId);
+      if (this.timerId) clearInterval(this.timerId);
+      if (this.resizeObs) this.resizeObs.disconnect();
+      if (this.controls) this.controls.dispose();
+      if (this.renderer) {
+        this.renderer.dispose();
+        this.renderer.domElement?.remove();
+      }
     }
   }
-
-  _refreshCountdowns() {
-    if (!this.table) return;
-    const t = this.table;
-    const banner = this.hudNodes.statusBanner;
-
-    if (t.status === "countdown") {
-      const sec = formatSecLeft(t.countdownEndsAt);
-      if (sec !== this.lastTickSec && sec <= 3 && sec > 0) playTick();
-      this.lastTickSec = sec;
-      banner.textContent = `Oyun başlıyor: ${sec} sn · Bahisleri kilitleyin!`;
-      banner.className = "bj-status-banner countdown";
-      const sb = this.hudNodes.dockControls.querySelector("#bj-start-btn");
-      if (sb) sb.textContent = `Başlıyor (${sec}s)…`;
-    } else if (t.status === "playing" && t.turn) {
-      const sec = formatSecLeft(t.turn.expiresAt);
-      const seat = t.seats[t.turn.seatIndex];
-      const mine = seat?.userId === this.mySocketId;
-      banner.textContent = mine
-        ? `Sıra SENDE · ${sec}s`
-        : `Sıra: ${seat?.name || "Oyuncu"} · ${sec}s`;
-      banner.className =
-        "bj-status-banner" + (mine ? " my-turn" : "");
-    } else if (t.status === "dealerTurn") {
-      banner.textContent = t.lastAction?.text || "Kurpiyer oynuyor…";
-      banner.className = "bj-status-banner";
-    } else if (t.status === "settled") {
-      const sec = formatSecLeft(t.nextRoundAt);
-      banner.textContent = `${t.lastAction?.text || "El tamamlandı."} · Yeni el ${sec}s`;
-      banner.className = "bj-status-banner settled";
-    } else {
-      banner.textContent =
-        t.seatedCount >= 6
-          ? "Masa doldu (6/6) · Otomatik başlıyor…"
-          : t.lastAction?.text || "Hazır olduğunda Başlat'a bas (10 sn · 6/6'da oto başlar)";
-      banner.className = "bj-status-banner";
-    }
-  }
-
-  dispose() {
-    this.disposed = true;
-    if (this.rafId) cancelAnimationFrame(this.rafId);
-    if (this.timerId) clearInterval(this.timerId);
-    if (this.resizeObs) this.resizeObs.disconnect();
-    if (this.controls) this.controls.dispose();
-    if (this.renderer) {
-      this.renderer.dispose();
-      this.renderer.domElement?.remove();
-    }
-  }
-}

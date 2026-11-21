@@ -1270,675 +1270,675 @@ export class TavlaArena {
     window.addEventListener("keydown", this._onKeyDown);
   }
 
-  pickEndpointAt(clientX, clientY) {
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-    this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-    this.raycaster.setFromCamera(this.pointer, this.camera);
+    pickEndpointAt(clientX, clientY) {
+      const rect = this.renderer.domElement.getBoundingClientRect();
+      this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      this.raycaster.setFromCamera(this.pointer, this.camera);
 
-    const targets = [
-      ...this.highlightGroup.children,
-      ...this.checkerGroup.children,
-      ...this.trayGroup.children,
-      ...this.hitGroup.children,
-    ];
-    const hits = this.raycaster.intersectObjects(targets, false);
-    for (const h of hits) {
-      const ep =
-        h.object.userData.endpoint !== undefined
-          ? h.object.userData.endpoint
-          : h.object.userData.pointIndex;
-      if (ep !== undefined) return ep;
-    }
-    return null;
-  }
-
-  handleCanvasHover(clientX, clientY) {
-    const t = this.table;
-    const myCol = this.myColor();
-    const dom = this.renderer?.domElement;
-    if (!t || !dom || this.spectator || t.status !== "playing" || t.turn !== myCol) {
-      this.hoveredEndpoint = null;
-      if (dom) dom.style.cursor = "";
-      return;
-    }
-    if (t.turnPhase === "roll") {
-      this.hoveredEndpoint = null;
-      dom.style.cursor = "pointer";
-      return;
-    }
-    const ep = this.pickEndpointAt(clientX, clientY);
-    const legalMap = t.legalMoves || {};
-    const isMovable = ep !== null && Boolean(legalMap[String(ep)]?.length);
-    const isDest =
-      this.selectedFrom !== null &&
-      ep !== null &&
-      (legalMap[String(this.selectedFrom)] || []).some((m) => String(m.to) === String(ep));
-    this.hoveredEndpoint = isMovable ? ep : null;
-    dom.style.cursor = isMovable || isDest ? "pointer" : "";
-  }
-
-  handleCanvasTap(clientX, clientY, quickHighest = false) {
-    const t = this.table;
-    const myCol = this.myColor();
-    if (!t || this.spectator || t.status !== "playing" || t.turn !== myCol) {
-      return;
-    }
-    // Clicking directly on the 3D board during roll phase throws the dice naturally!
-    if (t.turnPhase === "roll") {
-      this.cb.onRoll?.();
-      return;
-    }
-    if (t.turnPhase !== "move") return;
-
-    const ep = this.pickEndpointAt(clientX, clientY);
-    if (ep === null) {
-      if (this.selectedFrom !== null) {
-        this.selectedFrom = null;
-        this.rebuildHighlights();
+      const targets = [
+        ...this.highlightGroup.children,
+        ...this.checkerGroup.children,
+        ...this.trayGroup.children,
+        ...this.hitGroup.children,
+      ];
+      const hits = this.raycaster.intersectObjects(targets, false);
+        for (const h of hits) {
+          const ep =
+            h.object.userData.endpoint !== undefined
+              ? h.object.userData.endpoint
+              : h.object.userData.pointIndex;
+          if (ep !== undefined) return ep;
+        }
+        return null;
       }
-      return;
-    }
 
-    if (quickHighest) {
-      const opts = t.legalMoves?.[String(ep)] || [];
-      if (opts.length) {
-        const best = [...opts].sort((a, b) => b.die - a.die)[0];
-        this.selectedFrom = null;
-        this.rebuildHighlights();
-        this.cb.onMove?.({ from: ep === "bar" ? "bar" : Number(ep), to: best.to, die: best.die });
-        return;
-      }
-    }
-    this.handleEndpointClick(ep);
-  }
-
-  handleEndpointClick(endpoint) {
-    const t = this.table;
-    const myCol = this.myColor();
-    if (!t || this.spectator || t.status !== "playing" || t.turn !== myCol || t.turnPhase !== "move") {
-      return;
-    }
-    const legalMap = t.legalMoves || {};
-
-    // Case 1: Destination clicked when source is selected
-    if (this.selectedFrom !== null) {
-      const opts = legalMap[String(this.selectedFrom)] || [];
-      const match = opts.find((o) => String(o.to) === String(endpoint));
-      if (match) {
-        const from = this.selectedFrom;
-        this.selectedFrom = null;
-        this.rebuildHighlights();
-        this.cb.onMove?.({ from, to: match.to, die: match.die });
-        return;
-      }
-      if (String(endpoint) === String(this.selectedFrom)) {
-        // Clicking already-selected checker toggles off OR auto-moves if single legal destination exists
-        if (opts.length === 1) {
-          const from = this.selectedFrom;
-          this.selectedFrom = null;
-          this.rebuildHighlights();
-          this.cb.onMove?.({ from, to: opts[0].to, die: opts[0].die });
+      handleCanvasHover(clientX, clientY) {
+        const t = this.table;
+        const myCol = this.myColor();
+        const dom = this.renderer?.domElement;
+        if (!t || !dom || this.spectator || t.status !== "playing" || t.turn !== myCol) {
+          this.hoveredEndpoint = null;
+          if (dom) dom.style.cursor = "";
           return;
         }
-        this.selectedFrom = null;
-        this.rebuildHighlights();
-        if (this.viewMode === "2d") this.render2DFallback();
-        return;
+        if (t.turnPhase === "roll") {
+          this.hoveredEndpoint = null;
+          dom.style.cursor = "pointer";
+          return;
+        }
+        const ep = this.pickEndpointAt(clientX, clientY);
+        const legalMap = t.legalMoves || {};
+        const isMovable = ep !== null && Boolean(legalMap[String(ep)]?.length);
+        const isDest =
+          this.selectedFrom !== null &&
+          ep !== null &&
+          (legalMap[String(this.selectedFrom)] || []).some((m) => String(m.to) === String(ep));
+        this.hoveredEndpoint = isMovable ? ep : null;
+        dom.style.cursor = isMovable || isDest ? "pointer" : "";
       }
-    }
 
-    // Case 2: Source point or "bar" clicked
-    if (legalMap[String(endpoint)]?.length) {
-      this.selectedFrom = endpoint === "bar" ? "bar" : Number(endpoint);
-      this.rebuildHighlights();
-      if (this.viewMode === "2d") this.render2DFallback();
-      return;
-    }
+      handleCanvasTap(clientX, clientY, quickHighest = false) {
+        const t = this.table;
+        const myCol = this.myColor();
+        if (!t || this.spectator || t.status !== "playing" || t.turn !== myCol) {
+          return;
+        }
+        // Clicking directly on the 3D board during roll phase throws the dice naturally!
+        if (t.turnPhase === "roll") {
+          this.cb.onRoll?.();
+          return;
+        }
+        if (t.turnPhase !== "move") return;
 
-    this.selectedFrom = null;
-    this.rebuildHighlights();
-    if (this.viewMode === "2d") this.render2DFallback();
-  }
-
-  applyCameraFraming(w, h, immediate = false) {
-    if (!this.camera || !this.controls) return;
-    const safeW = Math.max(260, w || this.stageEl?.clientWidth || 680);
-    const safeH = Math.max(180, h || this.stageEl?.clientHeight || 440);
-    const aspect = safeW / safeH;
-    const halfFovRad = (this.camera.fov * Math.PI) / 360;
-    const tanV = Math.tan(halfFovRad);
-    const tanH = tanV * aspect;
-
-    // Fit entire 10.8 x 7.6 walnut box cleanly on Desktop, Mobile Portrait & Mobile Landscape
-    const needW = 6.0 / Math.max(0.24, tanH);
-    const needD = (safeH < 280 ? 6.15 : 4.45) / Math.max(0.24, tanV);
-    const dist = Math.max(12.2, needW, needD);
-
-    if (this.cameraTopView) {
-      this.camTargetPos.set(0, dist * 1.02, 0.45);
-      this.camTargetLook.set(0, 0.16, 0);
-    } else {
-      this.camTargetPos.set(0, dist * 0.89, dist * 0.46);
-      this.camTargetLook.set(0, 0.16, 0.08);
-    }
-    this.camera.aspect = aspect;
-    this.camera.updateProjectionMatrix();
-    if (immediate) {
-      this.camGliding = false;
-      this.camera.position.copy(this.camTargetPos);
-      this.controls.target.copy(this.camTargetLook);
-      this.controls.update();
-    } else {
-      this.camGliding = true;
-    }
-  }
-
-  toggleCameraAngle() {
-    if (!this.camera || !this.controls) return;
-    this.cameraTopView = !this.cameraTopView;
-    this.applyCameraFraming(this.stageEl?.clientWidth, this.stageEl?.clientHeight, false);
-  }
-
-  setupResizeObserver() {
-    const syncSize = () => {
-      if (this.disposed || !this.renderer || !this.camera) return;
-      const w = Math.max(260, this.stageEl.clientWidth);
-      const h = Math.max(180, this.stageEl.clientHeight);
-      this.applyCameraFraming(w, h, true);
-      this.renderer.setSize(w, h);
-    };
-    if (typeof ResizeObserver !== "undefined") {
-      this.ro = new ResizeObserver(syncSize);
-      this.ro.observe(this.stageEl);
-    }
-  }
-
-  startLoop() {
-    let lastTs = performance.now();
-    const tick = (now) => {
-      if (this.disposed) return;
-      const dt = Math.min(0.05, Math.max(0.001, (now - lastTs) / 1000));
-      lastTs = now;
-      const timeSec = now * 0.001;
-
-      // 1) Physical multi-bounce 3D dice simulation
-      this._stepDicePhysics(dt);
-
-      // 2) Smooth checker flight, hit knock-back & bear-off animations
-      if (this.checkerAnims.length) {
-        const keep = [];
-        for (const a of this.checkerAnims) {
-          if (a.delay > 0) {
-            a.delay -= dt;
-            keep.push(a);
-            continue;
+        const ep = this.pickEndpointAt(clientX, clientY);
+        if (ep === null) {
+          if (this.selectedFrom !== null) {
+            this.selectedFrom = null;
+            this.rebuildHighlights();
           }
-          a.elapsed = Math.min(a.dur, a.elapsed + dt);
-          const u = a.elapsed / a.dur;
-          const ease = 1 - Math.pow(1 - u, 3);
-          a.mesh.position.lerpVectors(a.startPos, a.endPos, ease);
-          a.mesh.position.y += Math.sin(u * Math.PI) * a.arcHeight;
-          a.mesh.rotation.x = a.startRotX + (a.endRotX - a.startRotX) * ease + Math.sin(u * Math.PI) * a.spinTilt;
-          a.mesh.scale.lerpVectors(a.startScale, a.endScale, ease);
-          if (u < 1) {
-            keep.push(a);
-          } else {
-            a.mesh.position.copy(a.endPos);
-            a.mesh.rotation.x = a.endRotX;
-            a.mesh.scale.copy(a.endScale);
-            a.onLand?.();
+          return;
+        }
+
+          if (quickHighest) {
+            const opts = t.legalMoves?.[String(ep)] || [];
+            if (opts.length) {
+              const best = [...opts].sort((a, b) => b.die - a.die)[0];
+              this.selectedFrom = null;
+              this.rebuildHighlights();
+              this.cb.onMove?.({ from: ep === "bar" ? "bar" : Number(ep), to: best.to, die: best.die });
+              return;
+            }
           }
+          this.handleEndpointClick(ep);
         }
-        this.checkerAnims = keep;
-      }
 
-      // 3) Expanding ripple rings (dice bounce, hit impact, double roll)
-      if (this.effectRings.length) {
-        const keep = [];
-        for (const r of this.effectRings) {
-          r.elapsed += dt;
-          const u = Math.min(1, r.elapsed / r.dur);
-          const ease = 1 - Math.pow(1 - u, 2);
-          r.mesh.scale.setScalar(1 + ease * r.maxScale);
-          r.mesh.material.opacity = (1 - u) * 0.85;
-          if (u < 1) {
-            keep.push(r);
-          } else {
-            this.effectsGroup.remove(r.mesh);
-            r.mesh.geometry.dispose();
-            r.mesh.material.dispose();
+        handleEndpointClick(endpoint) {
+          const t = this.table;
+          const myCol = this.myColor();
+          if (!t || this.spectator || t.status !== "playing" || t.turn !== myCol || t.turnPhase !== "move") {
+            return;
           }
+          const legalMap = t.legalMoves || {};
+
+          // Case 1: Destination clicked when source is selected
+          if (this.selectedFrom !== null) {
+            const opts = legalMap[String(this.selectedFrom)] || [];
+            const match = opts.find((o) => String(o.to) === String(endpoint));
+            if (match) {
+              const from = this.selectedFrom;
+              this.selectedFrom = null;
+              this.rebuildHighlights();
+              this.cb.onMove?.({ from, to: match.to, die: match.die });
+              return;
+            }
+            if (String(endpoint) === String(this.selectedFrom)) {
+              // Clicking already-selected checker toggles off OR auto-moves if single legal destination exists
+              if (opts.length === 1) {
+                const from = this.selectedFrom;
+                this.selectedFrom = null;
+                this.rebuildHighlights();
+                this.cb.onMove?.({ from, to: opts[0].to, die: opts[0].die });
+                return;
+              }
+              this.selectedFrom = null;
+              this.rebuildHighlights();
+              if (this.viewMode === "2d") this.render2DFallback();
+              return;
+            }
+          }
+
+          // Case 2: Source point or "bar" clicked
+          if (legalMap[String(endpoint)]?.length) {
+            this.selectedFrom = endpoint === "bar" ? "bar" : Number(endpoint);
+            this.rebuildHighlights();
+            if (this.viewMode === "2d") this.render2DFallback();
+            return;
+          }
+
+          this.selectedFrom = null;
+          this.rebuildHighlights();
+          if (this.viewMode === "2d") this.render2DFallback();
         }
-        this.effectRings = keep;
-      }
 
-      // 4) Hover lift & selected checker levitation bob
-      const myCol = this.myColor();
-      const canInteract =
-        this.table &&
-        !this.spectator &&
-        this.table.status === "playing" &&
-        this.table.turn === myCol &&
-        this.table.turnPhase === "move";
-      const liftK = 1 - Math.exp(-15 * dt);
-      for (const [key, mesh] of this.topCheckerMap.entries()) {
-        if (!key.startsWith(`${myCol}:`) || mesh.userData.animating || mesh.userData.endpoint === "off") continue;
-        const ep = mesh.userData.endpoint;
-        const isSelected = canInteract && this.selectedFrom !== null && String(this.selectedFrom) === String(ep);
-        const isHovered = canInteract && this.hoveredEndpoint !== null && String(this.hoveredEndpoint) === String(ep);
-        const targetY =
-          mesh.userData.baseY +
-          (isSelected ? 0.19 + Math.sin(timeSec * 6.2) * 0.035 : isHovered ? 0.095 : 0);
-        mesh.position.y += (targetY - mesh.position.y) * liftK;
-      }
+          applyCameraFraming(w, h, immediate = false) {
+            if (!this.camera || !this.controls) return;
+            const safeW = Math.max(260, w || this.stageEl?.clientWidth || 680);
+            const safeH = Math.max(180, h || this.stageEl?.clientHeight || 440);
+            const aspect = safeW / safeH;
+            const halfFovRad = (this.camera.fov * Math.PI) / 360;
+            const tanV = Math.tan(halfFovRad);
+            const tanH = tanV * aspect;
 
-      // 5) Subtle breathing pulse on active legal destination & source rings
-      const pulse = 1 + Math.sin(timeSec * 5.2) * 0.075;
-      for (const child of this.highlightGroup.children) {
-        if (child.userData.pulseRing) {
-          child.scale.setScalar(pulse);
-        }
-      }
+            // Fit entire 10.8 x 7.6 walnut box cleanly on Desktop, Mobile Portrait & Mobile Landscape
+            const needW = 6.0 / Math.max(0.24, tanH);
+            const needD = (safeH < 280 ? 6.15 : 4.45) / Math.max(0.24, tanV);
+            const dist = Math.max(12.2, needW, needD);
 
-      // 6) Smooth camera preset glide
-      if (this.camGliding && this.camera && this.controls) {
-        const ck = 1 - Math.exp(-9 * dt);
-        this.camera.position.lerp(this.camTargetPos, ck);
-        this.controls.target.lerp(this.camTargetLook, ck);
-        if (
-          this.camera.position.distanceToSquared(this.camTargetPos) < 0.0004 &&
-          this.controls.target.distanceToSquared(this.camTargetLook) < 0.0004
-        ) {
-          this.camera.position.copy(this.camTargetPos);
-          this.controls.target.copy(this.camTargetLook);
-          this.camGliding = false;
-        }
-      }
+            if (this.cameraTopView) {
+              this.camTargetPos.set(0, dist * 1.02, 0.45);
+              this.camTargetLook.set(0, 0.16, 0);
+            } else {
+              this.camTargetPos.set(0, dist * 0.89, dist * 0.46);
+              this.camTargetLook.set(0, 0.16, 0.08);
+            }
+            this.camera.aspect = aspect;
+            this.camera.updateProjectionMatrix();
+            if (immediate) {
+              this.camGliding = false;
+              this.camera.position.copy(this.camTargetPos);
+              this.controls.target.copy(this.camTargetLook);
+              this.controls.update();
+            } else {
+              this.camGliding = true;
+            }
+          }
 
-      this.controls?.update();
-      this.renderer?.render(this.scene, this.camera);
-      this.rafId = requestAnimationFrame(tick);
-    };
-    this.rafId = requestAnimationFrame(tick);
-  }
+          toggleCameraAngle() {
+            if (!this.camera || !this.controls) return;
+            this.cameraTopView = !this.cameraTopView;
+            this.applyCameraFraming(this.stageEl?.clientWidth, this.stageEl?.clientHeight, false);
+          }
 
-  update(table, user, { spectator = false } = {}) {
-    const prev = this.prevState;
-    const prevFlip = this.boardFlipped === null && prev ? this.myColor() === "b" : null;
-    this.table = table;
-    this.user = user;
-    this.spectator = Boolean(spectator);
-    const nextFlip = this.effectiveFlipped();
+          setupResizeObserver() {
+            const syncSize = () => {
+              if (this.disposed || !this.renderer || !this.camera) return;
+              const w = Math.max(260, this.stageEl.clientWidth);
+              const h = Math.max(180, this.stageEl.clientHeight);
+              this.applyCameraFraming(w, h, true);
+              this.renderer.setSize(w, h);
+            };
+            if (typeof ResizeObserver !== "undefined") {
+              this.ro = new ResizeObserver(syncSize);
+              this.ro.observe(this.stageEl);
+            }
+          }
 
-    if (prevFlip !== null && prevFlip !== nextFlip && this.boardFlipped === null) {
-      this.rebuildBoardTexture();
-    } else {
-      this.repositionHitZones();
-    }
+          startLoop() {
+            let lastTs = performance.now();
+            const tick = (now) => {
+              if (this.disposed) return;
+              const dt = Math.min(0.05, Math.max(0.001, (now - lastTs) / 1000));
+              lastTs = now;
+              const timeSec = now * 0.001;
 
-    // Play audio cues & decide animations on state transitions
-    let shouldAnimateDice = false;
-    let shouldAnimateMove = false;
-    if (table && table.status === "playing") {
-      const diceArr = Array.isArray(table.dice) ? table.dice : [];
-      const phaseRolled = prev && prev.turnPhase === "roll" && table.turnPhase === "move";
-      const openingStarted =
-        (!prev || prev.status !== "playing" || prev.handNumber !== table.handNumber || prev.round !== table.round) &&
-        diceArr.length === 2;
-      const blockedGeleRoll =
-        prev &&
-        prev.turnPhase === "roll" &&
-        table.turnPhase === "roll" &&
-        prev.turn !== table.turn &&
-        diceArr.length === 2;
-      const diceChanged =
-        prev && JSON.stringify(prev.dice) !== JSON.stringify(table.dice) && diceArr.length === 2;
+                  // 1) Physical multi-bounce 3D dice simulation
+                  this._stepDicePhysics(dt);
 
-      const rollSig = `${table.round}:${table.handNumber}:${table.lastAction?.at || ""}:${diceArr.join("-")}`;
-      if ((phaseRolled || openingStarted || blockedGeleRoll || diceChanged) && rollSig !== this.lastRollSignature) {
-        this.lastRollSignature = rollSig;
-        shouldAnimateDice = true;
-        playTavlaRoll();
-      }
-    }
+                  // 2) Smooth checker flight, hit knock-back & bear-off animations
+                  if (this.checkerAnims.length) {
+                    const keep = [];
+                    for (const a of this.checkerAnims) {
+                      if (a.delay > 0) {
+                        a.delay -= dt;
+                        keep.push(a);
+                        continue;
+                      }
+                      a.elapsed = Math.min(a.dur, a.elapsed + dt);
+                      const u = a.elapsed / a.dur;
+                      const ease = 1 - Math.pow(1 - u, 3);
+                      a.mesh.position.lerpVectors(a.startPos, a.endPos, ease);
+                      a.mesh.position.y += Math.sin(u * Math.PI) * a.arcHeight;
+                      a.mesh.rotation.x = a.startRotX + (a.endRotX - a.startRotX) * ease + Math.sin(u * Math.PI) * a.spinTilt;
+                      a.mesh.scale.lerpVectors(a.startScale, a.endScale, ease);
+                      if (u < 1) {
+                        keep.push(a);
+                      } else {
+                        a.mesh.position.copy(a.endPos);
+                        a.mesh.rotation.x = a.endRotX;
+                        a.mesh.scale.copy(a.endScale);
+                        a.onLand?.();
+                      }
+                    }
+                    this.checkerAnims = keep;
+                  }
 
-    if (prev && table) {
-      if (table.lastMove && (!prev.lastMove || table.lastMove.at !== prev.lastMove.at)) {
-        shouldAnimateMove = true;
-        if (table.lastMove.hit) playTavlaHit();
-        else if (table.lastMove.to === "off") playTavlaBearOff();
-        else playTavlaMove();
-      }
-      if (
-        (prev.status === "playing" && table.status === "finished") ||
-        (prev.status === "playing" && table.status === "hand_finished")
-      ) {
-        if (table.winnerColor === this.myColor()) playWin();
-        else playChip();
-      }
-    }
+                  // 3) Expanding ripple rings (dice bounce, hit impact, double roll)
+                  if (this.effectRings.length) {
+                    const keep = [];
+                    for (const r of this.effectRings) {
+                      r.elapsed += dt;
+                      const u = Math.min(1, r.elapsed / r.dur);
+                      const ease = 1 - Math.pow(1 - u, 2);
+                      r.mesh.scale.setScalar(1 + ease * r.maxScale);
+                      r.mesh.material.opacity = (1 - u) * 0.85;
+                      if (u < 1) {
+                        keep.push(r);
+                      } else {
+                        this.effectsGroup.remove(r.mesh);
+                        r.mesh.geometry.dispose();
+                        r.mesh.material.dispose();
+                      }
+                    }
+                    this.effectRings = keep;
+                  }
 
-    if (
-      this.selectedFrom !== null &&
-      !(table?.legalMoves && table.legalMoves[String(this.selectedFrom)]?.length)
-    ) {
-      this.selectedFrom = null;
-    }
+                  // 4) Hover lift & selected checker levitation bob
+                  const myCol = this.myColor();
+                  const canInteract =
+                    this.table &&
+                    !this.spectator &&
+                    this.table.status === "playing" &&
+                    this.table.turn === myCol &&
+                    this.table.turnPhase === "move";
+                  const liftK = 1 - Math.exp(-15 * dt);
+                  for (const [key, mesh] of this.topCheckerMap.entries()) {
+                    if (!key.startsWith(`${myCol}:`) || mesh.userData.animating || mesh.userData.endpoint === "off") continue;
+                    const ep = mesh.userData.endpoint;
+                    const isSelected = canInteract && this.selectedFrom !== null && String(this.selectedFrom) === String(ep);
+                    const isHovered = canInteract && this.hoveredEndpoint !== null && String(this.hoveredEndpoint) === String(ep);
+                    const targetY =
+                      mesh.userData.baseY +
+                      (isSelected ? 0.19 + Math.sin(timeSec * 6.2) * 0.035 : isHovered ? 0.095 : 0);
+                    mesh.position.y += (targetY - mesh.position.y) * liftK;
+                  }
 
-    this.prevState = table;
-    this.renderHud();
-    if (this.viewMode === "3d") {
-      this.checkerAnims = [];
-      this.rebuildCheckers();
-      this.syncBearOffStacks();
-      if (shouldAnimateMove && prev?.board && table?.lastMove) {
-        this.scheduleMoveAnimations(prev.board, table.lastMove);
-      }
-      this.rebuildHighlights();
-      this.syncDiceOnBoard(shouldAnimateDice);
-    } else {
-      this.render2DFallback();
-    }
-  }
+                  // 5) Subtle breathing pulse on active legal destination & source rings
+                  const pulse = 1 + Math.sin(timeSec * 5.2) * 0.075;
+                  for (const child of this.highlightGroup.children) {
+                    if (child.userData.pulseRing) {
+                      child.scale.setScalar(pulse);
+                    }
+                  }
 
-  renderHud() {
-    const t = this.table;
-    if (!t) return;
-    const myCol = this.myColor();
+                  // 6) Smooth camera preset glide
+                  if (this.camGliding && this.camera && this.controls) {
+                    const ck = 1 - Math.exp(-9 * dt);
+                    this.camera.position.lerp(this.camTargetPos, ck);
+                    this.controls.target.lerp(this.camTargetLook, ck);
+                    if (
+                      this.camera.position.distanceToSquared(this.camTargetPos) < 0.0004 &&
+                      this.controls.target.distanceToSquared(this.camTargetLook) < 0.0004
+                    ) {
+                      this.camera.position.copy(this.camTargetPos);
+                      this.controls.target.copy(this.camTargetLook);
+                      this.camGliding = false;
+                    }
+                  }
 
-    // Players strip
-    this.playersEl.replaceChildren();
-    for (let i = 0; i < 2; i++) {
-      const seat = t.seats[i];
-      const color = i === 0 ? "w" : "b";
-      const pill = document.createElement("div");
-      const isTurn = t.status === "playing" && t.turn === color;
-      pill.className = `tavla-seat-pill ${color}${isTurn ? " active-turn" : ""}${seat?.disconnected ? " disconnected" : ""}`;
-      if (!seat) {
-        pill.innerHTML = `<span class="disc ${color}"></span><span>Boş Koltuk (${colorLabel(color)})</span>`;
-      } else {
-        const pipVal = t.pips?.[color] ?? 167;
-        const reactTxt =
-          seat.reaction && Date.now() - seat.reaction.at < 4500 ? ` ${seat.reaction.emoji}` : "";
-        const discTxt = seat.disconnected ? " · Bağlantı bekleniyor…" : "";
-        const meBadge = color === myCol ? " (Sen)" : "";
-        pill.innerHTML = `<span class="disc ${color}"></span><strong>${seat.name}${meBadge}${reactTxt}</strong><span class="tavla-score">${seat.score || 0}/${t.targetScore}</span><span class="tavla-pip">${pipVal} pip · T:${t.board?.borneOff?.[color] || 0}${discTxt}</span>`;
-      }
-      this.playersEl.append(pill);
-    }
+                  this.controls?.update();
+                  this.renderer?.render(this.scene, this.camera);
+                  this.rafId = requestAnimationFrame(tick);
+                };
+                this.rafId = requestAnimationFrame(tick);
+              }
 
-    this.matchBadgeEl.textContent =
-      t.spectatorCount > 0
-        ? `${t.name} · Maç ${t.round} · ${t.handNumber}. El · 👁 ${t.spectatorCount}`
-        : `${t.name} · Maç ${t.round} · ${t.handNumber}. El (${t.targetScore} El)`;
+              update(table, user, { spectator = false } = {}) {
+                const prev = this.prevState;
+                const prevFlip = this.boardFlipped === null && prev ? this.myColor() === "b" : null;
+                this.table = table;
+                this.user = user;
+                this.spectator = Boolean(spectator);
+                const nextFlip = this.effectiveFlipped();
 
-    // Status message
-    this.statusEl.textContent = t.lastAction?.text || "";
+                if (prevFlip !== null && prevFlip !== nextFlip && this.boardFlipped === null) {
+                  this.rebuildBoardTexture();
+                } else {
+                  this.repositionHitZones();
+                }
 
-    // Floating Dice HUD
-    this.diceHudEl.replaceChildren();
-    if (Array.isArray(t.dice) && t.dice.length === 2 && t.status !== "waiting") {
-      const label = document.createElement("span");
-      label.className = "tavla-dice-side";
-      label.textContent = `${colorLabel(t.turn)} zarı:`;
-      this.diceHudEl.append(label);
-      const rem = [...(t.remainingDice || [])];
-      for (const d of t.dice) {
-        let used = false;
-        if (t.turnPhase === "move") {
-          const idx = rem.indexOf(d);
-          if (idx !== -1) rem.splice(idx, 1);
-          else used = true;
-        }
-        this.diceHudEl.append(createDiePipBadge(d, used));
-      }
-      if (t.dice[0] === t.dice[1]) {
-        const dblTag = document.createElement("span");
-        dblTag.className = "tavla-double-tag";
-        dblTag.textContent = `Çift ×4 (${t.remainingDice.length} kaldı)`;
-        this.diceHudEl.append(dblTag);
-      }
-    }
+                // Play audio cues & decide animations on state transitions
+                let shouldAnimateDice = false;
+                  let shouldAnimateMove = false;
+                  if (table && table.status === "playing") {
+                    const diceArr = Array.isArray(table.dice) ? table.dice : [];
+                    const phaseRolled = prev && prev.turnPhase === "roll" && table.turnPhase === "move";
+                    const openingStarted =
+                      (!prev || prev.status !== "playing" || prev.handNumber !== table.handNumber || prev.round !== table.round) &&
+                      diceArr.length === 2;
+                    const blockedGeleRoll =
+                      prev &&
+                      prev.turnPhase === "roll" &&
+                      table.turnPhase === "roll" &&
+                      prev.turn !== table.turn &&
+                      diceArr.length === 2;
+                    const diceChanged =
+                      prev && JSON.stringify(prev.dice) !== JSON.stringify(table.dice) && diceArr.length === 2;
 
-    // Controls tray
-    this.controlsEl.replaceChildren();
+                      const rollSig = `${table.round}:${table.handNumber}:${table.lastAction?.at || ""}:${diceArr.join("-")}`;
+                      if ((phaseRolled || openingStarted || blockedGeleRoll || diceChanged) && rollSig !== this.lastRollSignature) {
+                        this.lastRollSignature = rollSig;
+                        shouldAnimateDice = true;
+                        playTavlaRoll();
+                      }
+                    }
 
-    if (this.spectator) {
-      const note = document.createElement("span");
-      note.className = "muted small-text";
-      note.textContent = "👁 İzleyici modundasın — canlı hamleleri ve 3D zarları takip ediyorsun.";
-      this.controlsEl.append(note);
-      return;
-    }
+                    if (prev && table) {
+                      if (table.lastMove && (!prev.lastMove || table.lastMove.at !== prev.lastMove.at)) {
+                        shouldAnimateMove = true;
+                        if (table.lastMove.hit) playTavlaHit();
+                        else if (table.lastMove.to === "off") playTavlaBearOff();
+                        else playTavlaMove();
+                      }
+                      if (
+                        (prev.status === "playing" && table.status === "finished") ||
+                        (prev.status === "playing" && table.status === "hand_finished")
+                      ) {
+                        if (table.winnerColor === this.myColor()) playWin();
+                        else playChip();
+                      }
+                    }
 
-    if (t.status === "waiting") {
-      const row = document.createElement("div");
-      row.className = "game-buttons";
+                    if (
+                      this.selectedFrom !== null &&
+                      !(table?.legalMoves && table.legalMoves[String(this.selectedFrom)]?.length)
+                    ) {
+                      this.selectedFrom = null;
+                    }
 
-      // Target match score pills (1, 3, 5)
-      const scGroup = document.createElement("div");
-      scGroup.className = "tavla-target-pills";
-      const lbl = document.createElement("span");
-      lbl.className = "muted small-text";
-      lbl.textContent = "Hedef:";
-      scGroup.append(lbl);
-      for (const pts of TARGET_SCORES) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = `button small ${t.targetScore === pts ? "primary" : "secondary"}`;
-        b.textContent = `${pts} El`;
-        b.addEventListener("click", () => this.cb.onConfig?.({ targetScore: pts }));
-        scGroup.append(b);
-      }
-      row.append(scGroup);
+                    this.prevState = table;
+                    this.renderHud();
+                    if (this.viewMode === "3d") {
+                      this.checkerAnims = [];
+                      this.rebuildCheckers();
+                      this.syncBearOffStacks();
+                      if (shouldAnimateMove && prev?.board && table?.lastMove) {
+                        this.scheduleMoveAnimations(prev.board, table.lastMove);
+                      }
+                      this.rebuildHighlights();
+                      this.syncDiceOnBoard(shouldAnimateDice);
+                    } else {
+                      this.render2DFallback();
+                    }
+                  }
 
-      if (!t.hasBot) {
-        const botBtn = document.createElement("button");
-        botBtn.type = "button";
-        botBtn.className = "button small primary";
-        botBtn.textContent = "🤖 Bot ile Başla";
-        botBtn.addEventListener("click", () => this.cb.onConfig?.({ withBot: true }));
-        row.append(botBtn);
-      }
-      this.controlsEl.append(row);
-      return;
-    }
+                  renderHud() {
+                    const t = this.table;
+                    if (!t) return;
+                    const myCol = this.myColor();
 
-    if (t.status === "playing") {
-      const row = document.createElement("div");
-      row.className = "game-buttons";
-      const isMyTurn = t.turn === myCol;
+                    // Players strip
+                    this.playersEl.replaceChildren();
+                    for (let i = 0; i < 2; i++) {
+                      const seat = t.seats[i];
+                      const color = i === 0 ? "w" : "b";
+                      const pill = document.createElement("div");
+                      const isTurn = t.status === "playing" && t.turn === color;
+                      pill.className = `tavla-seat-pill ${color}${isTurn ? " active-turn" : ""}${seat?.disconnected ? " disconnected" : ""}`;
+                      if (!seat) {
+                        pill.innerHTML = `<span class="disc ${color}"></span><span>Boş Koltuk (${colorLabel(color)})</span>`;
+                      } else {
+                        const pipVal = t.pips?.[color] ?? 167;
+                        const reactTxt =
+                          seat.reaction && Date.now() - seat.reaction.at < 4500 ? ` ${seat.reaction.emoji}` : "";
+                        const discTxt = seat.disconnected ? " · Bağlantı bekleniyor…" : "";
+                        const meBadge = color === myCol ? " (Sen)" : "";
+                        pill.innerHTML = `<span class="disc ${color}"></span><strong>${seat.name}${meBadge}${reactTxt}</strong><span class="tavla-score">${seat.score || 0}/${t.targetScore}</span><span class="tavla-pip">${pipVal} pip · T:${t.board?.borneOff?.[color] || 0}${discTxt}</span>`;
+                      }
+                      this.playersEl.append(pill);
+                    }
 
-      if (isMyTurn && t.turnPhase === "roll") {
-        const rollBtn = document.createElement("button");
-        rollBtn.type = "button";
-        rollBtn.className = "button primary tavla-roll-btn";
-        rollBtn.textContent = "🎲 Zar At [Boşluk / Tahta]";
-        rollBtn.addEventListener("click", () => this.cb.onRoll?.());
-        row.append(rollBtn);
-      } else if (isMyTurn && t.turnPhase === "move") {
-        const moveHint = document.createElement("span");
-        moveHint.className = "tavla-turn-hint";
-        moveHint.textContent =
-          t.board?.bar?.[myCol] > 0
-            ? "⚠ Kırık taşın var: önce rakibin evine gir!"
-            : this.selectedFrom !== null
-              ? "✨ Yaylarla gösterilen hedef haneye (veya toplamaya) dokun"
+                    this.matchBadgeEl.textContent =
+                      t.spectatorCount > 0
+                        ? `${t.name} · Maç ${t.round} · ${t.handNumber}. El · 👁 ${t.spectatorCount}`
+                        : `${t.name} · Maç ${t.round} · ${t.handNumber}. El (${t.targetScore} El)`;
+
+                    // Status message
+                    this.statusEl.textContent = t.lastAction?.text || "";
+
+                    // Floating Dice HUD
+                    this.diceHudEl.replaceChildren();
+                    if (Array.isArray(t.dice) && t.dice.length === 2 && t.status !== "waiting") {
+                      const label = document.createElement("span");
+                      label.className = "tavla-dice-side";
+                      label.textContent = `${colorLabel(t.turn)} zarı:`;
+                      this.diceHudEl.append(label);
+                      const rem = [...(t.remainingDice || [])];
+                      for (const d of t.dice) {
+                        let used = false;
+                        if (t.turnPhase === "move") {
+                          const idx = rem.indexOf(d);
+                          if (idx !== -1) rem.splice(idx, 1);
+                          else used = true;
+                        }
+                        this.diceHudEl.append(createDiePipBadge(d, used));
+                      }
+                      if (t.dice[0] === t.dice[1]) {
+                        const dblTag = document.createElement("span");
+                        dblTag.className = "tavla-double-tag";
+                        dblTag.textContent = `Çift ×4 (${t.remainingDice.length} kaldı)`;
+                        this.diceHudEl.append(dblTag);
+                      }
+                    }
+
+                    // Controls tray
+                    this.controlsEl.replaceChildren();
+
+                    if (this.spectator) {
+                      const note = document.createElement("span");
+                      note.className = "muted small-text";
+                      note.textContent = "👁 İzleyici modundasın — canlı hamleleri ve 3D zarları takip ediyorsun.";
+                      this.controlsEl.append(note);
+                      return;
+                    }
+
+                    if (t.status === "waiting") {
+                      const row = document.createElement("div");
+                      row.className = "game-buttons";
+
+                      // Target match score pills (1, 3, 5)
+                      const scGroup = document.createElement("div");
+                      scGroup.className = "tavla-target-pills";
+                      const lbl = document.createElement("span");
+                      lbl.className = "muted small-text";
+                      lbl.textContent = "Hedef:";
+                      scGroup.append(lbl);
+                      for (const pts of TARGET_SCORES) {
+                        const b = document.createElement("button");
+                        b.type = "button";
+                        b.className = `button small ${t.targetScore === pts ? "primary" : "secondary"}`;
+                        b.textContent = `${pts} El`;
+                        b.addEventListener("click", () => this.cb.onConfig?.({ targetScore: pts }));
+                        scGroup.append(b);
+                      }
+                      row.append(scGroup);
+
+                      if (!t.hasBot) {
+                        const botBtn = document.createElement("button");
+                        botBtn.type = "button";
+                        botBtn.className = "button small primary";
+                        botBtn.textContent = "🤖 Bot ile Başla";
+                        botBtn.addEventListener("click", () => this.cb.onConfig?.({ withBot: true }));
+                        row.append(botBtn);
+                      }
+                      this.controlsEl.append(row);
+                      return;
+                    }
+
+                    if (t.status === "playing") {
+                      const row = document.createElement("div");
+                      row.className = "game-buttons";
+                      const isMyTurn = t.turn === myCol;
+
+                      if (isMyTurn && t.turnPhase === "roll") {
+                        const rollBtn = document.createElement("button");
+                        rollBtn.type = "button";
+                        rollBtn.className = "button primary tavla-roll-btn";
+                        rollBtn.textContent = "🎲 Zar At [Boşluk / Tahta]";
+                        rollBtn.addEventListener("click", () => this.cb.onRoll?.());
+                        row.append(rollBtn);
+                      } else if (isMyTurn && t.turnPhase === "move") {
+                        const moveHint = document.createElement("span");
+                        moveHint.className = "tavla-turn-hint";
+                        moveHint.textContent =
+                          t.board?.bar?.[myCol] > 0
+                            ? "⚠ Kırık taşın var: önce rakibin evine gir!"
+                            : this.selectedFrom !== null
+              ?"✨ Yaylarla gösterilen hedef haneye (veya toplamaya) dokun"
               : "🟢 Taş seç · Çift/sağ tık en büyük zarı anında oynar";
-        row.append(moveHint);
+            row.append(moveHint);
 
-        if (t.canUndo) {
-          const undoBtn = document.createElement("button");
-          undoBtn.type = "button";
-          undoBtn.className = "button small secondary";
-          undoBtn.textContent = "↶ Hamleyi Geri Al";
-          undoBtn.addEventListener("click", () => this.cb.onAction?.("undoTurn"));
-          row.append(undoBtn);
+            if (t.canUndo) {
+              const undoBtn = document.createElement("button");
+              undoBtn.type = "button";
+              undoBtn.className = "button small secondary";
+              undoBtn.textContent = "↶ Hamleyi Geri Al";
+              undoBtn.addEventListener("click", () => this.cb.onAction?.("undoTurn"));
+              row.append(undoBtn);
+            }
+          } else {
+            const waitEl = document.createElement("span");
+            waitEl.className = "muted small-text";
+            waitEl.textContent = t.hasBot
+              ? "🤖 Tavla Botu düşünüyor…"
+              : `⏳ Sıra ${colorLabel(t.turn)} oyuncuda…`;
+            row.append(waitEl);
+          }
+
+          const resignBtn = document.createElement("button");
+          resignBtn.type = "button";
+          resignBtn.className = "button small danger";
+          resignBtn.textContent = "🏳 Terk Et";
+          resignBtn.addEventListener("click", () => {
+            if (confirm("Tavla maçını terk etmek istediğine emin misin?")) {
+              this.cb.onAction?.("resign");
+            }
+          });
+          row.append(resignBtn);
+          this.controlsEl.append(row);
+          return;
         }
-      } else {
-        const waitEl = document.createElement("span");
-        waitEl.className = "muted small-text";
-        waitEl.textContent = t.hasBot
-          ? "🤖 Tavla Botu düşünüyor…"
-          : `⏳ Sıra ${colorLabel(t.turn)} oyuncuda…`;
-        row.append(waitEl);
+
+        if (t.status === "hand_finished") {
+          const banner = document.createElement("div");
+          banner.className = "chess-result-banner tavla-hand-banner";
+          banner.textContent = `🎲 ${t.handNumber}. El bitti: ${t.lastHandResult?.winnerName} · ${t.lastHandResult?.label} (${t.seats[0]?.score || 0}-${t.seats[1]?.score || 0})`;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "button primary";
+          btn.textContent = "▶ Sonraki Eli Başlat";
+          btn.addEventListener("click", () => this.cb.onAction?.("nextHand"));
+          this.controlsEl.append(banner, btn);
+          return;
+        }
+
+        if (t.status === "finished") {
+          const banner = document.createElement("div");
+          banner.className = "chess-result-banner";
+          banner.textContent = `🏆 Kazanan: ${t.winnerName} (${t.resultReason})`;
+
+          const area = document.createElement("div");
+          area.className = "game-buttons";
+
+          if (!t.hasBot && t.rematchOfferBy && t.rematchOfferBy !== myCol && t.seats[0] && t.seats[1]) {
+            const offerBox = document.createElement("div");
+            offerBox.className = "chess-draw-banner";
+            offerBox.innerHTML = "<span>🎲 Rakibin aynı masada rövanş istiyor! (Renkler değişir)</span>";
+            const acc = document.createElement("button");
+            acc.type = "button";
+            acc.className = "button small primary";
+            acc.textContent = "Kabul Et & Başla";
+            acc.addEventListener("click", () => this.cb.onAction?.("acceptRematch"));
+            const dec = document.createElement("button");
+            dec.type = "button";
+            dec.className = "button small secondary";
+            dec.textContent = "Reddet";
+            dec.addEventListener("click", () => this.cb.onAction?.("declineRematch"));
+            offerBox.append(acc, dec);
+            this.controlsEl.append(banner, offerBox);
+            return;
+          }
+
+          if (t.seats[0] && t.seats[1]) {
+            const remBtn = document.createElement("button");
+            remBtn.type = "button";
+            remBtn.className = "button primary";
+            if (!t.hasBot && t.rematchOfferBy === myCol) {
+              remBtn.disabled = true;
+              remBtn.textContent = "🎲 Rövanş Teklifi Gönderildi…";
+            } else {
+              remBtn.textContent = t.hasBot
+                ? "↻ Tekrar Oyna (Beyaz ↔ Siyah)"
+                : "↻ Aynı Masada Rövanş Teklif Et";
+            }
+            remBtn.addEventListener("click", () => this.cb.onAction?.("rematch"));
+            area.append(remBtn);
+          }
+
+          this.controlsEl.append(banner, area);
+        }
       }
 
-      const resignBtn = document.createElement("button");
-      resignBtn.type = "button";
-      resignBtn.className = "button small danger";
-      resignBtn.textContent = "🏳 Terk Et";
-      resignBtn.addEventListener("click", () => {
-        if (confirm("Tavla maçını terk etmek istediğine emin misin?")) {
-          this.cb.onAction?.("resign");
-        }
-      });
-      row.append(resignBtn);
-      this.controlsEl.append(row);
-      return;
-    }
+      render2DFallback() {
+        const t = this.table;
+        if (!t?.board || !this.fallbackEl) return;
+        this.fallbackEl.replaceChildren();
+        const flipped = this.effectiveFlipped();
+        const legalMap = t.legalMoves || {};
+        const destSet = new Set(
+          this.selectedFrom !== null
+            ? (legalMap[String(this.selectedFrom)] || []).map((m) => String(m.to))
+            : [],
+        );
 
-    if (t.status === "hand_finished") {
-      const banner = document.createElement("div");
-      banner.className = "chess-result-banner tavla-hand-banner";
-      banner.textContent = `🎲 ${t.handNumber}. El bitti: ${t.lastHandResult?.winnerName} · ${t.lastHandResult?.label} (${t.seats[0]?.score || 0}-${t.seats[1]?.score || 0})`;
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "button primary";
-      btn.textContent = "▶ Sonraki Eli Başlat";
-      btn.addEventListener("click", () => this.cb.onAction?.("nextHand"));
-      this.controlsEl.append(banner, btn);
-      return;
-    }
+        const grid = document.createElement("div");
+        grid.className = "tavla-2d-grid";
+        const renderHalfRow = (pts, top) => {
+          const row = document.createElement("div");
+          row.className = `tavla-2d-row ${top ? "top" : "bottom"}`;
+          for (const p of pts) {
+            const realPoint = flipped ? 25 - p : p;
+            const v = t.board.points[realPoint] || 0;
+            const cell = document.createElement("button");
+            cell.type = "button";
+            cell.className = "tavla-2d-pt";
+            if (String(this.selectedFrom) === String(realPoint)) cell.classList.add("selected");
+            if (destSet.has(String(realPoint))) cell.classList.add("target");
+            if (legalMap[String(realPoint)]?.length) cell.classList.add("movable");
 
-    if (t.status === "finished") {
-      const banner = document.createElement("div");
-      banner.className = "chess-result-banner";
-      banner.textContent = `🏆 Kazanan: ${t.winnerName} (${t.resultReason})`;
+            const num = document.createElement("span");
+            num.className = "pt-num";
+            num.textContent = String(realPoint);
+            const stack = document.createElement("div");
+            stack.className = "pt-stack";
+            const count = Math.abs(v);
+            const cName = v > 0 ? "w" : "b";
+            for (let i = 0; i < Math.min(count, 5); i++) {
+              const disc = document.createElement("span");
+              disc.className = `disc ${cName}`;
+              if (i === 4 && count > 5) disc.textContent = String(count);
+              stack.append(disc);
+            }
+            cell.append(num, stack);
+            cell.addEventListener("click", () => this.handleEndpointClick(realPoint));
+            row.append(cell);
+          }
+          return row;
+        };
 
-      const area = document.createElement("div");
-      area.className = "game-buttons";
+        const topPts = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
+        const botPts = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+        grid.append(renderHalfRow(topPts, true), renderHalfRow(botPts, false));
 
-      if (!t.hasBot && t.rematchOfferBy && t.rematchOfferBy !== myCol && t.seats[0] && t.seats[1]) {
-        const offerBox = document.createElement("div");
-        offerBox.className = "chess-draw-banner";
-        offerBox.innerHTML = "<span>🎲 Rakibin aynı masada rövanş istiyor! (Renkler değişir)</span>";
-        const acc = document.createElement("button");
-        acc.type = "button";
-        acc.className = "button small primary";
-        acc.textContent = "Kabul Et & Başla";
-        acc.addEventListener("click", () => this.cb.onAction?.("acceptRematch"));
-        const dec = document.createElement("button");
-        dec.type = "button";
-        dec.className = "button small secondary";
-        dec.textContent = "Reddet";
-        dec.addEventListener("click", () => this.cb.onAction?.("declineRematch"));
-        offerBox.append(acc, dec);
-        this.controlsEl.append(banner, offerBox);
-        return;
+        const sideActions = document.createElement("div");
+        sideActions.className = "tavla-2d-side";
+        const barBtn = document.createElement("button");
+        barBtn.type = "button";
+        barBtn.className = `button small ${this.selectedFrom === "bar" ? "primary" : "secondary"}`;
+        barBtn.textContent = `Kırık: B${t.board.bar.w} · S${t.board.bar.b}`;
+        barBtn.addEventListener("click", () => this.handleEndpointClick("bar"));
+
+        const offBtn = document.createElement("button");
+        offBtn.type = "button";
+        offBtn.className = `button small ${destSet.has("off") ? "primary" : "secondary"}`;
+        offBtn.textContent = `Topla (${t.board.borneOff.w} / ${t.board.borneOff.b})`;
+        offBtn.addEventListener("click", () => this.handleEndpointClick("off"));
+        sideActions.append(barBtn, offBtn);
+
+        this.fallbackEl.append(grid, sideActions);
       }
 
-      if (t.seats[0] && t.seats[1]) {
-        const remBtn = document.createElement("button");
-        remBtn.type = "button";
-        remBtn.className = "button primary";
-        if (!t.hasBot && t.rematchOfferBy === myCol) {
-          remBtn.disabled = true;
-          remBtn.textContent = "🎲 Rövanş Teklifi Gönderildi…";
-        } else {
-          remBtn.textContent = t.hasBot
-            ? "↻ Tekrar Oyna (Beyaz ↔ Siyah)"
-            : "↻ Aynı Masada Rövanş Teklif Et";
+      dispose() {
+        this.disposed = true;
+        if (this.rafId) cancelAnimationFrame(this.rafId);
+        if (this._onKeyDown) window.removeEventListener("keydown", this._onKeyDown);
+        this.ro?.disconnect();
+        this.controls?.dispose();
+        this.boardTexture?.dispose();
+        if (this.renderer) {
+          this.renderer.dispose();
+          this.renderer.domElement?.remove();
         }
-        remBtn.addEventListener("click", () => this.cb.onAction?.("rematch"));
-        area.append(remBtn);
+        this.root.replaceChildren();
       }
-
-      this.controlsEl.append(banner, area);
     }
-  }
-
-  render2DFallback() {
-    const t = this.table;
-    if (!t?.board || !this.fallbackEl) return;
-    this.fallbackEl.replaceChildren();
-    const flipped = this.effectiveFlipped();
-    const legalMap = t.legalMoves || {};
-    const destSet = new Set(
-      this.selectedFrom !== null
-        ? (legalMap[String(this.selectedFrom)] || []).map((m) => String(m.to))
-        : [],
-    );
-
-    const grid = document.createElement("div");
-    grid.className = "tavla-2d-grid";
-    const renderHalfRow = (pts, top) => {
-      const row = document.createElement("div");
-      row.className = `tavla-2d-row ${top ? "top" : "bottom"}`;
-      for (const p of pts) {
-        const realPoint = flipped ? 25 - p : p;
-        const v = t.board.points[realPoint] || 0;
-        const cell = document.createElement("button");
-        cell.type = "button";
-        cell.className = "tavla-2d-pt";
-        if (String(this.selectedFrom) === String(realPoint)) cell.classList.add("selected");
-        if (destSet.has(String(realPoint))) cell.classList.add("target");
-        if (legalMap[String(realPoint)]?.length) cell.classList.add("movable");
-
-        const num = document.createElement("span");
-        num.className = "pt-num";
-        num.textContent = String(realPoint);
-        const stack = document.createElement("div");
-        stack.className = "pt-stack";
-        const count = Math.abs(v);
-        const cName = v > 0 ? "w" : "b";
-        for (let i = 0; i < Math.min(count, 5); i++) {
-          const disc = document.createElement("span");
-          disc.className = `disc ${cName}`;
-          if (i === 4 && count > 5) disc.textContent = String(count);
-          stack.append(disc);
-        }
-        cell.append(num, stack);
-        cell.addEventListener("click", () => this.handleEndpointClick(realPoint));
-        row.append(cell);
-      }
-      return row;
-    };
-
-    const topPts = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-    const botPts = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-    grid.append(renderHalfRow(topPts, true), renderHalfRow(botPts, false));
-
-    const sideActions = document.createElement("div");
-    sideActions.className = "tavla-2d-side";
-    const barBtn = document.createElement("button");
-    barBtn.type = "button";
-    barBtn.className = `button small ${this.selectedFrom === "bar" ? "primary" : "secondary"}`;
-    barBtn.textContent = `Kırık: B${t.board.bar.w} · S${t.board.bar.b}`;
-    barBtn.addEventListener("click", () => this.handleEndpointClick("bar"));
-
-    const offBtn = document.createElement("button");
-    offBtn.type = "button";
-    offBtn.className = `button small ${destSet.has("off") ? "primary" : "secondary"}`;
-    offBtn.textContent = `Topla (${t.board.borneOff.w} / ${t.board.borneOff.b})`;
-    offBtn.addEventListener("click", () => this.handleEndpointClick("off"));
-    sideActions.append(barBtn, offBtn);
-
-    this.fallbackEl.append(grid, sideActions);
-  }
-
-  dispose() {
-    this.disposed = true;
-    if (this.rafId) cancelAnimationFrame(this.rafId);
-    if (this._onKeyDown) window.removeEventListener("keydown", this._onKeyDown);
-    this.ro?.disconnect();
-    this.controls?.dispose();
-    this.boardTexture?.dispose();
-    if (this.renderer) {
-      this.renderer.dispose();
-      this.renderer.domElement?.remove();
-    }
-    this.root.replaceChildren();
-  }
-}

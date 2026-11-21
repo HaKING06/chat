@@ -3556,3 +3556,789 @@ body.in-blackjack .games-view {
     font-size: 10.5px;
   }
 }
+
+/* ==================== 3D EUROPEAN CASINO ROULETTE ==================== */
+.game-card-roulette {
+  border-color: rgba(227, 184, 87, 0.34);
+  background: radial-gradient(circle at top right, rgba(20, 92, 56, 0.24), transparent 58%),
+    linear-gradient(155deg, rgba(20, 26, 22, 0.96), rgba(12, 16, 14, 0.98));
+}
+
+.roulette-live-tag {
+  background: rgba(227, 184, 87, 0.16);
+  color: #f4d378;
+  border-color: rgba(227, 184, 87, 0.42);
+}
+
+.roulette-card-emblem {
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  color: #f4d378;
+  font-weight: 800;
+}
+
+.roulette-arena {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  color: #f2f5f3;
+}
+
+.roulette-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(19, 26, 22, 0.96), rgba(12, 17, 14, 0.98));
+  border: 1px solid rgba(227, 184, 87, 0.28);
+}
+
+.roulette-top-left,
+.roulette-top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.rl-phase-pill,
+.rl-timer-pill,
+.rl-meta-pill,
+.rl-bank-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.rl-phase-pill.phase-betting {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(52, 211, 153, 0.45);
+  color: #6ee7b7;
+}
+
+.rl-phase-pill.phase-spinning {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(251, 191, 36, 0.55);
+  color: #fde68a;
+}
+
+.rl-phase-pill.phase-settled {
+  background: rgba(234, 179, 8, 0.24);
+  border-color: rgba(250, 204, 21, 0.65);
+  color: #fef08a;
+}
+
+.rl-timer-pill {
+  min-width: 38px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  background: rgba(227, 184, 87, 0.16);
+  border-color: rgba(227, 184, 87, 0.4);
+  color: #f7dc88;
+}
+
+.rl-timer-pill.urgent {
+  background: rgba(239, 68, 68, 0.26);
+  border-color: rgba(248, 113, 113, 0.6);
+  color: #fecaca;
+}
+
+.rl-bank-pill {
+  color: #d9f99d;
+  border-color: rgba(163, 230, 53, 0.34);
+}
+
+.rl-history-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  max-width: 100%;
+}
+
+.rl-hist-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.rl-hist-dot.red {
+  background: #b91c1c;
+}
+
+.rl-hist-dot.black {
+  background: #181c24;
+}
+
+.rl-hist-dot.green {
+  background: #15803d;
+}
+
+.rl-hist-dot.latest {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px #facc15;
+}
+
+.rl-hist-stats,
+.rl-hist-empty {
+  font-size: 11px;
+  color: #cbd5e1;
+  padding: 0 4px;
+}
+
+.rl-cam-group {
+  display: inline-flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.rl-cam-btn {
+  padding: 5px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 0;
+  background: rgba(255, 255, 255, 0.05);
+  color: #d5ded8;
+  cursor: pointer;
+}
+
+.rl-cam-btn.active {
+  background: #d4af37;
+  color: #14120c;
+}
+
+.roulette-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.roulette-stage {
+  position: relative;
+  height: clamp(270px, 42dvh, 430px);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(227, 184, 87, 0.3);
+  background: #0b100e;
+}
+
+.rl-canvas-3d,
+.rl-canvas-2d {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.rl-stage-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.rl-win-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13.5px;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  border: 1.5px solid rgba(250, 204, 21, 0.8);
+  white-space: nowrap;
+}
+
+.rl-win-banner.red {
+  background: rgba(185, 28, 28, 0.92);
+}
+
+.rl-win-banner.black {
+  background: rgba(20, 24, 33, 0.94);
+}
+
+.rl-win-banner.green {
+  background: rgba(21, 128, 61, 0.94);
+}
+
+.rl-hover-chip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(12, 17, 15, 0.92);
+  border: 1px solid #f4d378;
+  color: #fef3c7;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.roulette-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: clamp(270px, 42dvh, 430px);
+}
+
+.rl-side-section {
+  background: rgba(15, 21, 18, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rl-feed-section {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.rl-side-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #f4d378;
+}
+
+.rl-side-sub {
+  font-size: 11px;
+  color: #b7c4bc;
+}
+
+.rl-seats-list,
+.rl-feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  max-height: 185px;
+}
+
+.rl-seat-row,
+.rl-feed-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 7px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rl-seat-row.me {
+  border: 1px solid rgba(183, 236, 93, 0.4);
+  background: rgba(183, 236, 93, 0.08);
+}
+
+.rl-seat-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.rl-seat-name,
+.rl-feed-who {
+  font-weight: 700;
+  color: #f1f5f9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rl-seat-bet {
+  margin-left: auto;
+  font-size: 11px;
+  color: #fde68a;
+}
+
+.rl-seat-win {
+  color: #4ade80;
+  font-weight: 800;
+}
+
+.rl-seat-chips,
+.rl-feed-amt {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #d9f99d;
+}
+
+.rl-feed-who {
+  max-width: 78px;
+}
+
+.rl-feed-arrow {
+  opacity: 0.55;
+}
+
+.rl-feed-spot {
+  flex: 1 1 auto;
+  color: #dbe4de;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rl-feed-empty {
+  font-size: 11.5px;
+  color: #93a39a;
+  padding: 6px 2px;
+}
+
+.roulette-dock {
+  background: linear-gradient(180deg, rgba(13, 30, 22, 0.96), rgba(9, 20, 15, 0.98));
+  border: 1px solid rgba(227, 184, 87, 0.3);
+  border-radius: 14px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roulette-dock.is-locked .rl-felt-2d,
+.roulette-dock.is-locked .rl-panel-racetrack {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.rl-dock-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rl-chip-rack {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rl-chip-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px dashed var(--chip-accent, #fff);
+  background: radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.25), transparent 52%), var(--chip-bg, #2563eb);
+  color: var(--chip-accent, #fff);
+  font-weight: 900;
+  font-size: 11.5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.rl-chip-btn.active {
+  transform: translateY(-4px) scale(1.1);
+  box-shadow: 0 0 0 2.5px #facc15, 0 8px 16px rgba(0, 0, 0, 0.55);
+}
+
+.rl-dock-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.rl-tab-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: #dce4df;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rl-tab-btn.active {
+  background: rgba(227, 184, 87, 0.22);
+  border-color: #e3b857;
+  color: #fde68a;
+}
+
+.rl-tab-feed {
+  display: none;
+}
+
+.rl-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* Interactive 2D Roulette Felt Mirror */
+.rl-felt-2d {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  user-select: none;
+}
+
+.rl-felt-main-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 3px;
+}
+
+.rl-zero-col {
+  display: grid;
+  grid-template-rows: 1fr 24px;
+  gap: 3px;
+}
+
+.rl-nums-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: repeat(3, 36px);
+  gap: 3px;
+}
+
+.rl-num-wrap {
+  position: relative;
+  display: flex;
+}
+
+.rl-cols-bar {
+  display: grid;
+  grid-template-rows: repeat(3, 36px);
+  gap: 3px;
+}
+
+.rl-dozens-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.rl-outside-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.rl-cell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 30px;
+  border-radius: 6px;
+  border: 1px solid rgba(227, 184, 87, 0.55);
+  color: #fffdf5;
+  font-weight: 800;
+  font-size: 12.5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 74, 46, 0.88);
+  transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+.rl-cell:hover {
+  filter: brightness(1.18);
+  box-shadow: inset 0 0 0 1.5px #fde047;
+}
+
+.rl-cell.red {
+  background: #b91c1c;
+}
+
+.rl-cell.black {
+  background: #141720;
+}
+
+.rl-cell.green {
+  background: #0d8f46;
+}
+
+.rl-cell.is-winner {
+  box-shadow: 0 0 0 2.5px #facc15, 0 0 14px rgba(250, 204, 21, 0.85);
+  z-index: 4;
+}
+
+.rl-split-mini {
+  border-radius: 5px;
+  border: 1px solid rgba(227, 184, 87, 0.5);
+  background: rgba(13, 86, 52, 0.9);
+  color: #fde68a;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Invisible touch/click hotspots between cells for Splits, Corners, Streets & SixLines */
+.rl-hot-split-h,
+.rl-hot-split-v,
+.rl-hot-corner,
+.rl-hot-street,
+.rl-hot-sixline {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  z-index: 3;
+  padding: 0;
+}
+
+.rl-hot-split-h {
+  right: -5px;
+  top: 6px;
+  bottom: 6px;
+  width: 9px;
+}
+
+.rl-hot-split-v {
+  left: 6px;
+  right: 6px;
+  bottom: -5px;
+  height: 9px;
+}
+
+.rl-hot-corner {
+  right: -6px;
+  bottom: -6px;
+  width: 11px;
+  height: 11px;
+  z-index: 4;
+}
+
+.rl-hot-street {
+  left: 6px;
+  right: 6px;
+  bottom: -5px;
+  height: 9px;
+}
+
+.rl-hot-sixline {
+  right: -6px;
+  bottom: -6px;
+  width: 11px;
+  height: 11px;
+  z-index: 4;
+}
+
+.rl-hot-split-h:hover,
+.rl-hot-split-v:hover,
+.rl-hot-corner:hover,
+.rl-hot-street:hover,
+.rl-hot-sixline:hover {
+  background: rgba(250, 204, 21, 0.65);
+  border-radius: 999px;
+}
+
+.rl-spot-badges {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.rl-spot-total {
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: #facc15;
+  color: #14120c;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1.1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.rl-spot-owner {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid #fff;
+  display: inline-block;
+}
+
+/* RaceTrack & French Calls */
+.rl-racetrack-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.rl-french-calls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  flex: 1 1 420px;
+}
+
+.rl-call-btn {
+  padding: 6px 8px;
+  border-radius: 9px;
+  border: 1px solid rgba(227, 184, 87, 0.45);
+  background: rgba(16, 70, 44, 0.72);
+  color: #fef9c3;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 11.5px;
+}
+
+.rl-call-btn small {
+  font-size: 10px;
+  color: #b7d7c6;
+}
+
+.rl-call-btn:hover {
+  background: rgba(227, 184, 87, 0.25);
+}
+
+.rl-neighbor-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #e2e8f0;
+}
+
+.rl-rad-btn {
+  padding: 4px 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rl-rad-btn.active {
+  background: #d4af37;
+  color: #111;
+  border-color: #facc15;
+}
+
+.rl-wheel-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.rl-strip-num {
+  flex: 1 0 26px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(227, 184, 87, 0.4);
+  color: #fff;
+  font-weight: 800;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.rl-strip-num.red {
+  background: #b91c1c;
+}
+
+.rl-strip-num.black {
+  background: #141720;
+}
+
+.rl-strip-num.green {
+  background: #0d8f46;
+}
+
+@media (max-width: 960px) {
+  body.in-roulette main {
+    padding-bottom: 62px !important;
+  }
+
+  .roulette-main {
+    grid-template-columns: 1fr;
+  }
+
+  .roulette-side {
+    display: none;
+  }
+
+  .rl-tab-feed {
+    display: inline-flex;
+  }
+
+  .roulette-stage {
+    height: clamp(220px, 34dvh, 300px);
+  }
+
+  .rl-felt-main-row {
+    grid-template-columns: 34px minmax(0, 1fr) 32px;
+  }
+
+  .rl-nums-grid,
+  .rl-cols-bar {
+    grid-template-rows: repeat(3, 30px);
+  }
+
+  .rl-cell {
+    font-size: 10.5px;
+    min-height: 26px;
+  }
+
+  .rl-chip-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 10.5px;
+  }
+
+  .rl-french-calls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-height: 540px) and (orientation: landscape) {
+  body.in-roulette main {
+    padding: 4px 8px 34px !important;
+  }
+
+  .roulette-stage {
+    height: clamp(185px, 46dvh, 235px) !important;
+  }
+
+  .rl-nums-grid,
+  .rl-cols-bar {
+    grid-template-rows: repeat(3, 25px);
+  }
+}

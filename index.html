@@ -188,6 +188,7 @@
                 <div class="lobby-filters" id="lobby-filters" role="group" aria-label="Oyun türü filtresi">
                   <button type="button" class="lobby-chip active" data-filter="all">Tümü</button>
                   <button type="button" class="lobby-chip" data-filter="waiting">⏳ Bekleyen</button>
+                  <button type="button" class="lobby-chip" data-filter="roulette">🎡 Rulet</button>
                   <button type="button" class="lobby-chip" data-filter="tavla">⛀ Tavla</button>
                   <button type="button" class="lobby-chip" data-filter="okey">🁣 Okey</button>
                   <button type="button" class="lobby-chip" data-filter="okey101">💯 101</button>
@@ -316,6 +317,31 @@
                   Rok &amp; Geçerken alma · Terfi seçici · Hamle günlüğü · Canlı izleme
                 </small>
               </article>
+              <article class="game-card game-card-roulette">
+                <div class="game-card-top">
+                  <span class="tag roulette-live-tag">3D · CANLI ÇARK · 1–8 KİŞİ</span>
+                  <span class="roulette-card-emblem" aria-hidden="true">🎡 ♦</span>
+                </div>
+                <h3>Rulet 3D (Avrupa)</h3>
+                <p>
+                  Canlı kurpiyer eşliğinde otomatik dönen Monte-Carlo rulet çarkı!
+                  Sınırsız eşzamanlı bahis yap, masadaki herkesin çiplerini canlı gör ve son 14 turu takip et.
+                </p>
+                <div class="game-buttons">
+                  <button class="button primary" id="roulette-join">
+                    Canlı Masaya Gir 🎡
+                  </button>
+                  <button class="button secondary" id="roulette-create-new">
+                    Yeni Masa Aç
+                  </button>
+                  <button type="button" class="button secondary" id="roulette-help-btn">
+                    ? Kurallar
+                  </button>
+                </div>
+                <small>
+                  Tek sıfırlı (0–36) · Tüm iç/dış bahisler serbest · RaceTrack &amp; Komşular · Otomatik tur
+                </small>
+              </article>
               <article class="game-card game-card-bj">
                 <div class="game-card-top">
                   <span class="tag bj-live-tag">3D · MAX 6 KİŞİ</span>
@@ -421,6 +447,7 @@
             <div id="active-tavla" class="active-blackjack active-tavla" hidden></div>
             <div id="active-okey" class="active-blackjack active-okey" hidden></div>
             <div id="active-chess" class="active-blackjack active-chess" hidden></div>
+            <div id="active-roulette" class="active-blackjack active-roulette" hidden></div>
             <div id="active-blackjack" class="active-blackjack" hidden></div>
             <div id="active-dice" class="active-blackjack" hidden></div>
           </section>
@@ -908,6 +935,52 @@
         <span><code>[Boşluk]</code> Zar At · <code>[Z]</code> Hamleyi Geri Al · <code>[R]</code> Üstten/3D
           Kamera · <code>[F]</code> Yön Çevir. Maç sonunda <strong>Rövanş</strong> derseniz aynı masada
           renkler değişerek anında devam edersiniz!</span>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="roulette-help-dialog" class="modal dice-help-modal" aria-labelledby="roulette-help-title">
+    <button type="button" class="modal-close icon-button" data-close="roulette-help-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
+    <h2 id="roulette-help-title">🎡 Avrupa Ruleti (3D) Kuralları</h2>
+    <p class="dice-help-lead">
+      Tek sıfırlı (0–36) Monte-Carlo çarkı başlat düğmesi olmadan <strong>otomatik</strong> döner!
+      Tüm bahisler serbestçe birleştirilebilir; herkes masadaki çipleri ve koyulan bahisleri anlık görür.
+    </p>
+    <div class="dice-help-grid">
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge">35:1 · 17:1 · 11:1 · 8:1 · 5:1</span>
+        </div>
+        <strong>İç Bahisler (Sınırsız)</strong>
+        <span><strong>Tek Sayı (35:1)</strong>, <strong>Split 2 sayı (17:1)</strong>,
+          <strong>Sıra/Üçlü 3 sayı (11:1)</strong>, <strong>Köşe/İlk Dörtlü (8:1)</strong> ve
+          <strong>Altılı (5:1)</strong> bahislerini doğrudan 3D çuhadan veya alt tablodan seçebilirsin.</span>
+      </div>
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge">2:1 Düzine/Sütun · 1:1 Renk/Tek-Çift</span>
+        </div>
+        <strong>Dış Bahisler &amp; Kombine</strong>
+        <span>Aynı el içinde kısıtlama olmadan <strong>1. Düzine + Kırmızı + Siyah + Tek Sayı</strong> gibi
+          dilediğin kombinasyonu aynı anda masaya koyabilirsin!</span>
+      </div>
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge hot">🏁 RaceTrack &amp; Komşular</span>
+        </div>
+        <strong>Fransız Çağırma Bahisleri</strong>
+        <span><em>Voisins du Zéro</em>, <em>Tiers du Cylindre</em>, <em>Orphelins</em>, <em>Jeu Zéro</em>
+          ve çark üzerindeki <strong>±1 / ±2 / ±3 Komşular</strong> ile tek tıkla sektör kapatabilirsin.</span>
+      </div>
+      <div class="dice-rule-card dice-rule-hot">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge hot">💎 Canlı Şeffaflık &amp; Otomatik Çark</span>
+        </div>
+        <strong>Canlı Masa Akışı</strong>
+        <span>Her oyuncunun çip rengi kendine özeldir. Sağ panelden kimin nereye kaç fiş bastığını,
+          üstten <strong>son 14 turun</strong> sonuçlarını anlık izleyebilirsin; fişin 100 altına düşerse
+          <strong>+500 Fiş Al</strong> açılır.</span>
       </div>
     </div>
   </dialog>

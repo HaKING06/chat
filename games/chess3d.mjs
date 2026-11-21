@@ -728,748 +728,748 @@ export class ChessArena {
     if (this.webglReady) this._applyCameraImmediate(this.cameraMode, this.flipped, false);
   }
 
-  _applyCameraImmediate(mode, flipped, immediate = true) {
-    if (!this.camera || !this.controls) return;
-    const side = flipped ? -1 : 1;
-    // Rotate edge label strips 180 deg if flipped so Black's viewpoint reads upright
-    const rot = flipped ? Math.PI : 0;
-    for (const s of [this.fileStripBot, this.fileStripTop, this.rankStripL, this.rankStripR]) {
-      if (s) s.rotation.z = rot;
-    }
-    const aspect = this.camera.aspect || 1;
-    const portraitBoost = aspect < 1 ? 1.32 : 1.0;
-    // Extreme bird's-eye default ("aşırı kuş bakışı"): fits full 8x8 board cleanly!
-    if (mode === "bird") {
-      this.camTargetPos.set(0, 14.6 * portraitBoost, 1.45 * side * portraitBoost);
-    } else {
-      this.camTargetPos.set(4.2 * side * portraitBoost, 9.2 * portraitBoost, 8.4 * side * portraitBoost);
-    }
-    this.camTargetLook.set(0, 0.08, 0);
-    if (immediate) {
-      this.camGliding = false;
-      this.camera.position.copy(this.camTargetPos);
-      this.controls.target.copy(this.camTargetLook);
-      this.controls.update();
-    } else {
-      this.camGliding = true;
-    }
-  }
-
-  _resize() {
-    if (!this.webglReady || !this.renderer || !this.camera) return;
-    const w = Math.max(280, this.canvasWrap.clientWidth || 640);
-    const h = Math.max(300, this.canvasWrap.clientHeight || 480);
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(w, h);
-    if (!this.userOrbited) this._applyCameraImmediate(this.cameraMode, this.flipped, true);
-  }
-
-  _spawnChessRing(x, z, color = 0xf2d14b, maxScale = 2.0, dur = 0.42) {
-    if (!this.effectsGroup) return;
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(0.24, 0.36, 28),
-      new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: 0.9,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      }),
-    );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(x, 0.092, z);
-    this.effectsGroup.add(ring);
-    this.impactRings.push({ mesh: ring, elapsed: 0, dur, maxScale });
-  }
-
-  _animate() {
-    if (this.disposed) return;
-    this.rafId = requestAnimationFrame(() => this._animate());
-
-    const now = performance.now();
-    const dt = Math.min(0.05, Math.max(0.001, (now - (this._lastAnimMs || now)) / 1000));
-    this._lastAnimMs = now;
-    const timeSec = now * 0.001;
-
-    // 1) Piece movement arcs (Knight high-leap, Castling dual slide, soft settle)
-    if (this.animating.length > 0) {
-      const keep = [];
-      for (const a of this.animating) {
-        const t = Math.min(1, (now - a.startAt) / a.dur);
-        const ease = 1 - Math.pow(1 - t, 3);
-        a.obj.position.lerpVectors(a.startPos, a.endPos, ease);
-        a.obj.position.y += Math.sin(t * Math.PI) * (a.arcH ?? 0.42);
-        const tilt = Math.sin(t * Math.PI) * (a.tilt ?? 0.14);
-        a.obj.rotation.x = a.tiltDirZ * tilt;
-        a.obj.rotation.z = -a.tiltDirX * tilt;
-        if (t < 1) keep.push(a);
-        else {
-          a.obj.position.copy(a.endPos);
-          a.obj.rotation.x = 0;
-          a.obj.rotation.z = 0;
-          a.onLand?.();
-        }
+    _applyCameraImmediate(mode, flipped, immediate = true) {
+      if (!this.camera || !this.controls) return;
+      const side = flipped ? -1 : 1;
+      // Rotate edge label strips 180 deg if flipped so Black's viewpoint reads upright
+      const rot = flipped ? Math.PI : 0;
+      for (const s of [this.fileStripBot, this.fileStripTop, this.rankStripL, this.rankStripR]) {
+        if (s) s.rotation.z = rot;
       }
-      this.animating = keep;
-    }
-
-    // 2) Captured piece dramatic knock-off spin & fade
-    if (this.captureGhosts.length > 0) {
-      const keep = [];
-      for (const g of this.captureGhosts) {
-        if (g.delay > 0) {
-          g.delay -= dt;
-          keep.push(g);
-          continue;
-        }
-        g.elapsed += dt;
-        const u = Math.min(1, g.elapsed / g.dur);
-        const ease = 1 - Math.pow(1 - u, 2);
-        g.obj.position.x = g.startPos.x + g.vel.x * ease;
-        g.obj.position.z = g.startPos.z + g.vel.z * ease;
-        g.obj.position.y = g.startPos.y + Math.sin(u * Math.PI) * 1.1 - u * 0.35;
-        g.obj.rotation.x += g.spin.x * dt;
-        g.obj.rotation.z += g.spin.z * dt;
-        const s = Math.max(0.001, 1 - u * u);
-        g.obj.scale.setScalar(s);
-        if (u < 1) keep.push(g);
-        else this.effectsGroup.remove(g.obj);
+      const aspect = this.camera.aspect || 1;
+      const portraitBoost = aspect < 1 ? 1.32 : 1.0;
+      // Extreme bird's-eye default ("aşırı kuş bakışı"): fits full 8x8 board cleanly!
+      if (mode === "bird") {
+        this.camTargetPos.set(0, 14.6 * portraitBoost, 1.45 * side * portraitBoost);
+      } else {
+        this.camTargetPos.set(4.2 * side * portraitBoost, 9.2 * portraitBoost, 8.4 * side * portraitBoost);
       }
-      this.captureGhosts = keep;
-    }
-
-    // 3) Impact shockwave rings
-    if (this.impactRings.length > 0) {
-      const keep = [];
-      for (const r of this.impactRings) {
-        r.elapsed += dt;
-        const u = Math.min(1, r.elapsed / r.dur);
-        const ease = 1 - Math.pow(1 - u, 2);
-        r.mesh.scale.setScalar(1 + ease * r.maxScale);
-        r.mesh.material.opacity = (1 - u) * 0.88;
-        if (u < 1) keep.push(r);
-        else {
-          this.effectsGroup.remove(r.mesh);
-          r.mesh.geometry.dispose();
-          r.mesh.material.dispose();
-        }
-      }
-      this.impactRings = keep;
-    }
-
-    // 4) Selected piece graceful levitation bob
-    const liftK = 1 - Math.exp(-15 * dt);
-    const animSet = new Set(this.animating.map((a) => a.obj));
-    for (const [sq, entry] of this.activeMeshes.entries()) {
-      if (animSet.has(entry.obj)) continue;
-      const isSel = this.selectedSquare === sq;
-      const targetY = 0.08 + (isSel ? 0.24 + Math.sin(timeSec * 5.8) * 0.04 : 0);
-      entry.obj.position.y += (targetY - entry.obj.position.y) * liftK;
-    }
-
-    // 5) Pulse legal move dots / capture rings / check alarm
-    const pulse = 1 + Math.sin(timeSec * 5.5) * 0.1;
-    for (const m of this.markersGroup.children) {
-      if (m.userData.pulse) m.scale.setScalar(pulse);
-    }
-
-    // 6) Smooth camera preset / flip glide
-    if (this.camGliding && this.camera && this.controls) {
-      const ck = 1 - Math.exp(-8.5 * dt);
-      this.camera.position.lerp(this.camTargetPos, ck);
-      this.controls.target.lerp(this.camTargetLook, ck);
-      if (
-        this.camera.position.distanceToSquared(this.camTargetPos) < 0.001 &&
-        this.controls.target.distanceToSquared(this.camTargetLook) < 0.001
-      ) {
+      this.camTargetLook.set(0, 0.08, 0);
+      if (immediate) {
+        this.camGliding = false;
         this.camera.position.copy(this.camTargetPos);
         this.controls.target.copy(this.camTargetLook);
-        this.camGliding = false;
+        this.controls.update();
+      } else {
+        this.camGliding = true;
       }
     }
 
-    this.controls?.update();
-    this.renderer?.render(this.scene, this.camera);
-  }
-
-  _syncPieces() {
-    if (!this.webglReady || !this.table) return;
-    const board = parseFenBoard(this.table.fen);
-    const prevLast = this.table.lastMove;
-    const prevSquare = prevLast ? prevLast.from : null;
-    const nextSquare = prevLast ? prevLast.to : null;
-    const prevMesh = prevSquare ? this.activeMeshes.get(prevSquare) : null;
-    const prevCaptured = nextSquare ? this.activeMeshes.get(nextSquare) : null;
-
-    // Castling rook pair detection (King moved 2 squares horizontally)
-    let castleRookFrom = null;
-    let castleRookTo = null;
-    if (prevLast && prevMesh?.type === "k") {
-      if (prevSquare === "e1" && nextSquare === "g1") { castleRookFrom = "h1"; castleRookTo = "f1"; }
-      else if (prevSquare === "e1" && nextSquare === "c1") { castleRookFrom = "a1"; castleRookTo = "d1"; }
-      else if (prevSquare === "e8" && nextSquare === "g8") { castleRookFrom = "h8"; castleRookTo = "f8"; }
-      else if (prevSquare === "e8" && nextSquare === "c8") { castleRookFrom = "a8"; castleRookTo = "d8"; }
+    _resize() {
+      if (!this.webglReady || !this.renderer || !this.camera) return;
+      const w = Math.max(280, this.canvasWrap.clientWidth || 640);
+      const h = Math.max(300, this.canvasWrap.clientHeight || 480);
+      this.camera.aspect = w / h;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(w, h);
+      if (!this.userOrbited) this._applyCameraImmediate(this.cameraMode, this.flipped, true);
     }
 
-    // Spawn knock-off ghost for captured piece
-    if (
-      prevLast &&
-      prevMesh &&
-      prevCaptured &&
-      prevCaptured.color !== prevMesh.color
-    ) {
-      const fromRF = squareToRF(prevSquare);
-      const toRF = squareToRF(nextSquare);
-      const dx = toRF.f - fromRF.f;
-      const dz = toRF.r - fromRF.r;
-      const len = Math.hypot(dx, dz) || 1;
-      const ghost = this._createPieceObject(prevCaptured.color, prevCaptured.type);
-      const startPos = squareToWorld(toRF.r, toRF.f);
-      ghost.position.copy(startPos);
-      this.effectsGroup.add(ghost);
-      this.captureGhosts.push({
-        obj: ghost,
-        startPos,
-        vel: new THREE.Vector3((dx / len) * 1.45, 0, (dz / len) * 1.45),
-        spin: new THREE.Vector3((Math.random() - 0.5) * 11, 0, (Math.random() - 0.5) * 11),
-        delay: 0.14,
-        elapsed: 0,
-        dur: 0.36,
-      });
-    }
-
-    this.piecesGroup.clear();
-    this.activeMeshes.clear();
-    this.animating = [];
-
-    for (let r = 0; r < 8; r++) {
-      for (let f = 0; f < 8; f++) {
-        const piece = board[r][f];
-        if (!piece) continue;
-        const sq = rfToSquare(r, f);
-        const obj = this._createPieceObject(piece.color, piece.type);
-        obj.userData.square = sq;
-        const targetPos = squareToWorld(r, f);
-
-        if (
-          prevLast &&
-          sq === nextSquare &&
-          prevMesh &&
-          prevMesh.color === piece.color
-        ) {
-          const fromRF = squareToRF(prevSquare);
-          const startPos = squareToWorld(fromRF.r, fromRF.f);
-          const dVec = targetPos.clone().sub(startPos);
-          const dLen = Math.max(0.01, Math.hypot(dVec.x, dVec.z));
-          const isKnight = piece.type === "n";
-          const isCapture = Boolean(prevCaptured && prevCaptured.color !== piece.color);
-          obj.position.copy(startPos);
-          this.animating.push({
-            obj,
-            startPos,
-            endPos: targetPos,
-            startAt: performance.now(),
-            dur: isKnight ? 320 : 240,
-            arcH: isKnight ? 0.98 : 0.28,
-            tilt: isKnight ? 0.24 : 0.12,
-            tiltDirX: dVec.x / dLen,
-            tiltDirZ: dVec.z / dLen,
-            onLand: () => {
-              this._spawnChessRing(
-                targetPos.x,
-                targetPos.z,
-                isCapture ? 0xff6b6b : 0xf2d14b,
-                isCapture ? 2.2 : 1.35,
-                isCapture ? 0.44 : 0.28,
-              );
-            },
-          });
-        } else if (castleRookFrom && sq === castleRookTo) {
-          const fromRF = squareToRF(castleRookFrom);
-          const startPos = squareToWorld(fromRF.r, fromRF.f);
-          const dVec = targetPos.clone().sub(startPos);
-          const dLen = Math.max(0.01, Math.hypot(dVec.x, dVec.z));
-          obj.position.copy(startPos);
-          this.animating.push({
-            obj,
-            startPos,
-            endPos: targetPos,
-            startAt: performance.now(),
-            dur: 300,
-            arcH: 0.56,
-            tilt: 0.14,
-            tiltDirX: dVec.x / dLen,
-            tiltDirZ: dVec.z / dLen,
-          });
-        } else {
-          obj.position.copy(targetPos);
-        }
-
-        this.piecesGroup.add(obj);
-        this.activeMeshes.set(sq, { color: piece.color, type: piece.type, obj });
-      }
-    }
-    this._renderMarkers();
-  }
-
-  _renderMarkers() {
-    if (!this.webglReady || !this.table) return;
-    this.markersGroup.clear();
-
-    const addSqHighlight = (sq, color, opacity = 0.42, y = 0.083) => {
-      const { r, f } = squareToRF(sq);
-      const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.94, 0.94),
+    _spawnChessRing(x, z, color = 0xf2d14b, maxScale = 2.0, dur = 0.42) {
+      if (!this.effectsGroup) return;
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.24, 0.36, 28),
         new THREE.MeshBasicMaterial({
           color,
           transparent: true,
-          opacity,
+          opacity: 0.9,
+          side: THREE.DoubleSide,
           depthWrite: false,
         }),
       );
-      mesh.rotation.x = -Math.PI / 2;
-      mesh.position.set(f - 3.5, y, r - 3.5);
-      this.markersGroup.add(mesh);
-    };
-
-    if (this.table.lastMove) {
-      addSqHighlight(this.table.lastMove.from, 0xf2d14b, 0.34, 0.082);
-      addSqHighlight(this.table.lastMove.to, 0xf2d14b, 0.44, 0.082);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(x, 0.092, z);
+      this.effectsGroup.add(ring);
+      this.impactRings.push({ mesh: ring, elapsed: 0, dur, maxScale });
     }
 
-    if (this.selectedSquare) {
-      addSqHighlight(this.selectedSquare, 0xc5f273, 0.52, 0.084);
-      const targets = this.table.legalMoves?.[this.selectedSquare] || [];
-      const board = parseFenBoard(this.table.fen);
-      for (const m of targets) {
-        const { r, f } = squareToRF(m.to);
-        const occupied = Boolean(board[r][f]);
-        if (occupied) {
-          // Capture ring
-          const ring = new THREE.Mesh(
-            new THREE.RingGeometry(0.34, 0.46, 28),
-            new THREE.MeshBasicMaterial({
-              color: 0xff6b6b,
-              transparent: true,
-              opacity: 0.85,
-              side: THREE.DoubleSide,
-              depthWrite: false,
-            }),
-          );
-          ring.rotation.x = -Math.PI / 2;
-          ring.position.set(f - 3.5, 0.086, r - 3.5);
-          ring.userData.pulse = true;
-          this.markersGroup.add(ring);
-        } else {
-          // Quiet move dot
-          const dot = new THREE.Mesh(
-            new THREE.CircleGeometry(0.16, 22),
-            new THREE.MeshBasicMaterial({
-              color: 0xc5f273,
-              transparent: true,
-              opacity: 0.86,
-              depthWrite: false,
-            }),
-          );
-          dot.rotation.x = -Math.PI / 2;
-          dot.position.set(f - 3.5, 0.086, r - 3.5);
-          dot.userData.pulse = true;
-          this.markersGroup.add(dot);
+    _animate() {
+      if (this.disposed) return;
+      this.rafId = requestAnimationFrame(() => this._animate());
+
+      const now = performance.now();
+      const dt = Math.min(0.05, Math.max(0.001, (now - (this._lastAnimMs || now)) / 1000));
+      this._lastAnimMs = now;
+      const timeSec = now * 0.001;
+
+      // 1) Piece movement arcs (Knight high-leap, Castling dual slide, soft settle)
+      if (this.animating.length > 0) {
+        const keep = [];
+        for (const a of this.animating) {
+          const t = Math.min(1, (now - a.startAt) / a.dur);
+          const ease = 1 - Math.pow(1 - t, 3);
+          a.obj.position.lerpVectors(a.startPos, a.endPos, ease);
+          a.obj.position.y += Math.sin(t * Math.PI) * (a.arcH ?? 0.42);
+          const tilt = Math.sin(t * Math.PI) * (a.tilt ?? 0.14);
+          a.obj.rotation.x = a.tiltDirZ * tilt;
+          a.obj.rotation.z = -a.tiltDirX * tilt;
+          if (t < 1) keep.push(a);
+        else {
+            a.obj.position.copy(a.endPos);
+            a.obj.rotation.x = 0;
+            a.obj.rotation.z = 0;
+            a.onLand?.();
+          }
+        }
+        this.animating = keep;
+      }
+
+      // 2) Captured piece dramatic knock-off spin & fade
+      if (this.captureGhosts.length > 0) {
+        const keep = [];
+        for (const g of this.captureGhosts) {
+          if (g.delay > 0) {
+            g.delay -= dt;
+            keep.push(g);
+            continue;
+          }
+          g.elapsed += dt;
+          const u = Math.min(1, g.elapsed / g.dur);
+          const ease = 1 - Math.pow(1 - u, 2);
+          g.obj.position.x = g.startPos.x + g.vel.x * ease;
+          g.obj.position.z = g.startPos.z + g.vel.z * ease;
+          g.obj.position.y = g.startPos.y + Math.sin(u * Math.PI) * 1.1 - u * 0.35;
+          g.obj.rotation.x += g.spin.x * dt;
+          g.obj.rotation.z += g.spin.z * dt;
+          const s = Math.max(0.001, 1 - u * u);
+          g.obj.scale.setScalar(s);
+          if (u < 1) keep.push(g);
+          else this.effectsGroup.remove(g.obj);
+        }
+        this.captureGhosts = keep;
+      }
+
+      // 3) Impact shockwave rings
+      if (this.impactRings.length > 0) {
+        const keep = [];
+        for (const r of this.impactRings) {
+          r.elapsed += dt;
+          const u = Math.min(1, r.elapsed / r.dur);
+          const ease = 1 - Math.pow(1 - u, 2);
+          r.mesh.scale.setScalar(1 + ease * r.maxScale);
+          r.mesh.material.opacity = (1 - u) * 0.88;
+          if (u < 1) keep.push(r);
+          else {
+            this.effectsGroup.remove(r.mesh);
+            r.mesh.geometry.dispose();
+            r.mesh.material.dispose();
+          }
+        }
+        this.impactRings = keep;
+      }
+
+      // 4) Selected piece graceful levitation bob
+      const liftK = 1 - Math.exp(-15 * dt);
+      const animSet = new Set(this.animating.map((a) => a.obj));
+      for (const [sq, entry] of this.activeMeshes.entries()) {
+        if (animSet.has(entry.obj)) continue;
+        const isSel = this.selectedSquare === sq;
+        const targetY = 0.08 + (isSel ? 0.24 + Math.sin(timeSec * 5.8) * 0.04 : 0);
+        entry.obj.position.y += (targetY - entry.obj.position.y) * liftK;
+      }
+
+      // 5) Pulse legal move dots / capture rings / check alarm
+      const pulse = 1 + Math.sin(timeSec * 5.5) * 0.1;
+      for (const m of this.markersGroup.children) {
+        if (m.userData.pulse) m.scale.setScalar(pulse);
+      }
+
+      // 6) Smooth camera preset / flip glide
+      if (this.camGliding && this.camera && this.controls) {
+        const ck = 1 - Math.exp(-8.5 * dt);
+        this.camera.position.lerp(this.camTargetPos, ck);
+        this.controls.target.lerp(this.camTargetLook, ck);
+        if (
+          this.camera.position.distanceToSquared(this.camTargetPos) < 0.001 &&
+          this.controls.target.distanceToSquared(this.camTargetLook) < 0.001
+        ) {
+          this.camera.position.copy(this.camTargetPos);
+          this.controls.target.copy(this.camTargetLook);
+          this.camGliding = false;
         }
       }
+
+      this.controls?.update();
+      this.renderer?.render(this.scene, this.camera);
     }
 
-    if (this.table.inCheck && this.table.status === "playing") {
+    _syncPieces() {
+      if (!this.webglReady || !this.table) return;
       const board = parseFenBoard(this.table.fen);
+      const prevLast = this.table.lastMove;
+      const prevSquare = prevLast ? prevLast.from : null;
+      const nextSquare = prevLast ? prevLast.to : null;
+      const prevMesh = prevSquare ? this.activeMeshes.get(prevSquare) : null;
+      const prevCaptured = nextSquare ? this.activeMeshes.get(nextSquare) : null;
+
+      // Castling rook pair detection (King moved 2 squares horizontally)
+      let castleRookFrom = null;
+      let castleRookTo = null;
+      if (prevLast && prevMesh?.type === "k") {
+        if (prevSquare === "e1" && nextSquare === "g1") { castleRookFrom = "h1"; castleRookTo = "f1"; }
+        else if (prevSquare === "e1" && nextSquare === "c1") { castleRookFrom = "a1"; castleRookTo = "d1"; }
+        else if (prevSquare === "e8" && nextSquare === "g8") { castleRookFrom = "h8"; castleRookTo = "f8"; }
+        else if (prevSquare === "e8" && nextSquare === "c8") { castleRookFrom = "a8"; castleRookTo = "d8"; }
+      }
+
+      // Spawn knock-off ghost for captured piece
+      if (
+        prevLast &&
+        prevMesh &&
+        prevCaptured &&
+        prevCaptured.color !== prevMesh.color
+      ) {
+        const fromRF = squareToRF(prevSquare);
+        const toRF = squareToRF(nextSquare);
+        const dx = toRF.f - fromRF.f;
+        const dz = toRF.r - fromRF.r;
+        const len = Math.hypot(dx, dz) || 1;
+        const ghost = this._createPieceObject(prevCaptured.color, prevCaptured.type);
+        const startPos = squareToWorld(toRF.r, toRF.f);
+        ghost.position.copy(startPos);
+        this.effectsGroup.add(ghost);
+        this.captureGhosts.push({
+          obj: ghost,
+          startPos,
+          vel: new THREE.Vector3((dx / len) * 1.45, 0, (dz / len) * 1.45),
+          spin: new THREE.Vector3((Math.random() - 0.5) * 11, 0, (Math.random() - 0.5) * 11),
+          delay: 0.14,
+          elapsed: 0,
+          dur: 0.36,
+        });
+      }
+
+      this.piecesGroup.clear();
+      this.activeMeshes.clear();
+      this.animating = [];
+
       for (let r = 0; r < 8; r++) {
         for (let f = 0; f < 8; f++) {
-          const p = board[r][f];
-          if (p && p.type === "k" && p.color === this.table.turn) {
-            addSqHighlight(rfToSquare(r, f), 0xff3b3b, 0.62, 0.085);
-            const checkRing = new THREE.Mesh(
-              new THREE.RingGeometry(0.36, 0.49, 28),
+          const piece = board[r][f];
+          if (!piece) continue;
+          const sq = rfToSquare(r, f);
+          const obj = this._createPieceObject(piece.color, piece.type);
+          obj.userData.square = sq;
+          const targetPos = squareToWorld(r, f);
+
+          if (
+            prevLast &&
+            sq === nextSquare &&
+            prevMesh &&
+            prevMesh.color === piece.color
+          ) {
+            const fromRF = squareToRF(prevSquare);
+            const startPos = squareToWorld(fromRF.r, fromRF.f);
+            const dVec = targetPos.clone().sub(startPos);
+            const dLen = Math.max(0.01, Math.hypot(dVec.x, dVec.z));
+            const isKnight = piece.type === "n";
+            const isCapture = Boolean(prevCaptured && prevCaptured.color !== piece.color);
+            obj.position.copy(startPos);
+            this.animating.push({
+              obj,
+              startPos,
+              endPos: targetPos,
+              startAt: performance.now(),
+              dur: isKnight ? 320 : 240,
+              arcH: isKnight ? 0.98 : 0.28,
+              tilt: isKnight ? 0.24 : 0.12,
+              tiltDirX: dVec.x / dLen,
+              tiltDirZ: dVec.z / dLen,
+              onLand: () => {
+                this._spawnChessRing(
+                  targetPos.x,
+                  targetPos.z,
+                  isCapture ? 0xff6b6b : 0xf2d14b,
+                  isCapture ? 2.2 : 1.35,
+                  isCapture ? 0.44 : 0.28,
+                );
+              },
+            });
+          } else if (castleRookFrom && sq === castleRookTo) {
+            const fromRF = squareToRF(castleRookFrom);
+            const startPos = squareToWorld(fromRF.r, fromRF.f);
+            const dVec = targetPos.clone().sub(startPos);
+            const dLen = Math.max(0.01, Math.hypot(dVec.x, dVec.z));
+            obj.position.copy(startPos);
+            this.animating.push({
+              obj,
+              startPos,
+              endPos: targetPos,
+              startAt: performance.now(),
+              dur: 300,
+              arcH: 0.56,
+              tilt: 0.14,
+              tiltDirX: dVec.x / dLen,
+              tiltDirZ: dVec.z / dLen,
+            });
+          } else {
+            obj.position.copy(targetPos);
+          }
+
+          this.piecesGroup.add(obj);
+          this.activeMeshes.set(sq, { color: piece.color, type: piece.type, obj });
+        }
+      }
+      this._renderMarkers();
+    }
+
+    _renderMarkers() {
+      if (!this.webglReady || !this.table) return;
+      this.markersGroup.clear();
+
+      const addSqHighlight = (sq, color, opacity = 0.42, y = 0.083) => {
+        const { r, f } = squareToRF(sq);
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.94, 0.94),
+          new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity,
+            depthWrite: false,
+          }),
+        );
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.set(f - 3.5, y, r - 3.5);
+        this.markersGroup.add(mesh);
+      };
+
+      if (this.table.lastMove) {
+        addSqHighlight(this.table.lastMove.from, 0xf2d14b, 0.34, 0.082);
+        addSqHighlight(this.table.lastMove.to, 0xf2d14b, 0.44, 0.082);
+      }
+
+      if (this.selectedSquare) {
+        addSqHighlight(this.selectedSquare, 0xc5f273, 0.52, 0.084);
+        const targets = this.table.legalMoves?.[this.selectedSquare] || [];
+        const board = parseFenBoard(this.table.fen);
+        for (const m of targets) {
+          const { r, f } = squareToRF(m.to);
+          const occupied = Boolean(board[r][f]);
+          if (occupied) {
+            // Capture ring
+            const ring = new THREE.Mesh(
+              new THREE.RingGeometry(0.34, 0.46, 28),
               new THREE.MeshBasicMaterial({
-                color: 0xff4545,
+                color: 0xff6b6b,
                 transparent: true,
-                opacity: 0.9,
+                opacity: 0.85,
                 side: THREE.DoubleSide,
                 depthWrite: false,
               }),
             );
-            checkRing.rotation.x = -Math.PI / 2;
-            checkRing.position.set(f - 3.5, 0.089, r - 3.5);
-            checkRing.userData.pulse = true;
-            this.markersGroup.add(checkRing);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.set(f - 3.5, 0.086, r - 3.5);
+            ring.userData.pulse = true;
+            this.markersGroup.add(ring);
+          } else {
+            // Quiet move dot
+            const dot = new THREE.Mesh(
+              new THREE.CircleGeometry(0.16, 22),
+              new THREE.MeshBasicMaterial({
+                color: 0xc5f273,
+                transparent: true,
+                opacity: 0.86,
+                depthWrite: false,
+              }),
+            );
+            dot.rotation.x = -Math.PI / 2;
+            dot.position.set(f - 3.5, 0.086, r - 3.5);
+            dot.userData.pulse = true;
+            this.markersGroup.add(dot);
+          }
+        }
+      }
+
+      if (this.table.inCheck && this.table.status === "playing") {
+        const board = parseFenBoard(this.table.fen);
+        for (let r = 0; r < 8; r++) {
+          for (let f = 0; f < 8; f++) {
+            const p = board[r][f];
+            if (p && p.type === "k" && p.color === this.table.turn) {
+              addSqHighlight(rfToSquare(r, f), 0xff3b3b, 0.62, 0.085);
+              const checkRing = new THREE.Mesh(
+                new THREE.RingGeometry(0.36, 0.49, 28),
+                new THREE.MeshBasicMaterial({
+                  color: 0xff4545,
+                  transparent: true,
+                  opacity: 0.9,
+                  side: THREE.DoubleSide,
+                  depthWrite: false,
+                }),
+              );
+              checkRing.rotation.x = -Math.PI / 2;
+              checkRing.position.set(f - 3.5, 0.089, r - 3.5);
+              checkRing.userData.pulse = true;
+              this.markersGroup.add(checkRing);
+            }
           }
         }
       }
     }
-  }
 
-  _startClockLoop() {
-    this.clockInterval = setInterval(() => this._refreshClocks(), 500);
-  }
-
-  _refreshClocks() {
-    if (!this.table) return;
-    const els = this.playersBox.querySelectorAll("[data-chess-clock]");
-    for (const el of els) {
-      const col = el.getAttribute("data-chess-clock");
-      let total = this.table.clocks?.[col] || 0;
-      if (
-        this.table.status === "playing" &&
-        this.table.turn === col &&
-        this.table.turnStartedAt
-      ) {
-        total += Math.max(0, Date.now() - this.table.turnStartedAt);
-      }
-      el.textContent = formatClock(total);
-    }
-    const graceEls = this.playersBox.querySelectorAll("[data-chess-grace]");
-    for (const gel of graceEls) {
-      const deadline = Number(gel.getAttribute("data-chess-grace")) || 0;
-      const remMs = Math.max(0, deadline - Date.now());
-      gel.textContent =
-        remMs > 0 ? `⏳ Koptu · ${formatClock(remMs)}` : "⏳ Süre doluyor";
-    }
-  }
-
-  update(table) {
-    this.table = table;
-    if (!table) return;
-
-    const myColor = this._myColor();
-    const isSpec = !myColor;
-
-    // Auto orient board on first render of a table so Black sits bottom-facing for Black player!
-    if (this.viewInitForTable !== table.id) {
-      this.viewInitForTable = table.id;
-      this.flipped = myColor === "b";
-      this.selectedSquare = null;
-      this.pendingPromo = null;
-      this.promoModal.hidden = true;
-      if (this.webglReady) this._applyCameraImmediate(this.cameraMode, this.flipped);
+    _startClockLoop() {
+      this.clockInterval = setInterval(() => this._refreshClocks(), 500);
     }
 
-    // Play crisp move / capture / check / game-over sounds cleanly on change
-    const mvKey = table.lastMove
-      ? `${table.round}:${table.moves?.length || 0}:${table.lastMove.san}`
-      : `${table.round}:0`;
-    if (this.lastMoveKey && this.lastMoveKey !== mvKey && table.lastMove) {
-      const last = table.moves[table.moves.length - 1];
-      if (table.inCheck) playChessCheck();
-      else if (last?.captured) playChessCapture();
-      else playChessMove();
-    }
-    this.lastMoveKey = mvKey;
-
-    if (this.lastStatus !== table.status && table.status === "finished") {
-      if (table.winnerColor === "draw") playDraw();
-      else if (myColor && table.winnerColor === myColor) playWin();
-      else playWin();
-    }
-    this.lastStatus = table.status;
-
-    this.tableTitle.textContent = table.name || "Satranç 3D";
-    if (table.status === "waiting") {
-      this.phaseBadge.textContent = "OYUNCU BEKLENİYOR";
-    } else if (table.status === "playing") {
-      const sideLabel = table.turn === "w" ? "Beyaz Hamlede" : "Siyah Hamlede";
-      this.phaseBadge.textContent = table.inCheck ? `ŞAH! · ${sideLabel}` : sideLabel;
-    } else {
-      this.phaseBadge.textContent =
-        table.winnerColor === "draw"
-          ? `BERABERE · ${table.resultReason}`
-          : `BİTTİ · ${table.resultReason}`;
-    }
-
-    if (isSpec || table.spectatorCount > 0) {
-      this.spectatorBadge.hidden = false;
-      this.spectatorBadge.textContent = isSpec
-        ? `👁 İzleyici Modu · ${table.spectatorCount || 1} İzleyici`
-        : `👁 ${table.spectatorCount} İzleyici`;
-    } else {
-      this.spectatorBadge.hidden = true;
-    }
-
-    this.banner.textContent = table.lastAction?.text || "Satranç Masası hazır.";
-
-    if (
-      this.selectedSquare &&
-      (table.status !== "playing" || table.turn !== myColor)
-    ) {
-      this.selectedSquare = null;
-    }
-
-    this._syncPieces();
-    this._renderFallback2D();
-    this._renderPlayersAndControls();
-  }
-
-  _renderFallback2D() {
-    if (this.webglReady || !this.table) return;
-    this.fallback2d.replaceChildren();
-    const board = parseFenBoard(this.table.fen);
-    const grid = document.createElement("div");
-    grid.className = "chess-2d-grid";
-    const rows = this.flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
-    const files = this.flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
-    const legalTargets = new Set(
-      (this.table.legalMoves?.[this.selectedSquare] || []).map((m) => m.to),
-    );
-    for (const r of rows) {
-      for (const f of files) {
-        const sq = rfToSquare(r, f);
-        const p = board[r][f];
-        const btn = document.createElement("button");
-        btn.type = "button";
-        const isLight = (r + f) % 2 === 0;
-        btn.className =
-          "chess-2d-sq " +
-          (isLight ? "light" : "dark") +
-          (this.selectedSquare === sq ? " selected" : "") +
-          (legalTargets.has(sq) ? " legal" : "") +
-          (this.table.lastMove?.from === sq || this.table.lastMove?.to === sq
-            ? " last"
-            : "");
-        btn.setAttribute("aria-label", sq);
-        btn.textContent = p ? PIECE_GLYPH[p.color + p.type] : "";
-        btn.addEventListener("click", () => this._onSquareTap(sq));
-        grid.append(btn);
-      }
-    }
-    this.fallback2d.append(grid);
-  }
-
-  _renderPlayersAndControls() {
-    const t = this.table;
-    if (!t) return;
-    const myColor = this._myColor();
-    const isSpec = !myColor;
-
-    // Players HUD (show opponent on top, own side or White on bottom relative to flip)
-    this.playersBox.replaceChildren();
-    const order = this.flipped ? [0, 1] : [1, 0];
-    for (const idx of order) {
-      const seat = t.seats[idx];
-      const color = idx === 0 ? "w" : "b";
-      const isActive = t.status === "playing" && t.turn === color;
-      const card = document.createElement("div");
-      card.className =
-        "chess-player-card" +
-        (isActive ? " active-turn" : "") +
-      (t.winnerColor === color ? " winner" : "") +
-        (seat?.disconnected ? " disconnected" : "");
-
-      const topRow = document.createElement("div");
-      topRow.className = "chess-player-top";
-      const icon = color === "w" ? "♔" : "♚";
-      const label = seat
-        ? seat.isBot
-          ? `🤖 ${seat.name}`
-          : seat.userId === this.user?.id
-            ? `${seat.name} (Sen)`
-            : seat.name
-        : `Boş (${color === "w" ? "Beyaz" : "Siyah"})`;
-      const nameEl = document.createElement("strong");
-      nameEl.textContent = `${icon} ${label}`;
-
-      const rightMeta = document.createElement("div");
-      rightMeta.className = "chess-player-meta";
-      if (seat?.disconnected && seat?.reconnectDeadline) {
-        const g = document.createElement("span");
-        g.className = "tag chess-grace-tag";
-        g.setAttribute("data-chess-grace", String(seat.reconnectDeadline));
-        g.textContent = "⏳ Koptu";
-        rightMeta.append(g);
-      }
-      if (seat && seat.wins > 0) {
-        const w = document.createElement("span");
-        w.className = "tag";
-        w.textContent = `${seat.wins}G`;
-        rightMeta.append(w);
-      }
-      const clock = document.createElement("span");
-      clock.className = "chess-clock";
-      clock.setAttribute("data-chess-clock", color);
-      clock.textContent = formatClock(t.clocks?.[color] || 0);
-      rightMeta.append(clock);
-      topRow.append(nameEl, rightMeta);
-
-      // Captured pieces + reaction bubble
-      const capRow = document.createElement("div");
-      capRow.className = "chess-captured-row";
-      const caps = t.captured?.[color] || [];
-      if (caps.length) {
-        const capColor = color === "w" ? "b" : "w";
-        capRow.textContent = caps.map((pt) => PIECE_GLYPH[capColor + pt]).join(" ");
-      } else {
-        capRow.textContent = color === "w" ? "Beyaz Taşlar" : "Siyah Taşlar";
-      }
-
-      if (seat?.reaction && Date.now() - seat.reaction.at < 4000) {
-        const reactBubble = document.createElement("span");
-        reactBubble.className = "bj-react-bubble";
-        reactBubble.textContent = seat.reaction.emoji;
-        card.append(reactBubble);
-      }
-
-      card.append(topRow, capRow);
-      this.playersBox.append(card);
-    }
-    this._refreshClocks();
-
-    // Move list (paired 1. e4 e5)
-    this.moveCountBadge.textContent = `${t.moves?.length || 0} hamle`;
-    this.movesList.replaceChildren();
-    const moves = t.moves || [];
-    for (let i = 0; i < moves.length; i += 2) {
-      const pair = document.createElement("div");
-      pair.className = "chess-move-pair";
-      const num = document.createElement("span");
-      num.className = "chess-move-num";
-      num.textContent = `${Math.floor(i / 2) + 1}.`;
-      const wMv = document.createElement("span");
-      wMv.textContent = moves[i]?.san || "";
-      const bMv = document.createElement("span");
-      bMv.textContent = moves[i + 1]?.san || "";
-      pair.append(num, wMv, bMv);
-      this.movesList.append(pair);
-    }
-    this.movesList.scrollTop = this.movesList.scrollHeight;
-
-    // Spectators bar
-    if (t.spectatorCount > 0) {
-      this.spectatorsListEl.hidden = false;
-      this.spectatorsListEl.textContent = `👁 İzleyenler (${t.spectatorCount}): ${(t.spectators || []).join(", ")}`;
-    } else {
-      this.spectatorsListEl.hidden = true;
-    }
-
-    // Action controls
-    this.controlsBox.replaceChildren();
-    this.reactRow.hidden = isSpec;
-
-    if (isSpec) {
-      const note = document.createElement("p");
-      note.className = "chess-spec-note";
-      note.textContent =
-        "👁 İzleyici modundasın. Hamleleri canlı izleyebilir ve sağ alttan sohbet edebilirsin.";
-      this.controlsBox.append(note);
-      if (t.seatedCount < 2 && t.status === "waiting") {
-        const sitBtn = document.createElement("button");
-        sitBtn.type = "button";
-        sitBtn.className = "button primary";
-        sitBtn.textContent = "🪑 Boş Koltuğa Otur";
-        sitBtn.addEventListener("click", () => this.cb.onSit?.());
-        this.controlsBox.append(sitBtn);
-      }
-      return;
-    }
-
-    if (t.status === "waiting") {
-      const diffRow = document.createElement("div");
-      diffRow.className = "chess-bot-bar";
-      for (const [d, lbl] of [
-        ["easy", "Kolay Bot"],
-        ["medium", "Orta Bot"],
-        ["hard", "Usta Bot"],
-      ]) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "button small secondary";
-        b.textContent = `🤖 ${lbl}`;
-        b.addEventListener("click", () => this.cb.onConfig?.({ withBot: true, botDifficulty: d }));
-        diffRow.append(b);
-      }
-      const info = document.createElement("small");
-      info.className = "chess-wait-hint";
-      info.textContent = "Arkadaşın lobiden Katıl'a basınca oyun başlar veya hemen Bot ekle.";
-      this.controlsBox.append(diffRow, info);
-      return;
-    }
-
-    if (t.status === "playing") {
-      // Check incoming draw offer
-      if (t.drawOfferBy && t.drawOfferBy !== myColor) {
-        const offerBanner = document.createElement("div");
-        offerBanner.className = "chess-draw-banner";
-        offerBanner.innerHTML = "<span>🤝 Rakibin beraberlik teklif etti!</span>";
-        const btns = document.createElement("div");
-        btns.className = "game-buttons";
-        const acc = document.createElement("button");
-        acc.type = "button";
-        acc.className = "button small primary";
-        acc.textContent = "Kabul Et";
-        acc.addEventListener("click", () => this.cb.onAction?.("acceptDraw"));
-        const dec = document.createElement("button");
-        dec.type = "button";
-        dec.className = "button small secondary";
-        dec.textContent = "Reddet";
-        dec.addEventListener("click", () => this.cb.onAction?.("declineDraw"));
-        btns.append(acc, dec);
-        offerBanner.append(btns);
-        this.controlsBox.append(offerBanner);
-      }
-
-      const row = document.createElement("div");
-      row.className = "game-buttons";
-      if (!t.hasBot) {
-        const drawBtn = document.createElement("button");
-        drawBtn.type = "button";
-        drawBtn.className = "button small secondary";
-        drawBtn.disabled = t.drawOfferBy === myColor;
-        drawBtn.textContent =
-          t.drawOfferBy === myColor ? "🤝 Teklif gönderildi" : "🤝 Beraberlik Teklif Et";
-        drawBtn.addEventListener("click", () => this.cb.onAction?.("offerDraw"));
-        row.append(drawBtn);
-      }
-      const resignBtn = document.createElement("button");
-      resignBtn.type = "button";
-      resignBtn.className = "button small danger";
-      resignBtn.textContent = "🏳 Terk Et";
-      resignBtn.addEventListener("click", () => {
-        if (confirm("Oyunu terk etmek istediğine emin misin?")) {
-          this.cb.onAction?.("resign");
+    _refreshClocks() {
+      if (!this.table) return;
+      const els = this.playersBox.querySelectorAll("[data-chess-clock]");
+      for (const el of els) {
+        const col = el.getAttribute("data-chess-clock");
+        let total = this.table.clocks?.[col] || 0;
+        if (
+          this.table.status === "playing" &&
+          this.table.turn === col &&
+          this.table.turnStartedAt
+        ) {
+          total += Math.max(0, Date.now() - this.table.turnStartedAt);
         }
-      });
-      row.append(resignBtn);
-      this.controlsBox.append(row);
-      return;
-    }
-
-    if (t.status === "finished") {
-      const resBanner = document.createElement("div");
-      resBanner.className = "chess-result-banner";
-      resBanner.textContent =
-        t.winnerColor === "draw"
-          ? `🤝 Berabere — ${t.resultReason}`
-          : `🏆 Kazanan: ${t.winnerName} (${t.resultReason})`;
-      const row = document.createElement("div");
-      row.className = "game-buttons";
-      if (t.seats[0] && t.seats[1]) {
-        const rematchBtn = document.createElement("button");
-        rematchBtn.type = "button";
-        rematchBtn.className = "button primary";
-        rematchBtn.textContent = "↻ Rövanş (Beyaz ↔ Siyah)";
-        rematchBtn.addEventListener("click", () => this.cb.onAction?.("rematch"));
-        row.append(rematchBtn);
+        el.textContent = formatClock(total);
       }
-      this.controlsBox.append(resBanner, row);
+      const graceEls = this.playersBox.querySelectorAll("[data-chess-grace]");
+      for (const gel of graceEls) {
+        const deadline = Number(gel.getAttribute("data-chess-grace")) || 0;
+        const remMs = Math.max(0, deadline - Date.now());
+        gel.textContent =
+          remMs > 0 ? `⏳ Koptu · ${formatClock(remMs)}` : "⏳ Süre doluyor";
+      }
     }
-  }
 
-  dispose() {
-    this.disposed = true;
-    if (this.rafId) cancelAnimationFrame(this.rafId);
-    if (this.clockInterval) clearInterval(this.clockInterval);
-    this.ro?.disconnect();
-    this.controls?.dispose();
-    if (this.renderer) {
-      this.renderer.dispose();
-      this.renderer.domElement?.remove();
+    update(table) {
+      this.table = table;
+      if (!table) return;
+
+      const myColor = this._myColor();
+      const isSpec = !myColor;
+
+      // Auto orient board on first render of a table so Black sits bottom-facing for Black player!
+      if (this.viewInitForTable !== table.id) {
+        this.viewInitForTable = table.id;
+        this.flipped = myColor === "b";
+        this.selectedSquare = null;
+        this.pendingPromo = null;
+        this.promoModal.hidden = true;
+        if (this.webglReady) this._applyCameraImmediate(this.cameraMode, this.flipped);
+      }
+
+      // Play crisp move / capture / check / game-over sounds cleanly on change
+      const mvKey = table.lastMove
+        ? `${table.round}:${table.moves?.length || 0}:${table.lastMove.san}`
+        : `${table.round}:0`;
+      if (this.lastMoveKey && this.lastMoveKey !== mvKey && table.lastMove) {
+        const last = table.moves[table.moves.length - 1];
+        if (table.inCheck) playChessCheck();
+        else if (last?.captured) playChessCapture();
+        else playChessMove();
+      }
+      this.lastMoveKey = mvKey;
+
+      if (this.lastStatus !== table.status && table.status === "finished") {
+        if (table.winnerColor === "draw") playDraw();
+        else if (myColor && table.winnerColor === myColor) playWin();
+        else playWin();
+      }
+      this.lastStatus = table.status;
+
+      this.tableTitle.textContent = table.name || "Satranç 3D";
+      if (table.status === "waiting") {
+        this.phaseBadge.textContent = "OYUNCU BEKLENİYOR";
+      } else if (table.status === "playing") {
+        const sideLabel = table.turn === "w" ? "Beyaz Hamlede" : "Siyah Hamlede";
+        this.phaseBadge.textContent = table.inCheck ? `ŞAH! · ${sideLabel}` : sideLabel;
+      } else {
+        this.phaseBadge.textContent =
+          table.winnerColor === "draw"
+            ? `BERABERE · ${table.resultReason}`
+            : `BİTTİ · ${table.resultReason}`;
+      }
+
+      if (isSpec || table.spectatorCount > 0) {
+        this.spectatorBadge.hidden = false;
+        this.spectatorBadge.textContent = isSpec
+          ? `👁 İzleyici Modu · ${table.spectatorCount || 1} İzleyici`
+          : `👁 ${table.spectatorCount} İzleyici`;
+      } else {
+        this.spectatorBadge.hidden = true;
+      }
+
+      this.banner.textContent = table.lastAction?.text || "Satranç Masası hazır.";
+
+      if (
+        this.selectedSquare &&
+        (table.status !== "playing" || table.turn !== myColor)
+      ) {
+        this.selectedSquare = null;
+      }
+
+      this._syncPieces();
+      this._renderFallback2D();
+      this._renderPlayersAndControls();
     }
-    this.root.replaceChildren();
+
+    _renderFallback2D() {
+      if (this.webglReady || !this.table) return;
+      this.fallback2d.replaceChildren();
+      const board = parseFenBoard(this.table.fen);
+      const grid = document.createElement("div");
+      grid.className = "chess-2d-grid";
+      const rows = this.flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+      const files = this.flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+      const legalTargets = new Set(
+        (this.table.legalMoves?.[this.selectedSquare] || []).map((m) => m.to),
+      );
+      for (const r of rows) {
+        for (const f of files) {
+          const sq = rfToSquare(r, f);
+          const p = board[r][f];
+          const btn = document.createElement("button");
+          btn.type = "button";
+          const isLight = (r + f) % 2 === 0;
+          btn.className =
+            "chess-2d-sq " +
+            (isLight ? "light" : "dark") +
+            (this.selectedSquare === sq ? " selected" : "") +
+            (legalTargets.has(sq) ? " legal" : "") +
+            (this.table.lastMove?.from === sq || this.table.lastMove?.to === sq
+              ? " last"
+              : "");
+          btn.setAttribute("aria-label", sq);
+          btn.textContent = p ? PIECE_GLYPH[p.color + p.type] : "";
+          btn.addEventListener("click", () => this._onSquareTap(sq));
+          grid.append(btn);
+        }
+      }
+      this.fallback2d.append(grid);
+    }
+
+    _renderPlayersAndControls() {
+      const t = this.table;
+      if (!t) return;
+      const myColor = this._myColor();
+      const isSpec = !myColor;
+
+      // Players HUD (show opponent on top, own side or White on bottom relative to flip)
+      this.playersBox.replaceChildren();
+      const order = this.flipped ? [0, 1] : [1, 0];
+      for (const idx of order) {
+        const seat = t.seats[idx];
+        const color = idx === 0 ? "w" : "b";
+        const isActive = t.status === "playing" && t.turn === color;
+        const card = document.createElement("div");
+        card.className =
+          "chess-player-card" +
+          (isActive ? " active-turn" : "") +
+          (t.winnerColor === color ? " winner" : "") +
+          (seat?.disconnected ? " disconnected" : "");
+
+        const topRow = document.createElement("div");
+        topRow.className = "chess-player-top";
+        const icon = color === "w" ? "♔" : "♚";
+        const label = seat
+          ? seat.isBot
+            ? `🤖 ${seat.name}`
+            : seat.userId === this.user?.id
+              ? `${seat.name} (Sen)`
+              : seat.name
+          : `Boş (${color === "w" ? "Beyaz" : "Siyah"})`;
+        const nameEl = document.createElement("strong");
+        nameEl.textContent = `${icon} ${label}`;
+
+        const rightMeta = document.createElement("div");
+        rightMeta.className = "chess-player-meta";
+        if (seat?.disconnected && seat?.reconnectDeadline) {
+          const g = document.createElement("span");
+          g.className = "tag chess-grace-tag";
+          g.setAttribute("data-chess-grace", String(seat.reconnectDeadline));
+          g.textContent = "⏳ Koptu";
+          rightMeta.append(g);
+        }
+        if (seat && seat.wins > 0) {
+          const w = document.createElement("span");
+          w.className = "tag";
+          w.textContent = `${seat.wins}G`;
+          rightMeta.append(w);
+        }
+        const clock = document.createElement("span");
+        clock.className = "chess-clock";
+        clock.setAttribute("data-chess-clock", color);
+        clock.textContent = formatClock(t.clocks?.[color] || 0);
+        rightMeta.append(clock);
+        topRow.append(nameEl, rightMeta);
+
+        // Captured pieces + reaction bubble
+        const capRow = document.createElement("div");
+        capRow.className = "chess-captured-row";
+        const caps = t.captured?.[color] || [];
+        if (caps.length) {
+          const capColor = color === "w" ? "b" : "w";
+          capRow.textContent = caps.map((pt) => PIECE_GLYPH[capColor + pt]).join(" ");
+        } else {
+          capRow.textContent = color === "w" ? "Beyaz Taşlar" : "Siyah Taşlar";
+        }
+
+        if (seat?.reaction && Date.now() - seat.reaction.at < 4000) {
+          const reactBubble = document.createElement("span");
+          reactBubble.className = "bj-react-bubble";
+          reactBubble.textContent = seat.reaction.emoji;
+          card.append(reactBubble);
+        }
+
+        card.append(topRow, capRow);
+        this.playersBox.append(card);
+      }
+      this._refreshClocks();
+
+      // Move list (paired 1. e4 e5)
+      this.moveCountBadge.textContent = `${t.moves?.length || 0} hamle`;
+      this.movesList.replaceChildren();
+      const moves = t.moves || [];
+      for (let i = 0; i < moves.length; i += 2) {
+        const pair = document.createElement("div");
+        pair.className = "chess-move-pair";
+        const num = document.createElement("span");
+        num.className = "chess-move-num";
+        num.textContent = `${Math.floor(i / 2) + 1}.`;
+        const wMv = document.createElement("span");
+        wMv.textContent = moves[i]?.san || "";
+        const bMv = document.createElement("span");
+        bMv.textContent = moves[i + 1]?.san || "";
+        pair.append(num, wMv, bMv);
+        this.movesList.append(pair);
+      }
+      this.movesList.scrollTop = this.movesList.scrollHeight;
+
+      // Spectators bar
+      if (t.spectatorCount > 0) {
+        this.spectatorsListEl.hidden = false;
+        this.spectatorsListEl.textContent = `👁 İzleyenler (${t.spectatorCount}): ${(t.spectators || []).join(", ")}`;
+      } else {
+        this.spectatorsListEl.hidden = true;
+      }
+
+      // Action controls
+      this.controlsBox.replaceChildren();
+      this.reactRow.hidden = isSpec;
+
+      if (isSpec) {
+        const note = document.createElement("p");
+        note.className = "chess-spec-note";
+        note.textContent =
+          "👁 İzleyici modundasın. Hamleleri canlı izleyebilir ve sağ alttan sohbet edebilirsin.";
+        this.controlsBox.append(note);
+        if (t.seatedCount < 2 && t.status === "waiting") {
+          const sitBtn = document.createElement("button");
+          sitBtn.type = "button";
+          sitBtn.className = "button primary";
+          sitBtn.textContent = "🪑 Boş Koltuğa Otur";
+          sitBtn.addEventListener("click", () => this.cb.onSit?.());
+          this.controlsBox.append(sitBtn);
+        }
+        return;
+      }
+
+      if (t.status === "waiting") {
+        const diffRow = document.createElement("div");
+        diffRow.className = "chess-bot-bar";
+        for (const [d, lbl] of [
+          ["easy", "Kolay Bot"],
+          ["medium", "Orta Bot"],
+          ["hard", "Usta Bot"],
+        ]) {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "button small secondary";
+          b.textContent = `🤖 ${lbl}`;
+          b.addEventListener("click", () => this.cb.onConfig?.({ withBot: true, botDifficulty: d }));
+          diffRow.append(b);
+        }
+        const info = document.createElement("small");
+        info.className = "chess-wait-hint";
+        info.textContent = "Arkadaşın lobiden Katıl'a basınca oyun başlar veya hemen Bot ekle.";
+        this.controlsBox.append(diffRow, info);
+        return;
+      }
+
+      if (t.status === "playing") {
+        // Check incoming draw offer
+        if (t.drawOfferBy && t.drawOfferBy !== myColor) {
+          const offerBanner = document.createElement("div");
+          offerBanner.className = "chess-draw-banner";
+          offerBanner.innerHTML = "<span>🤝 Rakibin beraberlik teklif etti!</span>";
+          const btns = document.createElement("div");
+          btns.className = "game-buttons";
+          const acc = document.createElement("button");
+          acc.type = "button";
+          acc.className = "button small primary";
+          acc.textContent = "Kabul Et";
+          acc.addEventListener("click", () => this.cb.onAction?.("acceptDraw"));
+          const dec = document.createElement("button");
+          dec.type = "button";
+          dec.className = "button small secondary";
+          dec.textContent = "Reddet";
+          dec.addEventListener("click", () => this.cb.onAction?.("declineDraw"));
+          btns.append(acc, dec);
+          offerBanner.append(btns);
+          this.controlsBox.append(offerBanner);
+        }
+
+        const row = document.createElement("div");
+        row.className = "game-buttons";
+        if (!t.hasBot) {
+          const drawBtn = document.createElement("button");
+          drawBtn.type = "button";
+          drawBtn.className = "button small secondary";
+          drawBtn.disabled = t.drawOfferBy === myColor;
+          drawBtn.textContent =
+            t.drawOfferBy === myColor ? "🤝 Teklif gönderildi" : "🤝 Beraberlik Teklif Et";
+          drawBtn.addEventListener("click", () => this.cb.onAction?.("offerDraw"));
+          row.append(drawBtn);
+        }
+        const resignBtn = document.createElement("button");
+        resignBtn.type = "button";
+        resignBtn.className = "button small danger";
+        resignBtn.textContent = "🏳 Terk Et";
+        resignBtn.addEventListener("click", () => {
+          if (confirm("Oyunu terk etmek istediğine emin misin?")) {
+            this.cb.onAction?.("resign");
+          }
+        });
+        row.append(resignBtn);
+        this.controlsBox.append(row);
+        return;
+      }
+
+      if (t.status === "finished") {
+        const resBanner = document.createElement("div");
+        resBanner.className = "chess-result-banner";
+        resBanner.textContent =
+          t.winnerColor === "draw"
+            ? `🤝 Berabere — ${t.resultReason}`
+            : `🏆 Kazanan: ${t.winnerName} (${t.resultReason})`;
+        const row = document.createElement("div");
+        row.className = "game-buttons";
+        if (t.seats[0] && t.seats[1]) {
+          const rematchBtn = document.createElement("button");
+          rematchBtn.type = "button";
+          rematchBtn.className = "button primary";
+          rematchBtn.textContent = "↻ Rövanş (Beyaz ↔ Siyah)";
+          rematchBtn.addEventListener("click", () => this.cb.onAction?.("rematch"));
+          row.append(rematchBtn);
+        }
+        this.controlsBox.append(resBanner, row);
+      }
+    }
+
+    dispose() {
+      this.disposed = true;
+      if (this.rafId) cancelAnimationFrame(this.rafId);
+      if (this.clockInterval) clearInterval(this.clockInterval);
+      this.ro?.disconnect();
+      this.controls?.dispose();
+      if (this.renderer) {
+        this.renderer.dispose();
+        this.renderer.domElement?.remove();
+      }
+      this.root.replaceChildren();
+    }
   }
-}

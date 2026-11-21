@@ -256,3 +256,39 @@ export function playTavlaBearOff() {
   tone({ freq: 440, endFreq: 660, duration: 0.075, gain: 0.04, type: "sine", delay: 0 });
   tone({ freq: 660, endFreq: 880, duration: 0.09, gain: 0.036, type: "triangle", delay: 0.05 });
 }
+
+export function playRouletteChip() {
+  tone({ freq: 1450, endFreq: 1950, duration: 0.035, gain: 0.038, type: "triangle" });
+  tone({ freq: 2450, endFreq: 1700, duration: 0.04, gain: 0.025, type: "sine", delay: 0.015 });
+}
+
+export function playRouletteSpin() {
+  for (let i = 0; i < 6; i += 1) {
+    tone({
+      freq: 210 + i * 26,
+      endFreq: 180 + i * 18,
+      duration: 0.055,
+      gain: 0.026,
+      type: "triangle",
+      delay: i * 0.075,
+    });
+  }
+}
+
+export function playRouletteBallTick(pitch = 1) {
+  const f = 920 * pitch;
+  tone({ freq: f, endFreq: f * 0.62, duration: 0.022, gain: 0.024, type: "sine" });
+}
+
+export function playRouletteDrop() {
+  tone({ freq: 520, endFreq: 210, duration: 0.075, gain: 0.045, type: "triangle", delay: 0 });
+  tone({ freq: 780, endFreq: 420, duration: 0.06, gain: 0.03, type: "sine", delay: 0.055 });
+  tone({ freq: 620, endFreq: 310, duration: 0.05, gain: 0.022, type: "sine", delay: 0.11 });
+}
+
+export function playRouletteWin() {
+  tone({ freq: 523.25, duration: 0.09, gain: 0.045, type: "sine", delay: 0 });
+  tone({ freq: 659.25, duration: 0.09, gain: 0.045, type: "sine", delay: 0.085 });
+  tone({ freq: 783.99, duration: 0.11, gain: 0.045, type: "sine", delay: 0.17 });
+  tone({ freq: 1046.5, duration: 0.18, gain: 0.055, type: "triangle", delay: 0.255 });
+}

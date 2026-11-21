@@ -567,503 +567,503 @@ export class DiceArena {
     this.renderer.setSize(w, h);
   }
 
-  _applyCameraPreset(immediate = false) {
-    if (!this.camera || !this.controls) return;
-    if (!this._camTargetPos) {
-      this._camTargetPos = new THREE.Vector3();
-      this._camTargetLook = new THREE.Vector3();
-      this._camGliding = false;
-      this.controls.addEventListener("start", () => {
+    _applyCameraPreset(immediate = false) {
+      if (!this.camera || !this.controls) return;
+      if (!this._camTargetPos) {
+        this._camTargetPos = new THREE.Vector3();
+        this._camTargetLook = new THREE.Vector3();
         this._camGliding = false;
-      });
-    }
-    const isNarrow = window.innerWidth <= 680;
-    const presets = isNarrow
-      ? [
-        [0, 3.05, 2.75],
-        [0, 3.85, 0.35],
-        [1.65, 2.55, 2.25],
-      ]
-      : [
-        [0, 2.65, 2.45],
-        [0, 3.45, 0.3],
-        [1.85, 2.1, 2.05],
-      ];
-    const [x, y, z] = presets[this.camMode % presets.length];
-    this._camTargetPos.set(x, y, z);
-    this._camTargetLook.set(0, 0.1, 0.04);
-    if (immediate) {
-      this._camGliding = false;
-      this.camera.position.copy(this._camTargetPos);
-      this.controls.target.copy(this._camTargetLook);
-      this.controls.update();
-    } else {
-      this._camGliding = true;
-    }
-  }
-
-  cycleCamera() {
-    this.camMode = (this.camMode + 1) % 3;
-    this._applyCameraPreset(false);
-  }
-
-  _stepDiceAnimations(dt) {
-    const t = this.table;
-    const showActive = t?.status === "playing" && (t.activeDice?.length || 0) > 0;
-    const nowSec = performance.now() * 0.001;
-
-    if (this._camGliding && this.camera && this.controls) {
-      const ck = 1 - Math.exp(-8.5 * dt);
-      this.camera.position.lerp(this._camTargetPos, ck);
-      this.controls.target.lerp(this._camTargetLook, ck);
-      if (
-        this.camera.position.distanceToSquared(this._camTargetPos) < 0.0005 &&
-        this.controls.target.distanceToSquared(this._camTargetLook) < 0.0005
-      ) {
+        this.controls.addEventListener("start", () => {
+          this._camGliding = false;
+        });
+      }
+      const isNarrow = window.innerWidth <= 680;
+      const presets = isNarrow
+        ? [
+          [0, 3.05, 2.75],
+          [0, 3.85, 0.35],
+          [1.65, 2.55, 2.25],
+        ]
+        : [
+          [0, 2.65, 2.45],
+          [0, 3.45, 0.3],
+          [1.85, 2.1, 2.05],
+        ];
+      const [x, y, z] = presets[this.camMode % presets.length];
+      this._camTargetPos.set(x, y, z);
+      this._camTargetLook.set(0, 0.1, 0.04);
+      if (immediate) {
+        this._camGliding = false;
         this.camera.position.copy(this._camTargetPos);
         this.controls.target.copy(this._camTargetLook);
-        this._camGliding = false;
+        this.controls.update();
+      } else {
+        this._camGliding = true;
       }
     }
 
-    for (let i = 0; i < this.diceActors.length; i++) {
-      const a = this.diceActors[i];
-      const ring = this.ringMeshes[i];
-      if (!showActive && t?.status === "playing") {
-        // Resting preview dice before roll or between turns
-        a.holder.visible = false;
-        ring.visible = false;
-        continue;
+    cycleCamera() {
+      this.camMode = (this.camMode + 1) % 3;
+      this._applyCameraPreset(false);
+    }
+
+    _stepDiceAnimations(dt) {
+      const t = this.table;
+      const showActive = t?.status === "playing" && (t.activeDice?.length || 0) > 0;
+      const nowSec = performance.now() * 0.001;
+
+      if (this._camGliding && this.camera && this.controls) {
+        const ck = 1 - Math.exp(-8.5 * dt);
+        this.camera.position.lerp(this._camTargetPos, ck);
+        this.controls.target.lerp(this._camTargetLook, ck);
+        if (
+          this.camera.position.distanceToSquared(this._camTargetPos) < 0.0005 &&
+          this.controls.target.distanceToSquared(this._camTargetLook) < 0.0005
+        ) {
+          this.camera.position.copy(this._camTargetPos);
+          this.controls.target.copy(this._camTargetLook);
+          this._camGliding = false;
+        }
       }
-      const visible =
-        !t || ["waiting", "countdown", "finished"].includes(t.status)
-          ? i < 2
-          : i < (t.activeDice?.length || 0);
-      a.holder.visible = visible;
-      ring.visible = visible;
-      if (!visible) continue;
 
-      if (a.animElapsed < a.animDuration) {
-        const prevU = a.animElapsed / a.animDuration;
-        a.animElapsed = Math.min(a.animDuration, a.animElapsed + dt);
-        const u = a.animElapsed / a.animDuration;
-        const ease = 1 - Math.pow(1 - u, 3);
+      for (let i = 0; i < this.diceActors.length; i++) {
+        const a = this.diceActors[i];
+        const ring = this.ringMeshes[i];
+        if (!showActive && t?.status === "playing") {
+          // Resting preview dice before roll or between turns
+          a.holder.visible = false;
+          ring.visible = false;
+          continue;
+        }
+        const visible =
+          !t || ["waiting", "countdown", "finished"].includes(t.status)
+            ? i < 2
+            : i < (t.activeDice?.length || 0);
+        a.holder.visible = visible;
+        ring.visible = visible;
+        if (!visible) continue;
 
-        // Thrown parabolic horizontal travel across the octagonal tray + 3 damped realistic bounces
-        let bounce = 0;
-        if (u < 0.56) {
-          bounce = Math.sin((u / 0.56) * Math.PI) * a.jumpHeight;
-        } else if (u < 0.82) {
-          bounce = Math.sin(((u - 0.56) / 0.26) * Math.PI) * (a.jumpHeight * 0.34);
-          if (prevU < 0.56 && i < 3) playTavlaDiceBounce(0.72);
+        if (a.animElapsed < a.animDuration) {
+          const prevU = a.animElapsed / a.animDuration;
+          a.animElapsed = Math.min(a.animDuration, a.animElapsed + dt);
+          const u = a.animElapsed / a.animDuration;
+          const ease = 1 - Math.pow(1 - u, 3);
+
+          // Thrown parabolic horizontal travel across the octagonal tray + 3 damped realistic bounces
+          let bounce = 0;
+          if (u < 0.56) {
+            bounce = Math.sin((u / 0.56) * Math.PI) * a.jumpHeight;
+          } else if (u < 0.82) {
+            bounce = Math.sin(((u - 0.56) / 0.26) * Math.PI) * (a.jumpHeight * 0.34);
+            if (prevU < 0.56 && i < 3) playTavlaDiceBounce(0.72);
+          } else {
+            bounce = Math.sin(((u - 0.82) / 0.18) * Math.PI) * (a.jumpHeight * 0.11);
+            if (prevU < 0.82 && i < 2) playTavlaDiceBounce(0.36);
+          }
+
+          const startX = a.throwStart ? a.throwStart.x : a.basePos.x;
+          const startZ = a.throwStart ? a.throwStart.z : a.basePos.z;
+          const curX = startX + (a.basePos.x - startX) * ease;
+          const curZ = startZ + (a.basePos.z - startZ) * ease;
+          a.holder.position.set(curX, DIE_REST_Y + bounce, curZ);
+
+          const spinAngle = Math.pow(1 - u, 1.8) * Math.PI * 2 * a.tumbleSpins;
+          const extraSpin = new THREE.Quaternion().setFromAxisAngle(
+            a.tumbleAxis,
+            spinAngle,
+          );
+          const q = a.targetQuat.clone().premultiply(extraSpin);
+          a.holder.quaternion.copy(q);
         } else {
-          bounce = Math.sin(((u - 0.82) / 0.18) * Math.PI) * (a.jumpHeight * 0.11);
-          if (prevU < 0.82 && i < 2) playTavlaDiceBounce(0.36);
+          const isSel = this.selected.has(i);
+          const lift = isSel ? 0.13 + Math.sin(nowSec * 5.8 + i) * 0.022 : 0;
+          a.holder.position.y += (DIE_REST_Y + lift - a.holder.position.y) * Math.min(1, dt * 14);
+          a.holder.position.x = a.basePos.x;
+          a.holder.position.z = a.basePos.z;
+          a.holder.quaternion.slerp(a.targetQuat, Math.min(1, dt * 14));
         }
 
-        const startX = a.throwStart ? a.throwStart.x : a.basePos.x;
-        const startZ = a.throwStart ? a.throwStart.z : a.basePos.z;
-        const curX = startX + (a.basePos.x - startX) * ease;
-        const curZ = startZ + (a.basePos.z - startZ) * ease;
-        a.holder.position.set(curX, DIE_REST_Y + bounce, curZ);
-
-        const spinAngle = Math.pow(1 - u, 1.8) * Math.PI * 2 * a.tumbleSpins;
-        const extraSpin = new THREE.Quaternion().setFromAxisAngle(
-          a.tumbleAxis,
-          spinAngle,
+        const isSelected = this.selected.has(i);
+        const isPlayable = !!t?.scoringMask?.[i] && t?.turnPhase === "selecting";
+        ring.material.color.setHex(
+          isSelected ? 0xc5f273 : isPlayable ? 0xf6c95e : 0x5c695f,
         );
-        const q = a.targetQuat.clone().premultiply(extraSpin);
-        a.holder.quaternion.copy(q);
-      } else {
-        const isSel = this.selected.has(i);
-        const lift = isSel ? 0.13 + Math.sin(nowSec * 5.8 + i) * 0.022 : 0;
-        a.holder.position.y += (DIE_REST_Y + lift - a.holder.position.y) * Math.min(1, dt * 14);
-        a.holder.position.x = a.basePos.x;
-        a.holder.position.z = a.basePos.z;
-        a.holder.quaternion.slerp(a.targetQuat, Math.min(1, dt * 14));
+        ring.material.opacity = isSelected ? 0.92 : isPlayable ? 0.46 : 0;
+        const scalePulse = isSelected ? 1.08 + Math.sin(performance.now() * 0.008) * 0.05 : 1;
+        ring.scale.setScalar(scalePulse);
       }
 
-      const isSelected = this.selected.has(i);
-      const isPlayable = !!t?.scoringMask?.[i] && t?.turnPhase === "selecting";
-      ring.material.color.setHex(
-        isSelected ? 0xc5f273 : isPlayable ? 0xf6c95e : 0x5c695f,
-      );
-      ring.material.opacity = isSelected ? 0.92 : isPlayable ? 0.46 : 0;
-      const scalePulse = isSelected ? 1.08 + Math.sin(performance.now() * 0.008) * 0.05 : 1;
-      ring.scale.setScalar(scalePulse);
-    }
-
-    // Highlight active turn seat puck
-    if (this.seatPucks && t) {
-      for (let i = 0; i < MAX_SEATS; i++) {
-        const puck = this.seatPucks[i];
-        const seat = t.seats?.[i];
-        puck.visible = !!seat;
-        if (!seat) continue;
-        const active = t.status === "playing" && t.turnSeatIndex === i;
-        puck.material.emissive.setHex(active ? 0x628c25 : 0x000000);
-        puck.scale.setScalar(active ? 1.24 : 1);
+      // Highlight active turn seat puck
+      if (this.seatPucks && t) {
+        for (let i = 0; i < MAX_SEATS; i++) {
+          const puck = this.seatPucks[i];
+          const seat = t.seats?.[i];
+          puck.visible = !!seat;
+          if (!seat) continue;
+          const active = t.status === "playing" && t.turnSeatIndex === i;
+          puck.material.emissive.setHex(active ? 0x628c25 : 0x000000);
+          puck.scale.setScalar(active ? 1.24 : 1);
+        }
       }
     }
-  }
 
-  _startCountdownLoop() {
-    this.countdownTimer = setInterval(() => {
-      if (this.disposed || !this.table) return;
+    _startCountdownLoop() {
+      this.countdownTimer = setInterval(() => {
+        if (this.disposed || !this.table) return;
+        const t = this.table;
+        let targetAt = null;
+        let label = "";
+        if (t.status === "countdown" && t.countdownEndsAt) {
+          targetAt = t.countdownEndsAt;
+          label = "Başlıyor";
+        } else if (t.status === "playing" && t.turnExpiresAt && t.turnPhase !== "farkled") {
+          targetAt = t.turnExpiresAt;
+          label = "Süre";
+        }
+        if (!targetAt) {
+          this.timerPill.hidden = true;
+          return;
+        }
+        const sec = Math.max(0, Math.ceil((targetAt - Date.now()) / 1000));
+        this.timerPill.hidden = false;
+        this.timerPill.textContent = `⏱ ${label}: ${sec}s`;
+        this.timerPill.classList.toggle("urgent", sec <= 5);
+      }, 250);
+    }
+
+    _isMyTurn() {
       const t = this.table;
-      let targetAt = null;
-      let label = "";
-      if (t.status === "countdown" && t.countdownEndsAt) {
-        targetAt = t.countdownEndsAt;
-        label = "Başlıyor";
-      } else if (t.status === "playing" && t.turnExpiresAt && t.turnPhase !== "farkled") {
-        targetAt = t.turnExpiresAt;
-        label = "Süre";
+      if (!t || t.status !== "playing") return false;
+      const seat = t.seats?.[t.turnSeatIndex];
+      return !!seat && !seat.isBot && seat.userId === this.myId;
+    }
+
+    _toggleDieSelection(idx) {
+      const t = this.table;
+      if (!t || !this._isMyTurn() || t.turnPhase !== "selecting") return;
+      if (!t.scoringMask?.[idx]) return;
+      if (this.selected.has(idx)) this.selected.delete(idx);
+      else this.selected.add(idx);
+      playDiceLock();
+      this._renderTrayAndControls();
+    }
+
+    _selectAllScoring() {
+      const t = this.table;
+      if (!t || !this._isMyTurn() || t.turnPhase !== "selecting") return;
+      this.selected.clear();
+      t.scoringMask.forEach((ok, idx) => {
+        if (ok) this.selected.add(idx);
+      });
+      playDiceLock();
+      this._renderTrayAndControls();
+    }
+
+    update(table, myId) {
+      this.table = table;
+      this.myId = myId;
+      if (!table) return;
+
+      const isNewRoll = table.rollSeq !== this.lastRollSeq;
+      if (isNewRoll) {
+        this.selected.clear();
+        this.lastRollSeq = table.rollSeq;
+        if (table.activeDice?.length) {
+          playDiceRoll();
+          const throwAngle = ((table.turnSeatIndex || 0) / MAX_SEATS) * Math.PI * 2 + Math.PI * 0.5;
+          const originX = Math.cos(throwAngle) * 1.15;
+          const originZ = Math.sin(throwAngle) * 1.15;
+          for (let i = 0; i < table.activeDice.length; i++) {
+            const a = this.diceActors[i];
+            if (!a) continue;
+            const val = table.activeDice[i];
+            a.value = val;
+            a.targetQuat.copy(faceTargetQuaternion(val, (i - 2.5) * 0.16 + (Math.random() - 0.5) * 0.35));
+            a.throwStart = new THREE.Vector3(
+              originX + (Math.random() - 0.5) * 0.4,
+              DIE_REST_Y + 0.55,
+              originZ + (Math.random() - 0.5) * 0.4,
+            );
+            a.animElapsed = 0;
+            a.animDuration = 0.78 + (i % 3) * 0.08;
+            a.tumbleSpins = 2.8 + (i % 3) * 0.7;
+            a.jumpHeight = 0.72 + (i % 2) * 0.2;
+          }
+        }
       }
-      if (!targetAt) {
-        this.timerPill.hidden = true;
+
+      if (table.turnPhase === "farkled" && this.lastTurnPhase !== "farkled") {
+        playFarkle();
+      } else if (
+        table.status === "finished" &&
+        this.lastStatus !== "finished" &&
+        table.winnerName
+      ) {
+        playBlackjack();
+      } else if (table.status === "countdown" && this.lastStatus !== "countdown") {
+        playTick();
+      }
+      this.lastStatus = table.status;
+      this.lastTurnPhase = table.turnPhase;
+
+      // Header
+      this.tableTitle.textContent = `${table.name} · Hedef ${table.targetScore.toLocaleString("tr-TR")}`;
+      const phaseLabels = {
+        waiting: "OYUNCU BEKLENİYOR",
+        countdown: "BAŞLAMAK ÜZERE",
+        playing: table.finalRoundTriggeredBy !== -1 ? "SON TUR!" : `${table.round}. TUR`,
+        finished: "TUR TAMAMLANDI",
+      };
+      this.phaseBadge.textContent = phaseLabels[table.status] || "HAZIR";
+      this.potPill.textContent = `Tur Potu: ${table.turnPot.toLocaleString("tr-TR")} p`;
+      this.actionBanner.textContent =
+        table.lastAction?.text || "Zar sırası geldiğinde tahtadaki veya alttaki zarlara dokun!";
+      this.actionBanner.hidden = !this.actionBanner.textContent;
+
+      // Seat cards HUD
+      this.seatsHud.replaceChildren();
+      for (let i = 0; i < MAX_SEATS; i++) {
+        const s = table.seats[i];
+        const pill = document.createElement("button");
+        pill.type = "button";
+        const isMine = s && !s.isBot && s.userId === this.myId;
+        const isTurn = table.status === "playing" && table.turnSeatIndex === i;
+        const isWinner = table.status === "finished" && table.winnerSeatIndex === i;
+        pill.className =
+          "bj-seat-pill dice-seat-pill" +
+          (s ? " occupied" : " empty") +
+          (isMine ? " mine" : "") +
+          (isTurn ? " turn" : "") +
+          (isWinner ? " win" : "");
+        if (s) {
+          const nameSpan = document.createElement("strong");
+          nameSpan.textContent = s.isBot ? "🤖 Zar Bot" : isMine ? `${s.name} (Sen)` : s.name;
+          const scoreSpan = document.createElement("small");
+          scoreSpan.textContent = `${s.score.toLocaleString("tr-TR")} p`;
+          pill.append(nameSpan, scoreSpan);
+          if (s.reaction && Date.now() - s.reaction.at < 4000) {
+            const reactBubble = document.createElement("span");
+            reactBubble.className = "bj-react-bubble";
+            reactBubble.textContent = s.reaction.emoji;
+            pill.append(reactBubble);
+          }
+          pill.disabled = true;
+        } else {
+          const canSit = ["waiting", "countdown", "finished"].includes(table.status);
+          pill.innerHTML = `<span class="seat-num">Koltuk ${i + 1}</span><small>${canSit ? "Geç ↗" : "Boş"}</small>`;
+          pill.disabled = !canSit;
+          if (canSit) pill.addEventListener("click", () => this.cb.onSwitchSeat?.(i));
+        }
+        this.seatsHud.append(pill);
+      }
+
+      this._renderFallback2D();
+      this._renderTrayAndControls();
+    }
+
+    _renderFallback2D() {
+      if (this.webglReady || !this.table) return;
+      this.fallback2d.replaceChildren();
+      const t = this.table;
+      if (!t.activeDice?.length) {
+        const idle = document.createElement("p");
+        idle.className = "dice2d-empty";
+        idle.textContent =
+          t.status === "playing"
+            ? "Zar sırası: " + (t.seats[t.turnSeatIndex]?.name || "")
+            : `${t.seatedCount}/6 koltuk dolu · Başlatmaya hazır.`;
+        this.fallback2d.append(idle);
         return;
       }
-      const sec = Math.max(0, Math.ceil((targetAt - Date.now()) / 1000));
-      this.timerPill.hidden = false;
-      this.timerPill.textContent = `⏱ ${label}: ${sec}s`;
-      this.timerPill.classList.toggle("urgent", sec <= 5);
-    }, 250);
-  }
-
-  _isMyTurn() {
-    const t = this.table;
-    if (!t || t.status !== "playing") return false;
-    const seat = t.seats?.[t.turnSeatIndex];
-    return !!seat && !seat.isBot && seat.userId === this.myId;
-  }
-
-  _toggleDieSelection(idx) {
-    const t = this.table;
-    if (!t || !this._isMyTurn() || t.turnPhase !== "selecting") return;
-    if (!t.scoringMask?.[idx]) return;
-    if (this.selected.has(idx)) this.selected.delete(idx);
-    else this.selected.add(idx);
-    playDiceLock();
-    this._renderTrayAndControls();
-  }
-
-  _selectAllScoring() {
-    const t = this.table;
-    if (!t || !this._isMyTurn() || t.turnPhase !== "selecting") return;
-    this.selected.clear();
-    t.scoringMask.forEach((ok, idx) => {
-      if (ok) this.selected.add(idx);
-    });
-    playDiceLock();
-    this._renderTrayAndControls();
-  }
-
-  update(table, myId) {
-    this.table = table;
-    this.myId = myId;
-    if (!table) return;
-
-    const isNewRoll = table.rollSeq !== this.lastRollSeq;
-    if (isNewRoll) {
-      this.selected.clear();
-      this.lastRollSeq = table.rollSeq;
-      if (table.activeDice?.length) {
-        playDiceRoll();
-        const throwAngle = ((table.turnSeatIndex || 0) / MAX_SEATS) * Math.PI * 2 + Math.PI * 0.5;
-        const originX = Math.cos(throwAngle) * 1.15;
-        const originZ = Math.sin(throwAngle) * 1.15;
-        for (let i = 0; i < table.activeDice.length; i++) {
-          const a = this.diceActors[i];
-          if (!a) continue;
-          const val = table.activeDice[i];
-          a.value = val;
-          a.targetQuat.copy(faceTargetQuaternion(val, (i - 2.5) * 0.16 + (Math.random() - 0.5) * 0.35));
-          a.throwStart = new THREE.Vector3(
-            originX + (Math.random() - 0.5) * 0.4,
-            DIE_REST_Y + 0.55,
-            originZ + (Math.random() - 0.5) * 0.4,
-          );
-          a.animElapsed = 0;
-          a.animDuration = 0.78 + (i % 3) * 0.08;
-          a.tumbleSpins = 2.8 + (i % 3) * 0.7;
-          a.jumpHeight = 0.72 + (i % 2) * 0.2;
-        }
-      }
-    }
-
-    if (table.turnPhase === "farkled" && this.lastTurnPhase !== "farkled") {
-      playFarkle();
-    } else if (
-      table.status === "finished" &&
-      this.lastStatus !== "finished" &&
-      table.winnerName
-    ) {
-      playBlackjack();
-    } else if (table.status === "countdown" && this.lastStatus !== "countdown") {
-      playTick();
-    }
-    this.lastStatus = table.status;
-    this.lastTurnPhase = table.turnPhase;
-
-    // Header
-    this.tableTitle.textContent = `${table.name} · Hedef ${table.targetScore.toLocaleString("tr-TR")}`;
-    const phaseLabels = {
-      waiting: "OYUNCU BEKLENİYOR",
-      countdown: "BAŞLAMAK ÜZERE",
-      playing: table.finalRoundTriggeredBy !== -1 ? "SON TUR!" : `${table.round}. TUR`,
-      finished: "TUR TAMAMLANDI",
-    };
-    this.phaseBadge.textContent = phaseLabels[table.status] || "HAZIR";
-    this.potPill.textContent = `Tur Potu: ${table.turnPot.toLocaleString("tr-TR")} p`;
-    this.actionBanner.textContent =
-      table.lastAction?.text || "Zar sırası geldiğinde tahtadaki veya alttaki zarlara dokun!";
-    this.actionBanner.hidden = !this.actionBanner.textContent;
-
-    // Seat cards HUD
-    this.seatsHud.replaceChildren();
-    for (let i = 0; i < MAX_SEATS; i++) {
-      const s = table.seats[i];
-      const pill = document.createElement("button");
-      pill.type = "button";
-      const isMine = s && !s.isBot && s.userId === this.myId;
-      const isTurn = table.status === "playing" && table.turnSeatIndex === i;
-      const isWinner = table.status === "finished" && table.winnerSeatIndex === i;
-      pill.className =
-        "bj-seat-pill dice-seat-pill" +
-        (s ? " occupied" : " empty") +
-        (isMine ? " mine" : "") +
-        (isTurn ? " turn" : "") +
-        (isWinner ? " win" : "");
-      if (s) {
-        const nameSpan = document.createElement("strong");
-        nameSpan.textContent = s.isBot ? "🤖 Zar Bot" : isMine ? `${s.name} (Sen)` : s.name;
-        const scoreSpan = document.createElement("small");
-        scoreSpan.textContent = `${s.score.toLocaleString("tr-TR")} p`;
-        pill.append(nameSpan, scoreSpan);
-        if (s.reaction && Date.now() - s.reaction.at < 4000) {
-          const reactBubble = document.createElement("span");
-          reactBubble.className = "bj-react-bubble";
-          reactBubble.textContent = s.reaction.emoji;
-          pill.append(reactBubble);
-        }
-        pill.disabled = true;
-      } else {
-        const canSit = ["waiting", "countdown", "finished"].includes(table.status);
-        pill.innerHTML = `<span class="seat-num">Koltuk ${i + 1}</span><small>${canSit ? "Geç ↗" : "Boş"}</small>`;
-        pill.disabled = !canSit;
-        if (canSit) pill.addEventListener("click", () => this.cb.onSwitchSeat?.(i));
-      }
-      this.seatsHud.append(pill);
-    }
-
-    this._renderFallback2D();
-    this._renderTrayAndControls();
-  }
-
-  _renderFallback2D() {
-    if (this.webglReady || !this.table) return;
-    this.fallback2d.replaceChildren();
-    const t = this.table;
-    if (!t.activeDice?.length) {
-      const idle = document.createElement("p");
-      idle.className = "dice2d-empty";
-      idle.textContent =
-        t.status === "playing"
-          ? "Zar sırası: " + (t.seats[t.turnSeatIndex]?.name || "")
-          : `${t.seatedCount}/6 koltuk dolu · Başlatmaya hazır.`;
-      this.fallback2d.append(idle);
-      return;
-    }
-    const grid = document.createElement("div");
-    grid.className = "dice2d-grid";
-    t.activeDice.forEach((v, i) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className =
-        "dice2d-die" +
-        (this.selected.has(i) ? " selected" : "") +
-        (t.scoringMask[i] ? " playable" : " dead");
-      b.textContent = String(v);
-      b.addEventListener("click", () => this._toggleDieSelection(i));
-      grid.append(b);
-    });
-    this.fallback2d.append(grid);
-  }
-
-  _renderTrayAndControls() {
-    const t = this.table;
-    if (!t) return;
-    const isMyTurn = this._isMyTurn();
-    const pickedValues = [...this.selected].map((i) => t.activeDice[i]).filter(Boolean);
-    const preview = previewDiceSelection(pickedValues);
-    const validPick =
-      pickedValues.length > 0 && preview.points > 0 && preview.leftoverCount === 0;
-
-    // Tactile die tray bar (works effortlessly on desktop & thumb-tap mobile!)
-    this.trayHint.replaceChildren();
-    if (t.status === "playing") {
-      if (t.activeDice?.length) {
-        const bar = document.createElement("div");
-        bar.className = "dice-chip-row";
-        t.activeDice.forEach((val, idx) => {
-          const canPick = isMyTurn && t.turnPhase === "selecting" && t.scoringMask[idx];
-          const chip = document.createElement("button");
-          chip.type = "button";
-          chip.className =
-            "dice-face-chip" +
-            (this.selected.has(idx) ? " selected" : "") +
-            (t.scoringMask[idx] ? " playable" : " dead");
-          chip.disabled = !canPick;
-          chip.innerHTML = `<span class="die-pip-val">${val}</span><small>${t.scoringMask[idx] ? (val === 1 ? "100" : val === 5 ? "50" : "Puan") : "—"}</small>`;
-          chip.addEventListener("click", () => this._toggleDieSelection(idx));
-          bar.append(chip);
-        });
-        this.trayHint.append(bar);
-      }
-
-      const info = document.createElement("div");
-      info.className = "dice-combo-info";
-      if (t.turnPhase === "farkled") {
-        info.textContent = "💥 YANDIN! Puan getiren zar çıkmadı, sıra geçiyor…";
-      } else if (t.turnPhase === "readyToRoll") {
-        const activeName = t.seats[t.turnSeatIndex]?.name || "";
-        info.textContent = isMyTurn
-          ? `Sıra sende! ${t.remainingDice} zarı at.`
-          : `${activeName} zar atmaya hazırlanıyor…`;
-      } else if (isMyTurn) {
-        info.textContent = !pickedValues.length
-          ? `3D tahtadan veya alttan puan getiren zarları seç (Seçili pot: +${t.turnPot} p)`
-          : validPick
-            ? `✓ Seçili: +${preview.points} (${preview.labels.join(", ")}) → Yeni pot: ${t.turnPot + preview.points} p`
-            : `⚠ Seçilen zarlardan eşleşmeyen var (${preview.labels.join(", ") || "geçersiz"}). Üçlüleri tamamla.`;
-      } else {
-        const activeName = t.seats[t.turnSeatIndex]?.name || "";
-        info.textContent = `${activeName} zar seçimi yapıyor (Tur potu: ${t.turnPot} p)…`;
-      }
-      this.trayHint.append(info);
-    } else {
-      const lobbyHint = document.createElement("div");
-      lobbyHint.className = "dice-combo-info";
-      lobbyHint.textContent =
-        t.status === "finished"
-          ? `🏆 Kazanan: ${t.winnerName} · Ayarları değiştirip yeni tur başlatabilirsin.`
-          : "Hedef puanı seç, istersen Zar Botu ekle ve Başlat'a bas (1-6 = 1500, 1=100, 5=50, Üçlüler = x100).";
-      this.trayHint.append(lobbyHint);
-    }
-
-    // Bottom action controls
-    this.controlsRow.replaceChildren();
-    if (["waiting", "countdown", "finished"].includes(t.status)) {
-      const targetBar = document.createElement("div");
-      targetBar.className = "dice-preset-group";
-      for (const pts of TARGET_PRESETS) {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className =
-          "button small " + (t.targetScore === pts ? "primary" : "secondary");
-        btn.textContent = `${pts.toLocaleString("tr-TR")} Hedef`;
-        btn.disabled = t.status === "countdown";
-        btn.addEventListener("click", () => {
-          playChip();
-          this.cb.onConfig?.({ targetScore: pts });
-        });
-        targetBar.append(btn);
-      }
-
-      const botBtn = document.createElement("button");
-      botBtn.type = "button";
-      botBtn.className = "button small secondary";
-      botBtn.textContent = t.hasBot ? "🤖 Zar Botunu Çıkar" : "🤖 Zar Botu Ekle (1v1)";
-      botBtn.disabled = t.status === "countdown";
-      botBtn.addEventListener("click", () => {
-        playChip();
-        this.cb.onConfig?.({ withBot: !t.hasBot });
+      const grid = document.createElement("div");
+      grid.className = "dice2d-grid";
+      t.activeDice.forEach((v, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className =
+          "dice2d-die" +
+          (this.selected.has(i) ? " selected" : "") +
+          (t.scoringMask[i] ? " playable" : " dead");
+        b.textContent = String(v);
+        b.addEventListener("click", () => this._toggleDieSelection(i));
+        grid.append(b);
       });
-
-      const activeSeats = t.seats.filter((s) => s && !s.disconnected).length;
-      const startBtn = document.createElement("button");
-      startBtn.type = "button";
-      startBtn.className = "button primary dice-start-btn";
-      startBtn.disabled = t.status === "countdown";
-      startBtn.textContent =
-        t.status === "countdown"
-          ? "Başlıyor…"
-          : activeSeats >= 2
-            ? t.status === "finished"
-              ? "🎲 Yeni Turu Başlat (10 sn)"
-              : "🎲 Oyunu Başlat (10 sn)"
-            : "🤖 Botla Hemen Başlat";
-      startBtn.addEventListener("click", () =>
-        this.cb.onStart?.({ withBot: activeSeats < 2 }),
-      );
-
-      this.controlsRow.append(targetBar, botBtn, startBtn);
-      return;
+      this.fallback2d.append(grid);
     }
 
-    // Playing phase action bar
-    if (!isMyTurn) {
-      const waitTag = document.createElement("span");
-      waitTag.className = "bj-wait-note";
-      waitTag.textContent = `Sıra ${t.seats[t.turnSeatIndex]?.name || "oyuncuda"} · Tüm zarlar canlı izlenebilir.`;
-      this.controlsRow.append(waitTag);
-      return;
+    _renderTrayAndControls() {
+      const t = this.table;
+      if (!t) return;
+      const isMyTurn = this._isMyTurn();
+      const pickedValues = [...this.selected].map((i) => t.activeDice[i]).filter(Boolean);
+      const preview = previewDiceSelection(pickedValues);
+      const validPick =
+        pickedValues.length > 0 && preview.points > 0 && preview.leftoverCount === 0;
+
+      // Tactile die tray bar (works effortlessly on desktop & thumb-tap mobile!)
+      this.trayHint.replaceChildren();
+      if (t.status === "playing") {
+        if (t.activeDice?.length) {
+          const bar = document.createElement("div");
+          bar.className = "dice-chip-row";
+          t.activeDice.forEach((val, idx) => {
+            const canPick = isMyTurn && t.turnPhase === "selecting" && t.scoringMask[idx];
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className =
+              "dice-face-chip" +
+              (this.selected.has(idx) ? " selected" : "") +
+              (t.scoringMask[idx] ? " playable" : " dead");
+            chip.disabled = !canPick;
+            chip.innerHTML = `<span class="die-pip-val">${val}</span><small>${t.scoringMask[idx] ? (val === 1 ? "100" : val === 5 ? "50" : "Puan") : "—"}</small>`;
+            chip.addEventListener("click", () => this._toggleDieSelection(idx));
+            bar.append(chip);
+          });
+          this.trayHint.append(bar);
+        }
+
+        const info = document.createElement("div");
+        info.className = "dice-combo-info";
+        if (t.turnPhase === "farkled") {
+          info.textContent = "💥 YANDIN! Puan getiren zar çıkmadı, sıra geçiyor…";
+        } else if (t.turnPhase === "readyToRoll") {
+          const activeName = t.seats[t.turnSeatIndex]?.name || "";
+          info.textContent = isMyTurn
+            ? `Sıra sende! ${t.remainingDice} zarı at.`
+            : `${activeName} zar atmaya hazırlanıyor…`;
+        } else if (isMyTurn) {
+          info.textContent = !pickedValues.length
+            ? `3D tahtadan veya alttan puan getiren zarları seç (Seçili pot: +${t.turnPot} p)`
+            : validPick
+              ? `✓ Seçili: +${preview.points} (${preview.labels.join(", ")}) → Yeni pot: ${t.turnPot + preview.points} p`
+              : `⚠ Seçilen zarlardan eşleşmeyen var (${preview.labels.join(", ") || "geçersiz"}). Üçlüleri tamamla.`;
+        } else {
+          const activeName = t.seats[t.turnSeatIndex]?.name || "";
+          info.textContent = `${activeName} zar seçimi yapıyor (Tur potu: ${t.turnPot} p)…`;
+        }
+        this.trayHint.append(info);
+      } else {
+        const lobbyHint = document.createElement("div");
+        lobbyHint.className = "dice-combo-info";
+        lobbyHint.textContent =
+          t.status === "finished"
+            ? `🏆 Kazanan: ${t.winnerName} · Ayarları değiştirip yeni tur başlatabilirsin.`
+            : "Hedef puanı seç, istersen Zar Botu ekle ve Başlat'a bas (1-6 = 1500, 1=100, 5=50, Üçlüler = x100).";
+        this.trayHint.append(lobbyHint);
+      }
+
+      // Bottom action controls
+      this.controlsRow.replaceChildren();
+      if (["waiting", "countdown", "finished"].includes(t.status)) {
+        const targetBar = document.createElement("div");
+        targetBar.className = "dice-preset-group";
+        for (const pts of TARGET_PRESETS) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className =
+            "button small " + (t.targetScore === pts ? "primary" : "secondary");
+          btn.textContent = `${pts.toLocaleString("tr-TR")} Hedef`;
+          btn.disabled = t.status === "countdown";
+          btn.addEventListener("click", () => {
+            playChip();
+            this.cb.onConfig?.({ targetScore: pts });
+          });
+          targetBar.append(btn);
+        }
+
+        const botBtn = document.createElement("button");
+        botBtn.type = "button";
+        botBtn.className = "button small secondary";
+        botBtn.textContent = t.hasBot ? "🤖 Zar Botunu Çıkar" : "🤖 Zar Botu Ekle (1v1)";
+        botBtn.disabled = t.status === "countdown";
+        botBtn.addEventListener("click", () => {
+          playChip();
+          this.cb.onConfig?.({ withBot: !t.hasBot });
+        });
+
+        const activeSeats = t.seats.filter((s) => s && !s.disconnected).length;
+        const startBtn = document.createElement("button");
+        startBtn.type = "button";
+        startBtn.className = "button primary dice-start-btn";
+        startBtn.disabled = t.status === "countdown";
+        startBtn.textContent =
+          t.status === "countdown"
+            ? "Başlıyor…"
+            : activeSeats >= 2
+              ? t.status === "finished"
+                ? "🎲 Yeni Turu Başlat (10 sn)"
+                : "🎲 Oyunu Başlat (10 sn)"
+              : "🤖 Botla Hemen Başlat";
+        startBtn.addEventListener("click", () =>
+          this.cb.onStart?.({ withBot: activeSeats < 2 }),
+        );
+
+        this.controlsRow.append(targetBar, botBtn, startBtn);
+        return;
+      }
+
+      // Playing phase action bar
+      if (!isMyTurn) {
+        const waitTag = document.createElement("span");
+        waitTag.className = "bj-wait-note";
+        waitTag.textContent = `Sıra ${t.seats[t.turnSeatIndex]?.name || "oyuncuda"} · Tüm zarlar canlı izlenebilir.`;
+        this.controlsRow.append(waitTag);
+        return;
+      }
+
+      if (t.turnPhase === "readyToRoll") {
+        const rollBtn = document.createElement("button");
+        rollBtn.type = "button";
+        rollBtn.className = "button primary dice-big-btn";
+        rollBtn.textContent = `🎲 ${t.remainingDice} Zarı At!`;
+        rollBtn.addEventListener("click", () => this.cb.onRoll?.());
+        this.controlsRow.append(rollBtn);
+        return;
+      }
+
+      if (t.turnPhase === "selecting") {
+        const autoBtn = document.createElement("button");
+        autoBtn.type = "button";
+        autoBtn.className = "button secondary";
+        autoBtn.textContent = "✨ Puanlıları Seç";
+        autoBtn.addEventListener("click", () => this._selectAllScoring());
+
+        const rerollCount = t.activeDice.length - pickedValues.length;
+        const rollMoreBtn = document.createElement("button");
+        rollMoreBtn.type = "button";
+        rollMoreBtn.className = "button secondary";
+        rollMoreBtn.disabled = !validPick;
+        rollMoreBtn.textContent =
+          validPick && rerollCount === 0
+            ? "🔥 Sıcak Zar! (6 Zarı Tekrar At)"
+            : `🎲 Kilitle & ${validPick ? rerollCount : "?"} Zarı At`;
+        rollMoreBtn.addEventListener("click", () =>
+          this.cb.onCommit?.({ indices: [...this.selected], mode: "roll" }),
+        );
+
+        const bankBtn = document.createElement("button");
+        bankBtn.type = "button";
+        bankBtn.className = "button primary";
+        bankBtn.disabled = !validPick;
+        bankBtn.textContent = validPick
+          ? `💰 +${(t.turnPot + preview.points).toLocaleString("tr-TR")} Kasaya Yaz`
+          : "💰 Kasaya Yaz";
+        bankBtn.addEventListener("click", () =>
+          this.cb.onCommit?.({ indices: [...this.selected], mode: "bank" }),
+        );
+
+        this.controlsRow.append(autoBtn, rollMoreBtn, bankBtn);
+      }
     }
 
-    if (t.turnPhase === "readyToRoll") {
-      const rollBtn = document.createElement("button");
-      rollBtn.type = "button";
-      rollBtn.className = "button primary dice-big-btn";
-      rollBtn.textContent = `🎲 ${t.remainingDice} Zarı At!`;
-      rollBtn.addEventListener("click", () => this.cb.onRoll?.());
-      this.controlsRow.append(rollBtn);
-      return;
-    }
-
-    if (t.turnPhase === "selecting") {
-      const autoBtn = document.createElement("button");
-      autoBtn.type = "button";
-      autoBtn.className = "button secondary";
-      autoBtn.textContent = "✨ Puanlıları Seç";
-      autoBtn.addEventListener("click", () => this._selectAllScoring());
-
-      const rerollCount = t.activeDice.length - pickedValues.length;
-      const rollMoreBtn = document.createElement("button");
-      rollMoreBtn.type = "button";
-      rollMoreBtn.className = "button secondary";
-      rollMoreBtn.disabled = !validPick;
-      rollMoreBtn.textContent =
-        validPick && rerollCount === 0
-          ? "🔥 Sıcak Zar! (6 Zarı Tekrar At)"
-          : `🎲 Kilitle & ${validPick ? rerollCount : "?"} Zarı At`;
-      rollMoreBtn.addEventListener("click", () =>
-        this.cb.onCommit?.({ indices: [...this.selected], mode: "roll" }),
-      );
-
-      const bankBtn = document.createElement("button");
-      bankBtn.type = "button";
-      bankBtn.className = "button primary";
-      bankBtn.disabled = !validPick;
-      bankBtn.textContent = validPick
-        ? `💰 +${(t.turnPot + preview.points).toLocaleString("tr-TR")} Kasaya Yaz`
-        : "💰 Kasaya Yaz";
-      bankBtn.addEventListener("click", () =>
-        this.cb.onCommit?.({ indices: [...this.selected], mode: "bank" }),
-      );
-
-      this.controlsRow.append(autoBtn, rollMoreBtn, bankBtn);
+    dispose() {
+      if (this.disposed) return;
+      this.disposed = true;
+      clearInterval(this.countdownTimer);
+      if (this.rafId) cancelAnimationFrame(this.rafId);
+      this.resizeObs?.disconnect();
+      this.controls?.dispose();
+      this.renderer?.dispose();
+      this.root.replaceChildren();
     }
   }
-
-  dispose() {
-    if (this.disposed) return;
-    this.disposed = true;
-    clearInterval(this.countdownTimer);
-    if (this.rafId) cancelAnimationFrame(this.rafId);
-    this.resizeObs?.disconnect();
-    this.controls?.dispose();
-    this.renderer?.dispose();
-    this.root.replaceChildren();
-  }
-}

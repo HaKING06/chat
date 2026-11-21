@@ -30,7 +30,13 @@ Canlı adres: **[https://chat.haking.tr/](https://chat.haking.tr/)**
 - **Açık / Koyu tema & Mobil kısayollar**: Mobilden yalnızca oyun için giren kullanıcılar için üst çubukta tek dokunuş **♠ Oyunlar** geçişi ve taşmasız responsive yerleşim.
 
 ### Oyun Alanı (`oyun-alanı`)
-Modern oyun merkezi düzeniyle **Canlı Masalar & Bekleyenler** çubuğu sayfanın **en üstünde** kaydırmadan anında görünür (bekleyen masalar öncelikli sıralanır); `Tümü`, `Bekleyen`, `Tavla`, `Okey`, `101`, `Satranç`, `Blackjack`, `Zar`, `XOX`, `İzle` filtreleri + anlık arama ve masaüstü/mobil dikey + yatay (*landscape*) tam uyumlu 7 oyun içerir:
+Modern oyun merkezi düzeniyle **Canlı Masalar & Bekleyenler** çubuğu sayfanın **en üstünde** kaydırmadan anında görünür (bekleyen masalar öncelikli sıralanır); `Tümü`, `Bekleyen`, `Rulet`, `Tavla`, `Okey`, `101`, `Satranç`, `Blackjack`, `Zar`, `XOX`, `İzle` filtreleri + anlık arama ve masaüstü/mobil dikey + yatay (*landscape*) tam uyumlu 8 oyun içerir:
+
+- **Rulet 3D (Avrupa · Canlı Kurpiyer · Otomatik Çark & RaceTrack)**
+  - **Three.js 3D sahne + Monte-Carlo Rulet Çarkı (`assets/models/roulette.glb`) & Canlı Kurpiyer (`assets/models/dealer.glb`)**: 37 bölmeli tek sıfırlı (`0–36`) çark, ters yönlü fildişi top ve elmas deflektör fiziği, etkileşimli 3D çuha + dokunmatik 2D ayna masa, `Geniş / Çark / Masa / Üstten` kamera açıları ve WebGL yoksa otomatik 2D çark yedeği.
+  - **Otomatik Çok Oyunculu Masa (`1–8 Kişi` + `İzle 👁`)**: Başlat tuşuna basılmadan tüm oturumdaki oyuncular aynı masada **otomatik tur döngüsüyle** oynar (`18 sn` bahis → `6.4 sn` çark dönüşü → `5.2 sn` sonuç/ödeme).
+  - **Sınırsız Gerçek Kumarhane Kuralları**: Aynı turda kısıtlama olmadan **Tek Sayı (35:1)**, **Split (17:1)**, **Sıra/Üçlü (11:1)**, **Köşe/İlk Dörtlü (8:1)**, **Altılı (5:1)**, **Düzine/Sütun (2:1)**, **Kırmızı/Siyah/Tek/Çift/1–18/19–36 (1:1)** ile *RaceTrack* (`Voisins du Zéro`, `Tiers du Cylindre`, `Orphelins`, `Jeu Zéro`, `±1/±2/±3 Komşular`) serbestçe birleştirilir; geri al, temizle, tekrarla, `×2` katla ve bakiye `<100` olunca `+500 Fiş Al` aktiftir.
+  - **Tam Canlı Şeffaflık & Son 14 Tur**: Her oyuncunun çipleri kendine özel renkte 3D çuha üzerinde dizilir, sağ/alt canlı akışta kimin nereye kaç fiş bastığı anlık listelenir ve üst şeritte **Son 14 Tur** geçmişi + renk yüzdeleri gösterilir.
 
 0. **Tavla 3D (Resmî Türk Tavlası · Yapay Zekâ Bot & Aynı Masada Rövanş)**
    - **Three.js 3D sahne + Ceviz Kasalı Tavla & Zarlar (`assets/models/tavla.glb` + `dice.glb`)**: Sedef/maun kakma oyun zemini, tornalanmış içbükey Beyaz & Siyah pullar, fiziksel 3D zar atışı animasyonu, `[Boşluk] Zar At` / `[Z] Geri Al` / `[R] Üstten Kamera` / `[F] Yön Çevir` kısayolları ve WebGL yoksa otomatik 2D tahta.
