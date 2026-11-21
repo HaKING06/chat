@@ -262,6 +262,11 @@ export function playRouletteChip() {
   tone({ freq: 2450, endFreq: 1700, duration: 0.04, gain: 0.025, type: "sine", delay: 0.015 });
 }
 
+export function playRouletteRemove() {
+  tone({ freq: 1180, endFreq: 680, duration: 0.045, gain: 0.032, type: "sine" });
+  tone({ freq: 720, endFreq: 420, duration: 0.04, gain: 0.02, type: "triangle", delay: 0.018 });
+}
+
 export function playRouletteSpin() {
   for (let i = 0; i < 6; i += 1) {
     tone({

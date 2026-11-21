@@ -56,15 +56,17 @@
       <nav class="navigation" aria-label="Kanallar">
         <p class="nav-label">KANALLAR</p>
         <button class="nav-item active" data-channel="general">
-          <span class="nav-symbol">#</span><span>genel-sohbet</span><span class="nav-badge" data-unread-channel="general" hidden>0</span><i class="nav-dot"></i>
+          <span class="nav-symbol">#</span><span>genel-sohbet</span><span class="nav-badge"
+            data-unread-channel="general" hidden>0</span><i class="nav-dot"></i>
         </button>
         <button class="nav-item" data-channel="code">
-          <span class="nav-symbol">&lt;/&gt;</span><span>kod-paylaşımı</span><span class="nav-badge" data-unread-channel="code" hidden>0</span>
+          <span class="nav-symbol">&lt;/&gt;</span><span>kod-paylaşımı</span><span class="nav-badge"
+            data-unread-channel="code" hidden>0</span>
         </button>
         <p class="nav-label second-label">OYUN</p>
         <button class="nav-item" data-view="games">
-          <span class="nav-symbol game-symbol">×○</span><span>oyun-alanı<small>Tavla · Okey · Satranç ·
-              BJ</small></span><span class="mini-badge">OYNA</span>
+          <span class="nav-symbol game-symbol">×○</span><span>oyun-alanı<small>Rulet · Tavla · Okey ·
+              Satranç</small></span><span class="mini-badge">OYNA</span>
         </button>
       </nav>
       <div class="sidebar-note">
@@ -324,8 +326,8 @@
                 </div>
                 <h3>Rulet 3D (Avrupa)</h3>
                 <p>
-                  Canlı kurpiyer eşliğinde otomatik dönen Monte-Carlo rulet çarkı!
-                  Sınırsız eşzamanlı bahis yap, masadaki herkesin çiplerini canlı gör ve son 14 turu takip et.
+                  Canlı kurpiyer eşliğinde <strong>her 60 saniyede bir</strong> otomatik dönen Monte-Carlo rulet çarkı!
+                  Sol tıkla bahis ekle, sağ tıkla yerdeki paranı kaldır; herkesin çiplerini canlı gör.
                 </p>
                 <div class="game-buttons">
                   <button class="button primary" id="roulette-join">
@@ -885,8 +887,8 @@
         </div>
         <strong>Ceza &amp; El Sonu Puanı</strong>
         <span>Masaya işleyebileceğin <strong>işlek taşı</strong> veya Okey'i yere atarsan anında <strong>+101
-        ceza</strong> yazılır! 60 sn süre bitiminde otomatik hamle yapılır; masadan çıkanın yerine
-        <strong>🤖 Akıllı Bot</strong> geçer, izleyiciler dilediğinde koltuğu devralabilir.</span>
+            ceza</strong> yazılır! 60 sn süre bitiminde otomatik hamle yapılır; masadan çıkanın yerine
+          <strong>🤖 Akıllı Bot</strong> geçer, izleyiciler dilediğinde koltuğu devralabilir.</span>
       </div>
     </div>
   </dialog>
@@ -939,7 +941,8 @@
     </div>
   </dialog>
   <dialog id="roulette-help-dialog" class="modal dice-help-modal" aria-labelledby="roulette-help-title">
-    <button type="button" class="modal-close icon-button" data-close="roulette-help-dialog" aria-label="Pencereyi kapat">
+    <button type="button" class="modal-close icon-button" data-close="roulette-help-dialog"
+      aria-label="Pencereyi kapat">
       ×
     </button>
     <h2 id="roulette-help-title">🎡 Avrupa Ruleti (3D) Kuralları</h2>
@@ -978,9 +981,9 @@
           <span class="dice-combo-badge hot">💎 Canlı Şeffaflık &amp; Otomatik Çark</span>
         </div>
         <strong>Canlı Masa Akışı</strong>
-        <span>Her oyuncunun çip rengi kendine özeldir. Sağ panelden kimin nereye kaç fiş bastığını,
-          üstten <strong>son 14 turun</strong> sonuçlarını anlık izleyebilirsin; fişin 100 altına düşerse
-          <strong>+500 Fiş Al</strong> açılır.</span>
+        <span>Sol tıkla seçili fişi ekle, <strong>sağ tıkla</strong> (veya mobilde <em>🧹 Sil</em> moduyla)
+          belirli yerdeki paranı anında geri al! Çark her <strong>60 saniyede bir</strong> otomatik döner;
+          fişin 100 altına düşerse <strong>+500 Fiş Al</strong> açılır.</span>
       </div>
     </div>
   </dialog>
@@ -1002,7 +1005,8 @@
       <div id="mini-chat-messages" class="mini-chat-messages" aria-live="polite"></div>
       <div id="mini-mention-suggest" class="mention-popup mini-mention-popup" hidden></div>
       <form id="mini-chat-form" class="mini-chat-form">
-        <button type="button" class="composer-tool mini-emoji-btn" id="mini-emoji-button" aria-label="Mini sohbette emoji ekle">☺</button>
+        <button type="button" class="composer-tool mini-emoji-btn" id="mini-emoji-button"
+          aria-label="Mini sohbette emoji ekle">☺</button>
         <input id="mini-chat-input" maxlength="4000" autocomplete="off" placeholder="Masadan yaz (@ad ile etiketle)…"
           aria-label="Mini sohbet mesajı" />
         <button type="submit" class="button small primary">Gönder</button>

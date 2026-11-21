@@ -4342,3 +4342,152 @@ body.in-blackjack .games-view {
     grid-template-rows: repeat(3, 25px);
   }
 }
+
+.roulette-topbar {
+  position: relative;
+  overflow: hidden;
+  padding-bottom: 11px;
+}
+
+.rl-cycle-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rl-cycle-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #10b981, #eab308);
+  transition: width 0.25s linear;
+}
+
+.rl-cycle-fill.phase-spinning {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.rl-cycle-fill.phase-settled {
+  background: linear-gradient(90deg, #eab308, #4ade80);
+}
+
+.rl-hint-pill {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(9, 14, 12, 0.78);
+  border: 1px solid rgba(227, 184, 87, 0.3);
+  color: #e6e2d0;
+  font-size: 11px;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+.rl-hotcold-box {
+  gap: 5px;
+}
+
+.rl-hc-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.rl-hc-label {
+  font-weight: 700;
+  margin-right: 2px;
+  color: #f4d378;
+}
+
+.rl-hc-chip {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.rl-hc-chip.red { background: #b91c1c; }
+.rl-hc-chip.black { background: #181c24; }
+.rl-hc-chip.green { background: #15803d; }
+
+.rl-react-strip {
+  display: flex;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.rl-react-btn {
+  flex: 1 1 0;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  font-size: 13px;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.rl-react-btn:hover {
+  transform: scale(1.08);
+  background: rgba(227, 184, 87, 0.22);
+}
+
+.rl-seat-react {
+  font-size: 13px;
+  animation: rlPop 0.25s ease;
+}
+
+@keyframes rlPop {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.rl-rack-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rl-erase-btn {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.rl-erase-btn.active {
+  background: #dc2626;
+  color: #fff;
+  border-color: #fca5a5;
+  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.45);
+}
+
+.roulette-arena.is-erase-mode .rl-cell:hover {
+  box-shadow: inset 0 0 0 2px #f87171;
+}
+
+@media (max-width: 960px) {
+  .rl-hint-pill {
+    display: none;
+  }
+}

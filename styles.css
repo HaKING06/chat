@@ -1970,8 +1970,12 @@ main {
     z-index: 60;
     box-shadow: var(--shadow);
   }
+  .sidebar:not(.open) {
+    pointer-events: none;
+  }
   .sidebar.open {
     transform: translateX(0);
+    pointer-events: auto;
   }
   .sidebar-scrim {
     position: fixed;

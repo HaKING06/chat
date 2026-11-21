@@ -8,6 +8,7 @@ import {
   playRouletteBallTick,
   playRouletteChip,
   playRouletteDrop,
+  playRouletteRemove,
   playRouletteSpin,
   playRouletteWin,
 } from "./sfx.mjs";
@@ -497,6 +498,7 @@ export class RouletteArena {
     this.mySocketId = null;
     this.isSpectator = false;
     this.selectedChip = 25;
+    this.eraseMode = false;
     this.cameraMode = "genis";
     this.force2D = false;
     this.webglFailed = false;
@@ -514,6 +516,8 @@ export class RouletteArena {
     this.clock = new THREE.Clock();
     this.rotorYaw = 0;
     this.chipStacks = [];
+    this.chipFlights = [];
+    this._labelTextures = new Map();
     this.dealerRig = null;
     this.dealPulseUntil = 0;
     this.celebrateUntil = 0;
@@ -553,6 +557,9 @@ export class RouletteArena {
         <button type="button" class="button small secondary" data-act="help">? Kurallar</button>
         <button type="button" class="button small secondary" data-act="leave">Çık</button>
       </div>
+      <div class="rl-cycle-bar" title="Her 60 saniyede bir otomatik çark turu">
+        <span class="rl-cycle-fill" data-el="cycle-fill"></span>
+      </div>
     `;
 
     const mainWrap = document.createElement("div");
@@ -565,6 +572,7 @@ export class RouletteArena {
       <canvas class="rl-canvas-2d" data-el="canvas2d" hidden></canvas>
       <div class="rl-stage-hud">
         <div class="rl-win-banner" data-el="win-banner" hidden></div>
+        <div class="rl-hint-pill">🖱 Sol Tık: Bahis Ekle · Sağ Tık: O Yerdeki Paranı Kaldır</div>
         <div class="rl-hover-chip" data-el="hover-chip" hidden></div>
       </div>
     `;
@@ -572,12 +580,21 @@ export class RouletteArena {
     const sideDock = document.createElement("aside");
     sideDock.className = "roulette-side";
     sideDock.innerHTML = `
+      <div class="rl-side-section rl-hotcold-box" data-el="hotcold-box"></div>
       <div class="rl-side-section">
         <div class="rl-side-head">
           <strong>🪑 Masadaki Oyuncular</strong>
           <span class="rl-side-sub" data-el="pot-pill">Toplam: 0 Fiş</span>
         </div>
         <div class="rl-seats-list" data-el="seats-list"></div>
+        <div class="rl-react-strip" role="group" aria-label="Masa tepkileri">
+          <button type="button" class="rl-react-btn" data-react="🔥">🔥</button>
+          <button type="button" class="rl-react-btn" data-react="👏">👏</button>
+          <button type="button" class="rl-react-btn" data-react="😎">😎</button>
+          <button type="button" class="rl-react-btn" data-react="🍀">🍀</button>
+          <button type="button" class="rl-react-btn" data-react="💎">💎</button>
+          <button type="button" class="rl-react-btn" data-react="😱">😱</button>
+        </div>
       </div>
       <div class="rl-side-section rl-feed-section">
         <div class="rl-side-head">
@@ -594,16 +611,20 @@ export class RouletteArena {
     dock.className = "roulette-dock";
     dock.innerHTML = `
       <div class="rl-dock-toolbar">
-        <div class="rl-chip-rack" data-el="chip-rack"></div>
+        <div class="rl-rack-wrap">
+          <div class="rl-chip-rack" data-el="chip-rack"></div>
+          <button type="button" class="rl-erase-btn" data-act="toggle-erase" title="Açıkken tıkladığın noktadaki kendi bahsini kaldırır (PC'de sağ tık her zaman kaldırır)">🧹 Kaldır</button>
+        </div>
         <div class="rl-dock-tabs">
           <button type="button" class="rl-tab-btn active" data-tab="masa">🎯 Masa Düzeni</button>
           <button type="button" class="rl-tab-btn" data-tab="racetrack">🏁 RaceTrack &amp; Komşular</button>
-          <button type="button" class="rl-tab-btn rl-tab-feed" data-tab="feed">💎 Bahisler</button>
+          <button type="button" class="rl-tab-btn rl-tab-feed" data-tab="feed">💎 Bahisler &amp; Analiz</button>
         </div>
         <div class="rl-quick-actions">
-          <button type="button" class="button small secondary" data-act="undo" title="Son bahsi geri al">↩ Geri Al</button>
-          <button type="button" class="button small secondary" data-act="clear" title="Bahisleri temizle">✕ Temizle</button>
+          <button type="button" class="button small secondary" data-act="undo" title="Son koyulan bahsi geri al">↩ Geri Al</button>
+          <button type="button" class="button small secondary" data-act="clear" title="Tüm bahislerini kaldır">✕ Temizle</button>
           <button type="button" class="button small secondary" data-act="rebet" title="Önceki turu tekrarla">↻ Tekrarla</button>
+          <button type="button" class="button small secondary" data-act="halve" title="Tüm bahisleri yarıya düşür">½</button>
           <button type="button" class="button small primary" data-act="double" title="Bahisleri 2x katla">×2</button>
         </div>
       </div>
@@ -633,13 +654,18 @@ export class RouletteArena {
       const m = CHIP_META[denom];
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = `rl-chip-btn ${this.selectedChip === denom ? "active" : ""}`;
+      btn.className = `rl-chip-btn ${!this.eraseMode && this.selectedChip === denom ? "active" : ""}`;
       btn.dataset.chip = String(denom);
       btn.style.setProperty("--chip-bg", m.fill);
       btn.style.setProperty("--chip-accent", m.accent);
       btn.innerHTML = `<span>${m.label}</span>`;
       btn.title = `${denom} Fiş`;
       rack.append(btn);
+    }
+    const eraseBtn = this.root.querySelector('[data-act="toggle-erase"]');
+    if (eraseBtn) {
+      eraseBtn.classList.toggle("active", this.eraseMode);
+      eraseBtn.setAttribute("aria-pressed", String(this.eraseMode));
     }
   }
 
@@ -674,22 +700,13 @@ export class RouletteArena {
         const btn = this._makeSpotBtn(`straight:${n}`, String(n), `rl-cell rl-cell-num ${colorCls}`);
         cellWrap.append(btn);
 
-        // Quick right-split / top-right corner touch hotspots
         if (col < 11) {
-          const splitH = this._makeSpotBtn(
-            `split:${n}-${n + 3}`,
-            "",
-            "rl-hot-split-h",
-          );
+          const splitH = this._makeSpotBtn(`split:${n}-${n + 3}`, "", "rl-hot-split-h");
           splitH.title = `Split ${n}/${n + 3} (17:1)`;
           cellWrap.append(splitH);
         }
         if (row < 2) {
-          const splitV = this._makeSpotBtn(
-            `split:${n - 1}-${n}`,
-            "",
-            "rl-hot-split-v",
-          );
+          const splitV = this._makeSpotBtn(`split:${n - 1}-${n}`, "", "rl-hot-split-v");
           splitV.title = `Split ${n - 1}/${n} (17:1)`;
           cellWrap.append(splitV);
         }
@@ -702,19 +719,11 @@ export class RouletteArena {
         }
         if (row === 2) {
           const s = col * 3 + 1;
-          const streetHot = this._makeSpotBtn(
-            `street:${s}-${s + 1}-${s + 2}`,
-            "",
-            "rl-hot-street",
-          );
+          const streetHot = this._makeSpotBtn(`street:${s}-${s + 1}-${s + 2}`, "", "rl-hot-street");
           streetHot.title = `Sıra ${s}–${s + 2} (11:1)`;
           cellWrap.append(streetHot);
           if (col < 11) {
-            const sixHot = this._makeSpotBtn(
-              `sixline:${s}-${s + 5}`,
-              "",
-              "rl-hot-sixline",
-            );
+            const sixHot = this._makeSpotBtn(`sixline:${s}-${s + 5}`, "", "rl-hot-sixline");
             sixHot.title = `Altılı ${s}–${s + 5} (5:1)`;
             cellWrap.append(sixHot);
           }
@@ -724,7 +733,6 @@ export class RouletteArena {
     }
     topGrid.append(numsGrid);
 
-    // Columns 2:1
     const colBtns = document.createElement("div");
     colBtns.className = "rl-cols-bar";
     for (const c of [3, 2, 1]) {
@@ -734,7 +742,6 @@ export class RouletteArena {
     }
     topGrid.append(colBtns);
 
-    // Dozens
     const dozRow = document.createElement("div");
     dozRow.className = "rl-dozens-row";
     dozRow.append(
@@ -743,7 +750,6 @@ export class RouletteArena {
       this._makeSpotBtn("dozen:3", "3. Düzine (25–36)", "rl-cell rl-cell-outside"),
     );
 
-    // Even-money outside row
     const outRow = document.createElement("div");
     outRow.className = "rl-outside-row";
     outRow.append(
@@ -810,7 +816,13 @@ export class RouletteArena {
       const chipBtn = e.target.closest("[data-chip]");
       if (chipBtn) {
         this.selectedChip = Number(chipBtn.dataset.chip) || 25;
+        this.eraseMode = false;
         this._renderChipRack();
+        return;
+      }
+      const reactBtn = e.target.closest("[data-react]");
+      if (reactBtn) {
+        this.cb.onReact?.(reactBtn.dataset.react);
         return;
       }
       const tabBtn = e.target.closest("[data-tab]");
@@ -844,7 +856,8 @@ export class RouletteArena {
       }
       const betBtn = e.target.closest("[data-bet-key]");
       if (betBtn) {
-        this._placeSingleBet(betBtn.dataset.betKey);
+        if (this.eraseMode) this._removeSingleSpot(betBtn.dataset.betKey);
+        else this._placeSingleBet(betBtn.dataset.betKey);
         return;
       }
       const actBtn = e.target.closest("[data-act]");
@@ -855,15 +868,33 @@ export class RouletteArena {
         else if (act === "undo") this.cb.onUndo?.();
         else if (act === "clear") this.cb.onClear?.();
         else if (act === "rebet") this.cb.onRebet?.();
+        else if (act === "halve") this.cb.onHalve?.();
         else if (act === "double") this.cb.onDouble?.();
         else if (act === "rebuy") this.cb.onRebuy?.();
-        else if (act === "spectate-toggle") {
-          this.cb.onSpectateToggle?.(!this.isSpectator);
-        } else if (act === "toggle-2d") {
-          this.force2D = !this.force2D;
-          actBtn.textContent = this.force2D ? "3D" : "2D";
-          this._syncCanvasVisibility();
+        else if (act === "toggle-erase") {
+            this.eraseMode = !this.eraseMode;
+            this.root.classList.toggle("is-erase-mode", this.eraseMode);
+            this._renderChipRack();
+          } else if (act === "spectate-toggle") {
+            this.cb.onSpectateToggle?.(!this.isSpectator);
+          } else if (act === "toggle-2d") {
+            this.force2D = !this.force2D;
+            actBtn.textContent = this.force2D ? "3D" : "2D";
+            this._syncCanvasVisibility();
+          }
         }
+      });
+
+    // Right-click removes the player's placed bet from that exact spot (on both 2D table & 3D felt!)
+    this.root.addEventListener("contextmenu", (e) => {
+      const betBtn = e.target.closest("[data-bet-key]");
+      if (betBtn) {
+        e.preventDefault();
+        this._removeSingleSpot(betBtn.dataset.betKey);
+        return;
+      }
+      if (e.target.closest(".rl-canvas-3d")) {
+        e.preventDefault();
       }
     });
 
@@ -881,7 +912,17 @@ export class RouletteArena {
     if (!key || !this.table || this.table.phase !== "betting" || this.isSpectator) return;
     playRouletteChip();
     this.dealPulseUntil = performance.now() + 600;
+    this._spawnChipFlight(key);
     this.cb.onBet?.([{ key, amount: this.selectedChip }]);
+  }
+
+  _removeSingleSpot(key, amount = null) {
+    if (!key || !this.table || this.table.phase !== "betting" || this.isSpectator) return;
+    const mySeat = this.table.seats?.find((s) => s && s.userId === this.mySocketId);
+    if (!mySeat || !(mySeat.bets?.[key] > 0)) return;
+    playRouletteRemove();
+    this.dealPulseUntil = performance.now() + 450;
+    this.cb.onRemoveSpot?.(key, amount);
   }
 
   _placeCallBet(callName) {
@@ -984,6 +1025,37 @@ export class RouletteArena {
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     this.scene.add(floor);
+
+    // VIP Casino Salon curved walnut backdrop behind croupier so dark void feels rich & authentic
+    const salonBack = new THREE.Mesh(
+      new THREE.CylinderGeometry(3.8, 3.8, 2.8, 36, 1, true, Math.PI * 0.65, Math.PI * 0.7),
+      new THREE.MeshStandardMaterial({
+        color: 0x1a100c,
+        roughness: 0.58,
+        metalness: 0.12,
+        side: THREE.BackSide,
+      }),
+    );
+    salonBack.position.set(0, 1.4, 0.2);
+    this.scene.add(salonBack);
+
+    const sconceMat = new THREE.MeshStandardMaterial({
+      color: 0xe6be60,
+      emissive: 0x704810,
+      emissiveIntensity: 0.6,
+      roughness: 0.25,
+      metalness: 0.85,
+    });
+    for (const sx of [-1.45, -0.45, 0.55, 1.55]) {
+      const pilaster = new THREE.Mesh(
+        new THREE.BoxGeometry(0.09, 2.5, 0.08),
+        new THREE.MeshStandardMaterial({ color: 0x2c160e, roughness: 0.45, metalness: 0.14 }),
+      );
+      pilaster.position.set(sx, 1.25, -1.95);
+      const sconce = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.032, 0.16, 12), sconceMat);
+      sconce.position.set(sx, 1.65, -1.89);
+      this.scene.add(pilaster, sconce);
+    }
 
     // Pedestals
     const pedMat = new THREE.MeshStandardMaterial({ color: 0x24120c, roughness: 0.45, metalness: 0.14 });
@@ -1163,7 +1235,7 @@ export class RouletteArena {
         }
       },
       undefined,
-      () => {},
+      () => { },
     );
   }
 
@@ -1281,18 +1353,24 @@ export class RouletteArena {
     });
 
     canvas.addEventListener("pointerdown", (e) => {
-      downPt = { x: e.clientX, y: e.clientY };
+      downPt = { x: e.clientX, y: e.clientY, btn: e.button };
     });
 
     canvas.addEventListener("pointerup", (e) => {
       if (!downPt) return;
       const dist = Math.hypot(e.clientX - downPt.x, e.clientY - downPt.y);
+      const btn = downPt.btn;
       downPt = null;
       if (dist > 8) return; // Dragged orbit
       const hit = pickUV(e);
       if (!hit) return;
       const key = hitTestFeltUV(hit.u, hit.v);
-      if (key) this._placeSingleBet(key);
+      if (!key) return;
+      if (btn === 2 || this.eraseMode) {
+        this._removeSingleSpot(key);
+      } else if (btn === 0) {
+        this._placeSingleBet(key);
+      }
     });
   }
 
@@ -1304,6 +1382,11 @@ export class RouletteArena {
       if (tip) tip.hidden = true;
       return;
     }
+
+    const mySeat = this.table?.seats?.find((s) => s && s.userId === this.mySocketId);
+    const mySpotAmt = mySeat?.bets?.[key] || 0;
+    const isRemoving = this.eraseMode;
+    const hlColor = isRemoving ? 0xf87171 : mySpotAmt > 0 ? 0x60a5fa : 0xfde047;
 
     const nums = getSpotCoveredNumbers(key).slice(0, this.hoverMeshes.length);
     const colW = FELT_W / 14;
@@ -1317,6 +1400,7 @@ export class RouletteArena {
       const uv = getSpotFeltUV(`straight:${n}`);
       const wp = feltUVToWorld(uv.u, uv.v);
       mesh.position.set(wp.x, TABLE_Y + 0.008, wp.z);
+      mesh.material.color.setHex(hlColor);
       mesh.scale.set(
         n === 0 ? 1.0 : (colW / 0.125) * 0.9,
         n === 0 ? 2.6 : (rowH / 0.18) * 0.88,
@@ -1326,9 +1410,16 @@ export class RouletteArena {
     });
 
     if (tip && pointerInfo) {
-      tip.textContent = `${key.toUpperCase()} · +${this.selectedChip} Fiş`;
-      tip.style.left = `${Math.min(Math.max(pointerInfo.clientX, 60), this.els.canvas3d.clientWidth - 80)}px`;
-      tip.style.top = `${Math.max(18, pointerInfo.clientY - 34)}px`;
+      const upper = key.toUpperCase();
+      if (isRemoving) {
+        tip.textContent = mySpotAmt > 0 ? `🧹 ${upper} · Kaldır (${mySpotAmt} Fiş)` : `${upper} · Bahsin yok`;
+      } else if (mySpotAmt > 0) {
+        tip.textContent = `${upper} · Sol: +${this.selectedChip} | Sağ Tık: Kaldır (${mySpotAmt})`;
+      } else {
+        tip.textContent = `${upper} · Sol Tık: +${this.selectedChip} Fiş`;
+      }
+      tip.style.left = `${Math.min(Math.max(pointerInfo.clientX, 75), this.els.canvas3d.clientWidth - 90)}px`;
+      tip.style.top = `${Math.max(22, pointerInfo.clientY - 34)}px`;
       tip.hidden = false;
     } else if (tip) {
       tip.hidden = true;
@@ -1404,12 +1495,61 @@ export class RouletteArena {
     this.els.canvas2d.hidden = !show2D;
   }
 
+  _getChipLabelTexture(text, color) {
+    const key = `${text}|${color}`;
+    if (this._labelTextures.has(key)) return this._labelTextures.get(key);
+    const c = document.createElement("canvas");
+    c.width = 128;
+    c.height = 64;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "rgba(10, 15, 13, 0.88)";
+    ctx.strokeStyle = color || "#facc15";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.roundRect(6, 10, 116, 44, 22);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#fffbeb";
+    ctx.font = "900 28px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(text), 64, 33);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    if (this._labelTextures.size > 48) {
+      const oldest = this._labelTextures.keys().next().value;
+      this._labelTextures.get(oldest)?.dispose?.();
+      this._labelTextures.delete(oldest);
+    }
+    this._labelTextures.set(key, tex);
+    return tex;
+  }
+
+  _spawnChipFlight(key, colorHex = "#eab308") {
+    if (!this.scene || this.webglFailed || this.force2D) return;
+    const uv = getSpotFeltUV(key);
+    const endPos = feltUVToWorld(uv.u, uv.v);
+    const startPos = new THREE.Vector3(endPos.x * 0.7, TABLE_Y + 0.34, 0.92);
+    const mesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.03, 0.03, 0.009, 16),
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color(colorHex),
+        roughness: 0.25,
+        metalness: 0.25,
+      }),
+    );
+    mesh.position.copy(startPos);
+    this.scene.add(mesh);
+    this.chipFlights.push({ mesh, startPos, endPos, elapsed: 0, dur: 0.26 });
+  }
+
   _rebuild3DChips() {
     if (!this.chipsGroup || !this.table) return;
     while (this.chipsGroup.children.length) {
       const child = this.chipsGroup.children.pop();
       child.geometry?.dispose?.();
-      child.material?.dispose?.();
+      if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose?.());
+      else child.material?.dispose?.();
     }
 
     const spots = this.table.tableSpots || [];
@@ -1417,18 +1557,19 @@ export class RouletteArena {
       const uv = getSpotFeltUV(spot.key);
       const basePos = feltUVToWorld(uv.u, uv.v);
       let stackY = 0;
+      let topColor = "#facc15";
 
-      // Render one distinct 3D chip stack segment per player contributing to this spot
       for (const entry of spot.breakdown || []) {
+        topColor = entry.color || "#eab308";
         const layers = Math.min(6, Math.max(1, Math.ceil(Math.log2(Math.max(1, entry.amount / 10)) + 1)));
         const rimMat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(entry.color || "#eab308"),
-          roughness: 0.28,
-          metalness: 0.18,
+          color: new THREE.Color(topColor),
+          roughness: 0.26,
+          metalness: 0.2,
         });
         const coreMat = new THREE.MeshStandardMaterial({
           color: 0xfef9e7,
-          roughness: 0.35,
+          roughness: 0.34,
           metalness: 0.08,
         });
         for (let k = 0; k < layers; k += 1) {
@@ -1441,6 +1582,19 @@ export class RouletteArena {
           this.chipsGroup.add(disc);
           stackY += 0.0085;
         }
+      }
+
+      // Floating crisp amount sprite above stacked chips
+      if (spot.totalAmount > 0) {
+        const spriteMat = new THREE.SpriteMaterial({
+          map: this._getChipLabelTexture(spot.totalAmount, topColor),
+          transparent: true,
+          depthTest: false,
+        });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.set(basePos.x, TABLE_Y + 0.048 + stackY, basePos.z);
+        sprite.scale.set(0.115, 0.056, 1);
+        this.chipsGroup.add(sprite);
       }
     }
 
@@ -1484,6 +1638,9 @@ export class RouletteArena {
     if (topFeed && topFeed.id !== this.lastFeedId) {
       this.lastFeedId = topFeed.id;
       this.dealPulseUntil = performance.now() + 450;
+      if (topFeed.userId !== mySocketId) {
+        this._spawnChipFlight(topFeed.key, topFeed.color);
+      }
     }
 
     this._renderHUD();
@@ -1508,10 +1665,8 @@ export class RouletteArena {
       phasePill.textContent = `🏆 Kazanan: ${t.winningNumber} ${colLabel}`;
     }
 
-    // Countdown immediate update
     this._updateCountdown();
 
-    // Bankroll & Rebuy
     const myChips = mySeat ? mySeat.chips : 0;
     this.els["bank-pill"].textContent = this.isSpectator
       ? "👁 İzleyici Modu"
@@ -1527,14 +1682,14 @@ export class RouletteArena {
       specToggle.textContent = this.isSpectator ? "Masaya Otur 🪑" : "İzle 👁";
     }
 
-    // History strip (Son 14 Tur)
+    // History strip (Son 18 Tur)
     const histWrap = this.els["history-strip"];
     histWrap.innerHTML = "";
     const hist = t.history || [];
     if (hist.length === 0) {
       const empty = document.createElement("span");
       empty.className = "rl-hist-empty";
-      empty.textContent = "İlk tur bekleniyor…";
+      empty.textContent = "⏱ Her 60 sn'de oto çark";
       histWrap.append(empty);
     } else {
       hist.forEach((h, idx) => {
@@ -1549,6 +1704,40 @@ export class RouletteArena {
         st.className = "rl-hist-stats";
         st.textContent = `🔴%${t.historyStats.redPct} ⚫%${t.historyStats.blackPct} 🟢%${t.historyStats.greenPct}`;
         histWrap.append(st);
+      }
+    }
+
+    // Hot / Cold analytics panel
+    const hcBox = this.els["hotcold-box"];
+    if (hcBox) {
+      hcBox.innerHTML = "";
+      const stats = t.historyStats;
+      if (stats?.total > 0 && stats.hot?.length > 0) {
+        const hotRow = document.createElement("div");
+        hotRow.className = "rl-hc-row";
+        hotRow.innerHTML = `<span class="rl-hc-label">🔥 Sıcak:</span>`;
+        for (const h of stats.hot) {
+          const s = document.createElement("span");
+          s.className = `rl-hc-chip ${numColor(h.num)}`;
+          s.textContent = `${h.num}`;
+          s.title = `${h.hits} kez geldi`;
+          hotRow.append(s);
+        }
+        const coldRow = document.createElement("div");
+        coldRow.className = "rl-hc-row";
+        coldRow.innerHTML = `<span class="rl-hc-label">❄️ Soğuk:</span>`;
+        for (const c of stats.cold || []) {
+          const s = document.createElement("span");
+          s.className = `rl-hc-chip ${numColor(c.num)}`;
+          s.textContent = `${c.num}`;
+          coldRow.append(s);
+        }
+        const ratio = document.createElement("div");
+        ratio.className = "rl-hc-row";
+        ratio.textContent = `Çift %${stats.evenPct ?? 0} · Tek %${stats.oddPct ?? 0} · (${stats.total} tur)`;
+        hcBox.append(hotRow, coldRow, ratio);
+      } else {
+        hcBox.innerHTML = `<div class="rl-hc-row"><span class="rl-hc-label">⏱ Oto Çark:</span><span>60 sn'de bir · Sol tık ekler, sağ tık kaldırır</span></div>`;
       }
     }
 
@@ -1577,6 +1766,7 @@ export class RouletteArena {
     const seatsEl = this.els["seats-list"];
     seatsEl.innerHTML = "";
     const activeSeats = (t.seats || []).filter(Boolean);
+    const now = Date.now();
     for (const seat of activeSeats) {
       const row = document.createElement("div");
       row.className = `rl-seat-row ${seat.userId === this.mySocketId ? "me" : ""}`;
@@ -1584,9 +1774,14 @@ export class RouletteArena {
         t.phase === "settled" && seat.lastWin > 0
           ? `<span class="rl-seat-win">+${seat.lastWin}</span>`
           : "";
+      const reactTxt =
+        seat.reaction && now - seat.reaction.at < 4500
+          ? `<span class="rl-seat-react">${this._esc(seat.reaction.emoji)}</span>`
+          : "";
       row.innerHTML = `
         <span class="rl-seat-dot" style="background:${seat.color}"></span>
         <span class="rl-seat-name">${this._esc(seat.name)}</span>
+        ${reactTxt}
         <span class="rl-seat-bet">${seat.totalBet ? `${seat.totalBet}⏳` : ""}</span>
         ${winTxt}
         <span class="rl-seat-chips">${seat.chips} 💰</span>
@@ -1595,305 +1790,342 @@ export class RouletteArena {
     }
 
     // Transparent Live Player Bets Feed ("Şu kullanıcı şuraya şunu koydu")
-    const renderFeedInto = (container) => {
-      container.innerHTML = "";
-      const feed = t.liveFeed || [];
-      if (feed.length === 0) {
-        const empty = document.createElement("div");
-        empty.className = "rl-feed-empty";
-        empty.textContent =
-          t.phase === "betting"
-            ? "Henüz masaya bahis konmadı — çip seçip masaya tıkla!"
-            : "Bu turda bahis kaydı yok.";
-        container.append(empty);
-        return;
-      }
-      for (const item of feed) {
-        const row = document.createElement("div");
-        row.className = "rl-feed-row";
-        row.innerHTML = `
+      const renderFeedInto = (container, withAnalytics = false) => {
+        container.innerHTML = "";
+        if (withAnalytics && hcBox && hcBox.innerHTML) {
+          const clone = hcBox.cloneNode(true);
+          clone.className = "rl-hotcold-box rl-mobile-hc";
+          container.append(clone);
+        }
+        const feed = t.liveFeed || [];
+        if (feed.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "rl-feed-empty";
+          empty.textContent =
+            t.phase === "betting"
+              ? "Henüz masaya bahis konmadı — çip seçip masaya tıkla!"
+              : "Bu turda bahis kaydı yok.";
+          container.append(empty);
+          return;
+        }
+        for (const item of feed) {
+          const row = document.createElement("div");
+          row.className = "rl-feed-row";
+          row.innerHTML = `
           <span class="rl-seat-dot" style="background:${item.color}"></span>
           <span class="rl-feed-who">${this._esc(item.name)}</span>
           <span class="rl-feed-arrow">→</span>
           <span class="rl-feed-spot">${this._esc(item.label)}</span>
           <strong class="rl-feed-amt">+${item.amount}</strong>
         `;
-        container.append(row);
+          container.append(row);
+        }
+      };
+      renderFeedInto(this.els["feed-list"], false);
+      renderFeedInto(this.els["panel-mobile-feed"], true);
+
+      // Update 2D Felt badges showing EVERYONE's chips transparently on each spot!
+      const spotMap = new Map((t.tableSpots || []).map((s) => [s.key, s]));
+      for (const btn of this.spotButtons || []) {
+        const key = btn.dataset.betKey;
+        const spot = spotMap.get(key);
+        const badges = btn.querySelector(".rl-spot-badges");
+        if (!badges) continue;
+        badges.innerHTML = "";
+        const nums = getSpotCoveredNumbers(key);
+        btn.classList.toggle(
+          "is-winner",
+          t.phase === "settled" && Number.isInteger(t.winningNumber) && nums.includes(t.winningNumber),
+        );
+        if (!spot) continue;
+
+        const totalPill = document.createElement("span");
+        totalPill.className = "rl-spot-total";
+        totalPill.textContent = String(spot.totalAmount);
+        badges.append(totalPill);
+
+        for (const br of spot.breakdown.slice(0, 3)) {
+          const cDot = document.createElement("i");
+          cDot.className = "rl-spot-owner";
+          cDot.style.background = br.color;
+          cDot.title = `${br.name}: ${br.amount} fiş (Sağ tıkla kaldır)`;
+          badges.append(cDot);
+        }
       }
-    };
-    renderFeedInto(this.els["feed-list"]);
-    renderFeedInto(this.els["panel-mobile-feed"]);
 
-    // Update 2D Felt badges showing EVERYONE's chips transparently on each spot!
-    const spotMap = new Map((t.tableSpots || []).map((s) => [s.key, s]));
-    for (const btn of this.spotButtons || []) {
-      const key = btn.dataset.betKey;
-      const spot = spotMap.get(key);
-      const badges = btn.querySelector(".rl-spot-badges");
-      if (!badges) continue;
-      badges.innerHTML = "";
-      const nums = getSpotCoveredNumbers(key);
-      btn.classList.toggle(
-        "is-winner",
-        t.phase === "settled" && Number.isInteger(t.winningNumber) && nums.includes(t.winningNumber),
-      );
-      if (!spot) continue;
+      const canBet = t.phase === "betting" && !this.isSpectator && !!mySeat;
+      this.root.querySelector(".roulette-dock")?.classList.toggle("is-locked", !canBet);
+    }
 
-      const totalPill = document.createElement("span");
-      totalPill.className = "rl-spot-total";
-      totalPill.textContent = String(spot.totalAmount);
-      badges.append(totalPill);
-
-      for (const br of spot.breakdown.slice(0, 3)) {
-        const cDot = document.createElement("i");
-        cDot.className = "rl-spot-owner";
-        cDot.style.background = br.color;
-        cDot.title = `${br.name}: ${br.amount} fiş`;
-        badges.append(cDot);
+    _updateCountdown() {
+      if (!this.table || !this.els["timer-pill"]) return;
+      const remMs = Math.max(0, (this.table.phaseEndsAt || 0) - (Date.now() + (this.serverOffsetMs || 0)));
+      const sec = Math.ceil(remMs / 1000);
+      this.els["timer-pill"].textContent = `${sec}s`;
+      this.els["timer-pill"].classList.toggle("urgent", this.table.phase === "betting" && sec <= 5);
+      const fill = this.els["cycle-fill"];
+      if (fill) {
+        const dur = Math.max(1000, this.table.phaseDurationMs || 48000);
+        const pct = Math.min(100, Math.max(0, (remMs / dur) * 100));
+        fill.style.width = `${pct.toFixed(1)}%`;
+        fill.className = `rl-cycle-fill phase-${this.table.phase}`;
       }
     }
 
-    // Lock betting dock cleanly when wheel spinning or spectating
-    const canBet = t.phase === "betting" && !this.isSpectator && !!mySeat;
-    this.root.querySelector(".roulette-dock")?.classList.toggle("is-locked", !canBet);
-  }
+    _esc(str) {
+      return String(str || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
 
-  _updateCountdown() {
-    if (!this.table || !this.els["timer-pill"]) return;
-    const remMs = Math.max(0, (this.table.phaseEndsAt || 0) - (Date.now() + (this.serverOffsetMs || 0)));
-    const sec = Math.ceil(remMs / 1000);
-    this.els["timer-pill"].textContent = `${sec}s`;
-    this.els["timer-pill"].classList.toggle("urgent", this.table.phase === "betting" && sec <= 5);
-  }
+    _startLoop() {
+      const tick = () => {
+        if (this.disposed) return;
+        this.rafId = requestAnimationFrame(tick);
+        const dt = Math.min(0.05, this.clock.getDelta());
+        const elapsed = this.clock.elapsedTime;
+        this._updateCountdown();
+        this._animateWheelAndScene(elapsed, dt);
 
-  _esc(str) {
-    return String(str || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  }
-
-  _startLoop() {
-    const tick = () => {
-      if (this.disposed) return;
+        if (!this.force2D && !this.webglFailed && this.renderer && this.scene && this.camera) {
+          this.controls?.update();
+          this.renderer.render(this.scene, this.camera);
+        } else {
+          this._render2DCanvas();
+        }
+      };
       this.rafId = requestAnimationFrame(tick);
-      const dt = Math.min(0.05, this.clock.getDelta());
-      const elapsed = this.clock.elapsedTime;
-      this._updateCountdown();
-      this._animateWheelAndScene(elapsed, dt);
-
-      if (!this.force2D && !this.webglFailed && this.renderer && this.scene && this.camera) {
-        this.controls?.update();
-        this.renderer.render(this.scene, this.camera);
-      } else {
-        this._render2DCanvas();
-      }
-    };
-    this.rafId = requestAnimationFrame(tick);
-  }
-
-  _animateWheelAndScene(time, dt) {
-    // Camera glide
-    if (this._camGliding && this.camera && this.controls) {
-      const ck = 1 - Math.exp(-8.5 * dt);
-      this.camera.position.lerp(this._camTargetPos, ck);
-      this.controls.target.lerp(this._camTargetLook, ck);
-      if (this.camera.position.distanceToSquared(this._camTargetPos) < 0.0005) {
-        this.camera.position.copy(this._camTargetPos);
-        this.controls.target.copy(this._camTargetLook);
-        this._camGliding = false;
-      }
     }
 
-    const t = this.table;
-    if (this.rotorGroup && this.ballMesh) {
-      if (t?.phase === "spinning" && t.spinMeta) {
-        const meta = t.spinMeta;
-        const duration = Math.max(1000, meta.durationMs || 6400);
-        const nowServer = Date.now() + (this.serverOffsetMs || 0);
-        const u = Math.min(1, Math.max(0, (nowServer - meta.startedAt) / duration));
-
-        // Smooth decelerating rotor rotation (+Y)
-        const rotorEase = 1 - Math.pow(1 - u, 2.15);
-        this.rotorYaw = rotorEase * Math.PI * 2 * (meta.rotorRevs || 3);
-        this.rotorGroup.rotation.y = this.rotorYaw;
-
-        const targetLocalPocket = ((meta.pocketIndex ?? 0) / 37) * Math.PI * 2;
-        const ballTotalWorld = -Math.PI * 2 * (meta.ballRevs || 9);
-
-        if (u < 0.46) {
-          // Outer ball track high orbit
-          const wAng = ballTotalWorld * (u / 0.72) * 0.92;
-          const r = 0.806;
-          this.ballMesh.position.set(Math.cos(wAng) * r, 0.194, Math.sin(wAng) * r);
-          const bucket = Math.floor(Math.abs(wAng) / (Math.PI * 0.45));
-          if (bucket !== this.lastTickBucket && u < 0.4) {
-            this.lastTickBucket = bucket;
-            playRouletteBallTick(0.9);
+    _animateWheelAndScene(time, dt) {
+      // Parabolic chip toss animation
+      if (this.chipFlights.length) {
+        const keep = [];
+        for (const f of this.chipFlights) {
+          f.elapsed = Math.min(f.dur, f.elapsed + dt);
+          const u = f.elapsed / f.dur;
+          const ease = 1 - Math.pow(1 - u, 3);
+          f.mesh.position.lerpVectors(f.startPos, f.endPos, ease);
+          f.mesh.position.y += Math.sin(u * Math.PI) * 0.16;
+          f.mesh.rotation.y += dt * 12;
+          if (u < 1) {
+            keep.push(f);
+          } else {
+            this.scene.remove(f.mesh);
+            f.mesh.geometry?.dispose?.();
+            f.mesh.material?.dispose?.();
           }
-        } else if (u < 0.72) {
-          // Spiral inward across slanted apron & 8 brass diamond deflectors
-          const du = (u - 0.46) / 0.26;
-          const wAng = ballTotalWorld * (u / 0.72) * 0.92 + Math.sin(du * Math.PI * 5 + (meta.deflectorSeed || 0) * 6) * 0.08 * (1 - du);
-          const r = 0.806 - du * (0.806 - 0.56);
-          const deflBump = Math.abs(Math.sin(du * Math.PI * 4)) * 0.016 * (1 - du * 0.6);
-          const y = 0.194 - du * (0.194 - 0.098) + deflBump;
-          this.ballMesh.position.set(Math.cos(wAng) * r, y, Math.sin(wAng) * r);
-          const bucket = Math.floor(du * 6);
-          if (bucket !== this.lastTickBucket) {
-            this.lastTickBucket = bucket;
-            playRouletteBallTick(1.15 - du * 0.25);
+        }
+        this.chipFlights = keep;
+      }
+
+      // Camera glide
+      if (this._camGliding && this.camera && this.controls) {
+        const ck = 1 - Math.exp(-8.5 * dt);
+        this.camera.position.lerp(this._camTargetPos, ck);
+        this.controls.target.lerp(this._camTargetLook, ck);
+        if (this.camera.position.distanceToSquared(this._camTargetPos) < 0.0005) {
+          this.camera.position.copy(this._camTargetPos);
+          this.controls.target.copy(this._camTargetLook);
+          this._camGliding = false;
+        }
+      }
+
+      const t = this.table;
+      if (this.rotorGroup && this.ballMesh) {
+        if (t?.phase === "spinning" && t.spinMeta) {
+          const meta = t.spinMeta;
+          const duration = Math.max(1000, meta.durationMs || 6400);
+          const nowServer = Date.now() + (this.serverOffsetMs || 0);
+          const u = Math.min(1, Math.max(0, (nowServer - meta.startedAt) / duration));
+
+          // Smooth decelerating rotor rotation (+Y)
+          const rotorEase = 1 - Math.pow(1 - u, 2.15);
+          this.rotorYaw = rotorEase * Math.PI * 2 * (meta.rotorRevs || 3);
+          this.rotorGroup.rotation.y = this.rotorYaw;
+
+          const targetLocalPocket = ((meta.pocketIndex ?? 0) / 37) * Math.PI * 2;
+          const ballTotalWorld = -Math.PI * 2 * (meta.ballRevs || 9);
+
+          if (u < 0.46) {
+            // Outer ball track high orbit
+            const wAng = ballTotalWorld * (u / 0.72) * 0.92;
+            const r = 0.806;
+            this.ballMesh.position.set(Math.cos(wAng) * r, 0.194, Math.sin(wAng) * r);
+            const bucket = Math.floor(Math.abs(wAng) / (Math.PI * 0.45));
+            if (bucket !== this.lastTickBucket && u < 0.4) {
+              this.lastTickBucket = bucket;
+              playRouletteBallTick(0.9);
+            }
+          } else if (u < 0.72) {
+            // Spiral inward across slanted apron & 8 brass diamond deflectors
+            const du = (u - 0.46) / 0.26;
+            const wAng = ballTotalWorld * (u / 0.72) * 0.92 + Math.sin(du * Math.PI * 5 + (meta.deflectorSeed || 0) * 6) * 0.08 * (1 - du);
+            const r = 0.806 - du * (0.806 - 0.56);
+            const deflBump = Math.abs(Math.sin(du * Math.PI * 4)) * 0.016 * (1 - du * 0.6);
+            const y = 0.194 - du * (0.194 - 0.098) + deflBump;
+            this.ballMesh.position.set(Math.cos(wAng) * r, y, Math.sin(wAng) * r);
+            const bucket = Math.floor(du * 6);
+            if (bucket !== this.lastTickBucket) {
+              this.lastTickBucket = bucket;
+              playRouletteBallTick(1.15 - du * 0.25);
+            }
+          } else {
+            // Capture into exact winning pocket inside rotor-local frame!
+            if (!this.didDropSfx) {
+              this.didDropSfx = true;
+              playRouletteDrop();
+            }
+            const pu = Math.min(1, (u - 0.72) / 0.22);
+            const easeP = 1 - Math.pow(1 - pu, 3);
+            const dropWorldAng = ballTotalWorld * 0.92;
+            const dropLocalAng = dropWorldAng + this.rotorYaw;
+
+            // Nearest congruent pocket ahead of current spin
+            const TWO_PI = Math.PI * 2;
+            let diff = (targetLocalPocket - dropLocalAng) % TWO_PI;
+            if (diff > 0) diff -= TWO_PI; // Continue forward negative sweep naturally
+            const finalLocalAng = dropLocalAng + diff - TWO_PI;
+            const curLocalAng = dropLocalAng + (finalLocalAng - dropLocalAng) * easeP;
+
+            const curWorldAng = curLocalAng - this.rotorYaw;
+            const r = 0.56 - easeP * (0.56 - 0.435);
+            const bounce = pu < 1 ? Math.abs(Math.sin(pu * Math.PI * 3.5)) * 0.028 * (1 - pu) : 0;
+            const y = 0.098 - easeP * (0.098 - 0.085) + bounce;
+            this.ballMesh.position.set(Math.cos(curWorldAng) * r, y, Math.sin(curWorldAng) * r);
           }
         } else {
-          // Capture into exact winning pocket inside rotor-local frame!
-          if (!this.didDropSfx) {
-            this.didDropSfx = true;
-            playRouletteDrop();
-          }
-          const pu = Math.min(1, (u - 0.72) / 0.22);
-          const easeP = 1 - Math.pow(1 - pu, 3);
-          const dropWorldAng = ballTotalWorld * 0.92;
-          const dropLocalAng = dropWorldAng + this.rotorYaw;
-
-          // Nearest congruent pocket ahead of current spin
-          const TWO_PI = Math.PI * 2;
-          let diff = (targetLocalPocket - dropLocalAng) % TWO_PI;
-          if (diff > 0) diff -= TWO_PI; // Continue forward negative sweep naturally
-          const finalLocalAng = dropLocalAng + diff - TWO_PI;
-          const curLocalAng = dropLocalAng + (finalLocalAng - dropLocalAng) * easeP;
-
-          const curWorldAng = curLocalAng - this.rotorYaw;
-          const r = 0.56 - easeP * (0.56 - 0.435);
-          const bounce = pu < 1 ? Math.abs(Math.sin(pu * Math.PI * 3.5)) * 0.028 * (1 - pu) : 0;
-          const y = 0.098 - easeP * (0.098 - 0.085) + bounce;
-          this.ballMesh.position.set(Math.cos(curWorldAng) * r, y, Math.sin(curWorldAng) * r);
+          // Gentle idle casino wheel spin + ball seated on winning pocket (or 0)
+          this.rotorYaw += dt * 0.36;
+          this.rotorGroup.rotation.y = this.rotorYaw;
+          const restNum = Number.isInteger(t?.winningNumber)
+            ? t.winningNumber
+            : t?.history?.[0]?.number ?? 0;
+          const pIdx = WHEEL_INDEX.get(restNum) ?? 0;
+          const localAng = (pIdx / 37) * Math.PI * 2;
+          const worldAng = localAng - this.rotorYaw;
+          this.ballMesh.position.set(Math.cos(worldAng) * 0.435, 0.085, Math.sin(worldAng) * 0.435);
         }
-      } else {
-        // Gentle idle casino wheel spin + ball seated on winning pocket (or 0)
-        this.rotorYaw += dt * 0.36;
-        this.rotorGroup.rotation.y = this.rotorYaw;
-        const restNum = Number.isInteger(t?.winningNumber)
-          ? t.winningNumber
-          : t?.history?.[0]?.number ?? 0;
-        const pIdx = WHEEL_INDEX.get(restNum) ?? 0;
-        const localAng = (pIdx / 37) * Math.PI * 2;
-        const worldAng = localAng - this.rotorYaw;
-        this.ballMesh.position.set(Math.cos(worldAng) * 0.435, 0.085, Math.sin(worldAng) * 0.435);
+      }
+
+      // Live 3D Croupier animation
+      if (this.dealerRig) {
+        const { poseRig } = this.dealerRig;
+        let targetLook = t?.phase === "spinning" ? -0.35 : Math.sin(time * 0.4) * 0.14;
+        this.dealerRig.lookYaw += (targetLook - this.dealerRig.lookYaw) * Math.min(1, dt * 4);
+        const reachTarget = performance.now() < this.dealPulseUntil ? 1 : 0;
+        this.dealerRig.reachMix += (reachTarget - this.dealerRig.reachMix) * Math.min(1, dt * 7);
+        const reach = this.dealerRig.reachMix;
+        const happy = performance.now() < this.celebrateUntil ? Math.sin(time * 8) * 0.08 : 0;
+
+        if (poseRig.Spine1?.base) {
+          const q = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(Math.sin(time * 1.5) * 0.02 + reach * 0.04, 0, happy * 0.35),
+          );
+          poseRig.Spine1.bone.quaternion.copy(poseRig.Spine1.base).multiply(q);
+        }
+        if (poseRig.Neck?.base) {
+          const q = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(0.06, this.dealerRig.lookYaw * 0.45, 0),
+          );
+          poseRig.Neck.bone.quaternion.copy(poseRig.Neck.base).multiply(q);
+        }
+        if (poseRig.Head?.base) {
+          const q = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(0.08 + happy * 0.5, this.dealerRig.lookYaw * 0.55, 0),
+          );
+          poseRig.Head.bone.quaternion.copy(poseRig.Head.base).multiply(q);
+        }
+        if (poseRig.RightArm?.base) {
+          const q = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(-reach * 0.42 + happy * 0.4, reach * 0.2 + Math.sin(time * 1.3) * 0.02, 0),
+          );
+          poseRig.RightArm.bone.quaternion.copy(poseRig.RightArm.base).multiply(q);
+        }
       }
     }
 
-    // Live 3D Croupier animation
-    if (this.dealerRig) {
-      const { poseRig } = this.dealerRig;
-      let targetLook = t?.phase === "spinning" ? -0.35 : Math.sin(time * 0.4) * 0.14;
-      this.dealerRig.lookYaw += (targetLook - this.dealerRig.lookYaw) * Math.min(1, dt * 4);
-      const reachTarget = performance.now() < this.dealPulseUntil ? 1 : 0;
-      this.dealerRig.reachMix += (reachTarget - this.dealerRig.reachMix) * Math.min(1, dt * 7);
-      const reach = this.dealerRig.reachMix;
-      const happy = performance.now() < this.celebrateUntil ? Math.sin(time * 8) * 0.08 : 0;
-
-      if (poseRig.Spine1?.base) {
-        const q = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(Math.sin(time * 1.5) * 0.02 + reach * 0.04, 0, happy * 0.35),
-        );
-        poseRig.Spine1.bone.quaternion.copy(poseRig.Spine1.base).multiply(q);
+    _render2DCanvas() {
+      const canvas = this.els.canvas2d;
+      if (!canvas || canvas.hidden) return;
+      const stage = this.root.querySelector(".roulette-stage");
+      const w = Math.max(300, stage.clientWidth);
+      const h = Math.max(210, stage.clientHeight);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
       }
-      if (poseRig.Neck?.base) {
-        const q = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0.06, this.dealerRig.lookYaw * 0.45, 0),
-        );
-        poseRig.Neck.bone.quaternion.copy(poseRig.Neck.base).multiply(q);
-      }
-      if (poseRig.Head?.base) {
-        const q = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0.08 + happy * 0.5, this.dealerRig.lookYaw * 0.55, 0),
-        );
-        poseRig.Head.bone.quaternion.copy(poseRig.Head.base).multiply(q);
-      }
-      if (poseRig.RightArm?.base) {
-        const q = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(-reach * 0.42 + happy * 0.4, reach * 0.2 + Math.sin(time * 1.3) * 0.02, 0),
-        );
-        poseRig.RightArm.bone.quaternion.copy(poseRig.RightArm.base).multiply(q);
-      }
-    }
-  }
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, w, h);
 
-  _render2DCanvas() {
-    const canvas = this.els.canvas2d;
-    if (!canvas || canvas.hidden) return;
-    const stage = this.root.querySelector(".roulette-stage");
-    const w = Math.max(300, stage.clientWidth);
-    const h = Math.max(210, stage.clientHeight);
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
-    }
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, w, h);
+      const cx = w * 0.5;
+      const cy = h * 0.5;
+      const outerR = Math.min(w, h) * 0.44;
 
-    const cx = w * 0.5;
-    const cy = h * 0.5;
-    const outerR = Math.min(w, h) * 0.44;
-
-    // Bowl rim
-    ctx.beginPath();
-    ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
-    ctx.fillStyle = "#3f180e";
-    ctx.fill();
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = "#e3b857";
-    ctx.stroke();
-
-    const step = (Math.PI * 2) / 37;
-    for (let i = 0; i < 37; i += 1) {
-      const n = WHEEL_ORDER[i];
-      const ang = (i / 37) * Math.PI * 2 - this.rotorYaw;
+      // Bowl rim
       ctx.beginPath();
-      ctx.arc(cx, cy, outerR * 0.86, ang - step * 0.5, ang + step * 0.5);
-      ctx.arc(cx, cy, outerR * 0.52, ang + step * 0.5, ang - step * 0.5, true);
-      ctx.closePath();
-      ctx.fillStyle = numBgHex(n);
+      ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+      ctx.fillStyle = "#3f180e";
       ctx.fill();
-      ctx.lineWidth = 1.2;
-      ctx.strokeStyle = "#d9af52";
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = "#e3b857";
       ctx.stroke();
 
-      ctx.save();
-      ctx.translate(cx + Math.cos(ang) * outerR * 0.72, cy + Math.sin(ang) * outerR * 0.72);
-      ctx.rotate(ang + Math.PI / 2);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `700 ${Math.max(9, Math.round(outerR * 0.085))}px system-ui, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(String(n), 0, 0);
-      ctx.restore();
-    }
+      const step = (Math.PI * 2) / 37;
+      for (let i = 0; i < 37; i += 1) {
+        const n = WHEEL_ORDER[i];
+        const ang = (i / 37) * Math.PI * 2 - this.rotorYaw;
+        ctx.beginPath();
+        ctx.arc(cx, cy, outerR * 0.86, ang - step * 0.5, ang + step * 0.5);
+        ctx.arc(cx, cy, outerR * 0.52, ang + step * 0.5, ang - step * 0.5, true);
+        ctx.closePath();
+        ctx.fillStyle = numBgHex(n);
+        ctx.fill();
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = "#d9af52";
+        ctx.stroke();
 
-    // Hub
-    ctx.beginPath();
-    ctx.arc(cx, cy, outerR * 0.5, 0, Math.PI * 2);
-    ctx.fillStyle = "#2b120c";
-    ctx.fill();
-    ctx.strokeStyle = "#e3b857";
-    ctx.stroke();
+        ctx.save();
+        ctx.translate(cx + Math.cos(ang) * outerR * 0.72, cy + Math.sin(ang) * outerR * 0.72);
+        ctx.rotate(ang + Math.PI / 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `700 ${Math.max(9, Math.round(outerR * 0.085))}px system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(n), 0, 0);
+        ctx.restore();
+      }
 
-    // Ball
-    if (this.ballMesh) {
-      const bx = cx + (this.ballMesh.position.x / 0.85) * outerR * 0.94;
-      const bz = cy + (this.ballMesh.position.z / 0.85) * outerR * 0.94;
+      // Hub
       ctx.beginPath();
-      ctx.arc(bx, bz, Math.max(5, outerR * 0.045), 0, Math.PI * 2);
-      ctx.fillStyle = "#fffdf6";
+      ctx.arc(cx, cy, outerR * 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#2b120c";
       ctx.fill();
-    }
-  }
+      ctx.strokeStyle = "#e3b857";
+      ctx.stroke();
 
-  dispose() {
-    this.disposed = true;
-    if (this.rafId) cancelAnimationFrame(this.rafId);
-    this._resizeObs?.disconnect?.();
-    this.controls?.dispose?.();
-    if (this.renderer) {
-      this.renderer.dispose();
+      // Ball
+      if (this.ballMesh) {
+        const bx = cx + (this.ballMesh.position.x / 0.85) * outerR * 0.94;
+        const bz = cy + (this.ballMesh.position.z / 0.85) * outerR * 0.94;
+        ctx.beginPath();
+        ctx.arc(bx, bz, Math.max(5, outerR * 0.045), 0, Math.PI * 2);
+        ctx.fillStyle = "#fffdf6";
+        ctx.fill();
+      }
     }
-    this.container.innerHTML = "";
+
+    dispose() {
+      this.disposed = true;
+      if (this.rafId) cancelAnimationFrame(this.rafId);
+      this._resizeObs?.disconnect?.();
+      this.controls?.dispose?.();
+      if (this._labelTextures) {
+        for (const tex of this._labelTextures.values()) tex?.dispose?.();
+        this._labelTextures.clear();
+      }
+      this.chipFlights = [];
+      if (this.renderer) {
+        this.renderer.dispose();
+      }
+      this.container.innerHTML = "";
+    }
   }
-}

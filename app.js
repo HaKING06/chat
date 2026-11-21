@@ -3261,6 +3261,8 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
           onLeave: leaveRoulette,
           onHelp: () => showDialog("roulette-help-dialog"),
           onBet: (bets) => sendBetAction("rouletteBet", { bets }),
+          onRemoveSpot: (key, amount = null) =>
+            sendBetAction("rouletteRemoveBet", { key, amount }),
           onCallBet: ({ callName, unitAmount }) =>
             sendBetAction("rouletteBet", { callName, unitAmount }),
           onNeighborsBet: ({ neighborsCenter, unitAmount, radius }) =>
@@ -3269,7 +3271,12 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
           onClear: () => sendBetAction("rouletteClear", {}),
           onRebet: () => sendBetAction("rouletteRebet", {}),
           onDouble: () => sendBetAction("rouletteDouble", {}),
+          onHalve: () => sendBetAction("rouletteHalve", {}),
           onRebuy: () => sendBetAction("rouletteRebuy", {}),
+          onReact: (emoji) =>
+            emit("rouletteReact", { tableId: state.rouletteTable?.id, emoji }).then((r) => {
+              if (!r.success) toast(r.message, true);
+            }),
           onSpectateToggle: (toSpec) =>
             rouletteCommand(toSpec ? "rouletteSpectate" : "rouletteJoin", {
               tableId: state.rouletteTable?.id,
