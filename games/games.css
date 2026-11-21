@@ -4491,3 +4491,601 @@ body.in-blackjack .games-view {
     display: none;
   }
 }
+
+/* ==================== 3D LAS VEGAS VIP SLOT MACHINE ==================== */
+.game-card-slot {
+  border-color: rgba(217, 70, 239, 0.36);
+  background: radial-gradient(circle at top right, rgba(168, 85, 247, 0.22), transparent 58%),
+    linear-gradient(155deg, rgba(24, 15, 34, 0.96), rgba(14, 11, 20, 0.98));
+}
+
+.slot-live-tag {
+  background: rgba(250, 204, 21, 0.16);
+  color: #fde047;
+  border-color: rgba(250, 204, 21, 0.45);
+}
+
+.slot-card-emblem {
+  font-size: 15px;
+  font-weight: 900;
+  color: #fde047;
+  letter-spacing: 0.04em;
+}
+
+.slot-arena {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  color: #f8fafc;
+}
+
+.slot-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(28, 16, 40, 0.96), rgba(16, 10, 24, 0.98));
+  border: 1px solid rgba(250, 204, 21, 0.34);
+}
+
+.slot-top-left,
+.slot-top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.sl-jackpot-pill,
+.sl-rtp-pill,
+.sl-bank-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sl-jackpot-pill {
+  background: linear-gradient(90deg, rgba(180, 83, 9, 0.35), rgba(162, 28, 175, 0.35));
+  border: 1px solid rgba(250, 204, 21, 0.65);
+  color: #fef08a;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-rtp-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #cbd5e1;
+}
+
+.sl-bank-pill {
+  background: rgba(16, 185, 129, 0.16);
+  border: 1px solid rgba(52, 211, 153, 0.42);
+  color: #bbf7d0;
+}
+
+.sl-cam-group {
+  display: inline-flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.sl-cam-btn {
+  padding: 5px 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 0;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.sl-cam-btn.active {
+  background: #eab308;
+  color: #141008;
+}
+
+.slot-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 265px;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.slot-stage {
+  position: relative;
+  height: clamp(290px, 46dvh, 465px);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  background: #0b0812;
+}
+
+.sl-canvas-3d,
+.sl-canvas-2d {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.sl-stage-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sl-fs-banner {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #16a34a, #0ea5e9);
+  border: 1.5px solid #fef08a;
+  color: #fff;
+  font-weight: 900;
+  font-size: 12.5px;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.sl-win-overlay {
+  position: absolute;
+  bottom: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(15, 10, 24, 0.92);
+  border: 2px solid #facc15;
+  color: #fef08a;
+  font-weight: 900;
+  font-size: 15px;
+  white-space: nowrap;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+}
+
+.sl-win-overlay.tier-mega,
+.sl-win-overlay.tier-jackpot {
+  background: linear-gradient(90deg, #991b1b, #a21caf);
+  border-color: #fde047;
+  font-size: 17px;
+}
+
+.sl-hint-pill {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(12, 8, 20, 0.8);
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  color: #f1e8ce;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.slot-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: clamp(290px, 46dvh, 465px);
+}
+
+.sl-side-section {
+  background: rgba(18, 12, 26, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sl-wins-section {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sl-side-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #facc15;
+}
+
+.sl-side-sub {
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.sl-players-list,
+.sl-wins-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  max-height: 175px;
+}
+
+.sl-player-row,
+.sl-win-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 11.5px;
+}
+
+.sl-player-row.me {
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  background: rgba(250, 204, 21, 0.09);
+}
+
+.sl-p-name {
+  font-weight: 700;
+  color: #f8fafc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sl-p-fs {
+  color: #4ade80;
+  font-weight: 800;
+}
+
+.sl-p-chips {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #fef08a;
+}
+
+.sl-win-row {
+  justify-content: space-between;
+}
+
+.sl-win-row.tier-mega,
+.sl-win-row.tier-jackpot {
+  background: rgba(217, 70, 239, 0.2);
+  border: 1px solid rgba(250, 204, 21, 0.4);
+}
+
+.sl-win-empty {
+  font-size: 11.5px;
+  color: #94a3b8;
+  padding: 6px 2px;
+}
+
+.sl-react-strip {
+  display: flex;
+  gap: 4px;
+}
+
+.sl-react-btn {
+  flex: 1 1 0;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.slot-console {
+  background: linear-gradient(180deg, rgba(28, 16, 40, 0.96), rgba(14, 9, 22, 0.98));
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sl-gamble-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(185, 28, 28, 0.24), rgba(15, 23, 42, 0.6));
+  border: 1px solid rgba(250, 204, 21, 0.5);
+}
+
+.sl-gamble-label {
+  font-weight: 800;
+  font-size: 12.5px;
+  color: #fef08a;
+}
+
+.sl-gamble-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.sl-gamble-red {
+  background: #b91c1c;
+  color: #fff;
+  border: 1px solid #f87171;
+}
+
+.sl-gamble-black {
+  background: #18181b;
+  color: #fff;
+  border: 1px solid #71717a;
+}
+
+.sl-console-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sl-stakes-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.sl-stake-btn {
+  padding: 7px 11px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  font-weight: 800;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.sl-stake-btn.active {
+  background: #eab308;
+  color: #141008;
+  border-color: #fef08a;
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.45);
+}
+
+.sl-mid-controls,
+.sl-auto-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sl-mode-btn {
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sl-mode-btn.active {
+  background: rgba(56, 189, 248, 0.24);
+  border-color: #38bdf8;
+  color: #bae6fd;
+}
+
+.sl-auto-stop {
+  background: rgba(239, 68, 68, 0.24);
+  border-color: #f87171;
+  color: #fecaca;
+}
+
+.sl-spin-btn {
+  min-width: 170px;
+  padding: 10px 22px;
+  border-radius: 12px;
+  border: 2px solid #fef08a;
+  background: linear-gradient(180deg, #facc15, #ca8a04);
+  color: #161004;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(234, 179, 8, 0.4);
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.sl-spin-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.sl-spin-btn.is-spinning {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.sl-spin-btn.is-free-spin {
+  background: linear-gradient(180deg, #4ade80, #16a34a);
+  color: #fff;
+  border-color: #bbf7d0;
+}
+
+.sl-spin-title {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.sl-spin-sub {
+  font-size: 10.5px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.sl-status-strip {
+  font-size: 11.5px;
+  color: #cbd5e1;
+  text-align: center;
+}
+
+.slot-paytable-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sl-pt-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(250, 204, 21, 0.25);
+  font-size: 12px;
+}
+
+.sl-pt-card img {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+}
+
+@media (max-width: 960px) {
+  body.in-slot main {
+    padding-bottom: 58px !important;
+  }
+
+  .slot-topbar {
+    padding: 6px 8px;
+    gap: 5px;
+  }
+
+  .sl-jackpot-pill,
+  .sl-rtp-pill,
+  .sl-bank-pill {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .slot-main {
+    grid-template-columns: 1fr;
+  }
+
+  .slot-side {
+    display: none;
+  }
+
+  .slot-stage {
+    height: clamp(205px, 34dvh, 285px);
+  }
+
+  .sl-hint-pill {
+    display: none;
+  }
+
+  .slot-console {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .sl-gamble-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    padding: 6px 8px;
+  }
+
+  .sl-gamble-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sl-stake-btn {
+    padding: 5px 9px;
+    font-size: 12px;
+  }
+
+  .sl-spin-btn {
+    width: 100%;
+    padding: 9px 14px;
+  }
+
+  .sl-status-strip {
+    font-size: 10.5px;
+    line-height: 1.25;
+  }
+}
+
+@media (max-height: 540px) and (orientation: landscape) {
+  body.in-slot .topbar {
+    display: none !important;
+  }
+
+  body.in-slot main {
+    padding: 4px 8px 6px !important;
+  }
+
+  .slot-arena {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 268px;
+    gap: 6px;
+    align-items: stretch;
+  }
+
+  .slot-topbar {
+    grid-column: 1 / -1;
+    padding: 4px 8px;
+    gap: 5px;
+  }
+
+  .slot-topbar .sl-rtp-pill {
+    display: none;
+  }
+
+  .slot-stage {
+    height: calc(100dvh - 68px) !important;
+    min-height: 230px;
+  }
+
+  .sl-win-overlay {
+    bottom: 12px;
+    font-size: 13px;
+    padding: 5px 12px;
+  }
+
+  .slot-console {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+
+  .sl-console-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .sl-spin-btn {
+    min-width: 0;
+    padding: 8px 10px;
+  }
+
+  .sl-status-strip {
+    display: none;
+  }
+}

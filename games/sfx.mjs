@@ -297,3 +297,36 @@ export function playRouletteWin() {
   tone({ freq: 783.99, duration: 0.11, gain: 0.045, type: "sine", delay: 0.17 });
   tone({ freq: 1046.5, duration: 0.18, gain: 0.055, type: "triangle", delay: 0.255 });
 }
+
+export function playSlotLever() {
+  tone({ freq: 165, endFreq: 95, duration: 0.085, gain: 0.045, type: "sawtooth" });
+  tone({ freq: 420, endFreq: 680, duration: 0.06, gain: 0.028, type: "triangle", delay: 0.05 });
+}
+
+export function playSlotReelStop(reelIdx = 0) {
+  const base = 180 + reelIdx * 24;
+  tone({ freq: base, endFreq: base * 0.55, duration: 0.055, gain: 0.052, type: "triangle" });
+  tone({ freq: 950 + reelIdx * 90, endFreq: 520, duration: 0.032, gain: 0.024, type: "sine", delay: 0.01 });
+}
+
+export function playSlotTease() {
+  for (let i = 0; i < 4; i += 1) {
+    tone({ freq: 540 + i * 95, endFreq: 640 + i * 95, duration: 0.11, gain: 0.032, type: "sine", delay: i * 0.12 });
+  }
+}
+
+export function playSlotWin(isBig = false) {
+  const notes = isBig ? [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98] : [523.25, 659.25, 783.99, 1046.5];
+  notes.forEach((f, idx) => {
+    tone({ freq: f, duration: isBig ? 0.14 : 0.09, gain: isBig ? 0.05 : 0.04, type: idx % 2 ? "triangle" : "sine", delay: idx * 0.07 });
+  });
+}
+
+export function playSlotGamble(won) {
+  if (won) {
+    tone({ freq: 660, duration: 0.07, gain: 0.045, type: "sine", delay: 0 });
+    tone({ freq: 990, duration: 0.12, gain: 0.05, type: "triangle", delay: 0.06 });
+  } else {
+    tone({ freq: 280, endFreq: 130, duration: 0.16, gain: 0.045, type: "sawtooth" });
+  }
+}

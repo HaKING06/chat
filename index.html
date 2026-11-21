@@ -190,6 +190,7 @@
                 <div class="lobby-filters" id="lobby-filters" role="group" aria-label="Oyun türü filtresi">
                   <button type="button" class="lobby-chip active" data-filter="all">Tümü</button>
                   <button type="button" class="lobby-chip" data-filter="waiting">⏳ Bekleyen</button>
+                  <button type="button" class="lobby-chip" data-filter="slot">🎰 Slot</button>
                   <button type="button" class="lobby-chip" data-filter="roulette">🎡 Rulet</button>
                   <button type="button" class="lobby-chip" data-filter="tavla">⛀ Tavla</button>
                   <button type="button" class="lobby-chip" data-filter="okey">🁣 Okey</button>
@@ -344,6 +345,28 @@
                   Tek sıfırlı (0–36) · Tüm iç/dış bahisler serbest · RaceTrack &amp; Komşular · Otomatik tur
                 </small>
               </article>
+              <article class="game-card game-card-slot">
+                <div class="game-card-top">
+                  <span class="tag slot-live-tag">3D · VEGAS RTP %96.2 · JACKPOT</span>
+                  <span class="slot-card-emblem" aria-hidden="true">777 ⭐</span>
+                </div>
+                <h3>Slot 3D (Las Vegas VIP)</h3>
+                <p>
+                  5 silindirli gerçek 3D Las Vegas slot makinesi! Ağırlıklı 58 duraklı makara şeritleri,
+                  20 ödeme hattı, <strong>Ücretsiz Çevirme (×2/×3)</strong> ve canlı artan <strong>VIP Jackpot</strong>.
+                </p>
+                <div class="game-buttons">
+                  <button class="button primary" id="slot-join">
+                    Kabine Otur 🎰
+                  </button>
+                  <button type="button" class="button secondary" id="slot-help-btn">
+                    ? Oranlar &amp; Kurallar
+                  </button>
+                </div>
+                <small>
+                  5×3 Fiziksel Makara · WILD &amp; SCATTER · Katla (50/50) · Oto-Çevir &amp; Turbo
+                </small>
+              </article>
               <article class="game-card game-card-bj">
                 <div class="game-card-top">
                   <span class="tag bj-live-tag">3D · MAX 6 KİŞİ</span>
@@ -450,6 +473,7 @@
             <div id="active-okey" class="active-blackjack active-okey" hidden></div>
             <div id="active-chess" class="active-blackjack active-chess" hidden></div>
             <div id="active-roulette" class="active-blackjack active-roulette" hidden></div>
+            <div id="active-slot" class="active-blackjack active-slot" hidden></div>
             <div id="active-blackjack" class="active-blackjack" hidden></div>
             <div id="active-dice" class="active-blackjack" hidden></div>
           </section>
@@ -984,6 +1008,55 @@
         <span>Sol tıkla seçili fişi ekle, <strong>sağ tıkla</strong> (veya mobilde <em>🧹 Sil</em> moduyla)
           belirli yerdeki paranı anında geri al! Çark her <strong>60 saniyede bir</strong> otomatik döner;
           fişin 100 altına düşerse <strong>+500 Fiş Al</strong> açılır.</span>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="slot-help-dialog" class="modal dice-help-modal" aria-labelledby="slot-help-title">
+    <button type="button" class="modal-close icon-button" data-close="slot-help-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
+    <h2 id="slot-help-title">🎰 Slot 3D (Las Vegas VIP) — Oranlar &amp; Kurallar</h2>
+    <p class="dice-help-lead">
+      5 silindirli 3D makara, her şeritte <strong>58 ağırlıklı durak</strong>, <strong>20 sabit ödeme hattı</strong> ve
+      kalıcı <strong>%96.2 RTP</strong> kumarhane matematiğiyle çalışır. Bahisler ortak fiş bakiyeni kullanır!
+    </p>
+    <div class="dice-help-grid">
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge hot">777 = 1.000× · WILD = 1.500×</span>
+        </div>
+        <strong>Hat Ödeme Çarpanları (Hat Bahsi ×)</strong>
+        <span><strong>👑 WILD:</strong> 3:90× · 4:350× · 5:1.500×<br />
+          <strong>🔥 777:</strong> 2:3× · 3:60× · 4:250× · 5:1.000× (+ <strong>Jackpot!</strong>)<br />
+          <strong>BAR:</strong> 32×/120×/420× · <strong>Çan:</strong> 22×/75×/260×<br />
+          <strong>Üzüm:</strong> 18×/60×/180× · <strong>Erik:</strong> 14×/45×/140×<br />
+          <strong>Portakal:</strong> 11×/35×/110× · <strong>Limon/Vişne:</strong> 9×/28×/85×</span>
+      </div>
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge">⭐ Scatter · Free Spin ×2/×3</span>
+        </div>
+        <strong>WILD, Scatter &amp; Ücretsiz Çevirme</strong>
+        <span><strong>👑 WILD:</strong> ⭐ Yıldız hariç tüm sembollerin yerine geçer.<br />
+          <strong>⭐ Bonus Yıldız:</strong> Herhangi 3 yer = 3× Toplam Bahis + <strong>10 Free Spin (×2)</strong>;
+          4 Yıldız = 12× + <strong>14 FS</strong>; 5 Yıldız = 60× + <strong>20 FS (×3)</strong>!</span>
+      </div>
+      <div class="dice-rule-card">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge">🃏 Katla (50/50) · Oto-Çevir</span>
+        </div>
+        <strong>Katla (Kırmızı / Siyah) &amp; Kontroller</strong>
+        <span>Normal kazançtan sonra isteğe bağlı <strong>♥♦ Kırmızı / ♠♣ Siyah</strong> kart tahminiyle
+          kazancını 5 adıma kadar <strong>2×</strong> katlayabilirsin. Masaüstünde <code>[Boşluk]</code> tuşu
+          veya 3D <strong>kol</strong> çevirme başlatır.</span>
+      </div>
+      <div class="dice-rule-card dice-rule-hot">
+        <div class="dice-svg-row" aria-hidden="true">
+          <span class="dice-combo-badge hot">💎 VIP Jackpot</span>
+        </div>
+        <strong>Artan Salon Jackpotu</strong>
+        <span>Her çevirmenin %1.5'i ortak salon havuzuna eklenir; herhangi bir hatta <strong>5 adet saf 777</strong>
+          tutturan oyuncu tüm havuzu (en az 25.000 Fiş) anında kazanır!</span>
       </div>
     </div>
   </dialog>

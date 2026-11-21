@@ -30,7 +30,11 @@ Canlı adres: **[https://chat.haking.tr/](https://chat.haking.tr/)**
 - **Açık / Koyu tema & Mobil kısayollar**: Mobilden yalnızca oyun için giren kullanıcılar için üst çubukta tek dokunuş **♠ Oyunlar** geçişi ve taşmasız responsive yerleşim.
 
 ### Oyun Alanı (`oyun-alanı`)
-Modern oyun merkezi düzeniyle **Canlı Masalar & Bekleyenler** çubuğu sayfanın **en üstünde** kaydırmadan anında görünür (bekleyen masalar öncelikli sıralanır); `Tümü`, `Bekleyen`, `Rulet`, `Tavla`, `Okey`, `101`, `Satranç`, `Blackjack`, `Zar`, `XOX`, `İzle` filtreleri + anlık arama ve masaüstü/mobil dikey + yatay (*landscape*) tam uyumlu 8 oyun içerir:
+Modern oyun merkezi düzeniyle **Canlı Masalar & Bekleyenler** çubuğu sayfanın **en üstünde** kaydırmadan anında görünür (bekleyen masalar öncelikli sıralanır); `Tümü`, `Bekleyen`, `Slot`, `Rulet`, `Tavla`, `Okey`, `101`, `Satranç`, `Blackjack`, `Zar`, `XOX`, `İzle` filtreleri + anlık arama ve masaüstü/mobil dikey + yatay (*landscape*) tam uyumlu 9 oyun içerir:
+
+- **Slot 3D (Las Vegas VIP · %96.2 Gerçek Casino RTP · 5×3 & 20 Hat)**
+  - **Three.js 3D Kabin (`assets/models/slot_machine.glb`)**: 5 bağımsız fiziksel dönen 3D silindirik makara, hareketli krom çekme kolu, dinamik ışıklı **VIP Jackpot** tacı, Scatter gerilimi (*Slow-Roll Anticipation*), 20 neon kazanç hattı lazeri ve büyük kazançlarda altın jeton yağmuru (WebGL yoksa 2D makara yedeği).
+  - **Gerçek Casino Mekaniği**: Makara başına `58` ağırlıklı Vegas durağı (`777, BAR, Çan, Üzüm, Erik, Portakal, Limon, Vişne, 👑 WILD, ⭐ SCATTER`), `3/4/5` Scatter ile `10/14/20` **Ücretsiz Çevirme (×2/×3 çarpan + retrigger)**, isteğe bağlı **Katla (50/50 Kırmızı/Siyah)** riski, ortak canlı **VIP Jackpot** havuzu (`%1.5` katkı, `5 × saf 777` ile tam havuz ödülü), `⚡ Turbo` ve `5×/15× Oto-Çevir`.
 
 - **Rulet 3D (Avrupa · Canlı Kurpiyer · Her 60 sn Oto Çark & RaceTrack)**
   - **Three.js 3D sahne + Monte-Carlo Rulet Çarkı (`assets/models/roulette.glb`) & Canlı Kurpiyer (`assets/models/dealer.glb`)**: VIP ahşap salon fonu, 37 bölmeli tek sıfırlı (`0–36`) çark, ters yönlü fildişi top ve elmas deflektör fiziği, fırlatılan 3D fiş animasyonu, yığın üstü anlık toplam etiketleri, etkileşimli 3D çuha + dokunmatik 2D ayna masa ve `2D` yedeği.
