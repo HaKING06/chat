@@ -197,6 +197,9 @@
                   <button type="button" class="lobby-chip" data-filter="okey101">💯 101</button>
                   <button type="button" class="lobby-chip" data-filter="chess">♔ Satranç</button>
                   <button type="button" class="lobby-chip" data-filter="blackjack">♠ Blackjack</button>
+                  <button type="button" class="lobby-chip" data-filter="papaz">🃏 Papaz</button>
+                  <button type="button" class="lobby-chip" data-filter="pisti">🂡 Pişti</button>
+                  <button type="button" class="lobby-chip" data-filter="batak">♠ Batak</button>
                   <button type="button" class="lobby-chip" data-filter="dice">🎲 Zar</button>
                   <button type="button" class="lobby-chip" data-filter="xox">×○ XOX</button>
                   <button type="button" class="lobby-chip" data-filter="watchable">👁 İzle</button>
@@ -367,6 +370,112 @@
                   5×3 Fiziksel Makara · WILD &amp; SCATTER · Katla (50/50) · Oto-Çevir &amp; Turbo
                 </small>
               </article>
+              <article class="game-card game-card-papaz">
+                <div class="game-card-top">
+                  <span class="tag papaz-live-tag">3D · 2–4 KİŞİ · BOT DESTEKLİ</span>
+                  <span class="card-emblem-tr" aria-hidden="true">K♠ 🃏</span>
+                </div>
+                <h3>Papaz Kimde 3D</h3>
+                <p>
+                  Tek Papaz (<strong>♠K Kara Papaz</strong>) kaldığı klasik 49 kartlı Türk
+                  kıraathane oyunu! Açılışta çiftleri at, solundan kart çek, elini karıştır ve Papazdan kaç!
+                </p>
+                <div class="game-buttons">
+                  <button class="button primary" id="papaz-create">
+                    Masa Aç (2–4 Kişi) 🃏
+                  </button>
+                  <button class="button secondary" id="papaz-create-bot">
+                    Botlarla Başla 🤖
+                  </button>
+                  <button type="button" class="button secondary" id="papaz-help-btn">
+                    ? Kurallar
+                  </button>
+                </div>
+                <small>
+                  49 Kart · Gizli Rakip Elleri · 3D Yelpazeden Seçim · El Karıştır &amp; İzle
+                </small>
+              </article>
+              <article class="game-card game-card-pisti">
+                <div class="game-card-top">
+                  <span class="tag pisti-live-tag">3D · 1v1 / 2v2 EŞLİ</span>
+                  <span class="card-emblem-tr crimson" aria-hidden="true">A♦ J♣</span>
+                </div>
+                <h3>Pişti 3D</h3>
+                <p>
+                  İlk 3 kart kapalı, 4. kart açık başlayan gerçek 52'lik Pişti! <strong>+10 Pişti</strong>,
+                  <strong>+20 Vale Pişti</strong>, 10♦ (+3), 2♣ (+2) ve kart çoğunluğu (+3).
+                </p>
+                <div class="xox-diff-row">
+                  <label for="pisti-mode">Masa modu</label>
+                  <select id="pisti-mode" aria-label="Pişti masa modu">
+                    <option value="1v1" selected>1v1 Tekli (2 Kişi)</option>
+                    <option value="2v2">2v2 Eşli (4 Kişi)</option>
+                  </select>
+                </div>
+                <div class="xox-diff-row">
+                  <label for="pisti-target">Hedef puan</label>
+                  <select id="pisti-target" aria-label="Pişti hedef puanı">
+                    <option value="51">51 Puan (Hızlı)</option>
+                    <option value="101" selected>101 Puan (Klasik)</option>
+                    <option value="151">151 Puan (Uzun)</option>
+                  </select>
+                </div>
+                <div class="game-buttons">
+                  <button class="button primary" id="pisti-create">
+                    Masa Aç 🂡
+                  </button>
+                  <button class="button secondary" id="pisti-create-bot">
+                    Botlarla Başla 🤖
+                  </button>
+                  <button type="button" class="button secondary" id="pisti-help-btn">
+                    ? Kurallar
+                  </button>
+                </div>
+                <small>
+                  Akıllı Pişti Botu · 3+1 Açılış · Vale Toplama · Canlı Skor Özeti
+                </small>
+              </article>
+              <article class="game-card game-card-batak">
+                <div class="game-card-top">
+                  <span class="tag batak-live-tag">3D · 4 KİŞİ · İHALELİ &amp; KOZ MAÇA</span>
+                  <span class="card-emblem-tr gold" aria-hidden="true">♠ A♥</span>
+                </div>
+                <h3>Batak 3D</h3>
+                <p>
+                  Resmi renk takibi, büyütme ve koz çakma kurallı <strong>4 kişilik Batak</strong>!
+                  İhaleli veya Koz Maça oyna; oynanabilir kurallı kartlar masada otomatik vurgulanır.
+                </p>
+                <div class="xox-diff-row">
+                  <label for="batak-variant">Batak türü</label>
+                  <select id="batak-variant" aria-label="Batak türü">
+                    <option value="ihale" selected>İhaleli Batak</option>
+                    <option value="kozmaca">Koz Maça</option>
+                  </select>
+                </div>
+                <div class="xox-diff-row">
+                  <label for="batak-hands">El sayısı</label>
+                  <select id="batak-hands" aria-label="Batak el sayısı">
+                    <option value="3">3 El (Hızlı)</option>
+                    <option value="5" selected>5 El (Standart)</option>
+                    <option value="7">7 El (Uzun)</option>
+                    <option value="11">11 El (Maraton)</option>
+                  </select>
+                </div>
+                <div class="game-buttons">
+                  <button class="button primary" id="batak-create">
+                    4 Kişilik Masa Aç ♠
+                  </button>
+                  <button class="button secondary" id="batak-create-bot">
+                    3 Botla Başla 🤖
+                  </button>
+                  <button type="button" class="button secondary" id="batak-help-btn">
+                    ? Kurallar
+                  </button>
+                </div>
+                <small>
+                  Katı Renk Takibi &amp; Koz Büyütme · Pas / İhale · Kapalı Batma · İzle
+                </small>
+              </article>
               <article class="game-card game-card-bj">
                 <div class="game-card-top">
                   <span class="tag bj-live-tag">3D · MAX 6 KİŞİ</span>
@@ -474,6 +583,9 @@
             <div id="active-chess" class="active-blackjack active-chess" hidden></div>
             <div id="active-roulette" class="active-blackjack active-roulette" hidden></div>
             <div id="active-slot" class="active-blackjack active-slot" hidden></div>
+            <div id="active-papaz" class="active-blackjack active-card-game" hidden></div>
+            <div id="active-pisti" class="active-blackjack active-card-game" hidden></div>
+            <div id="active-batak" class="active-blackjack active-card-game" hidden></div>
             <div id="active-blackjack" class="active-blackjack" hidden></div>
             <div id="active-dice" class="active-blackjack" hidden></div>
           </section>
@@ -1057,6 +1169,87 @@
         <strong>Artan Salon Jackpotu</strong>
         <span>Her çevirmenin %1.5'i ortak salon havuzuna eklenir; herhangi bir hatta <strong>5 adet saf 777</strong>
           tutturan oyuncu tüm havuzu (en az 25.000 Fiş) anında kazanır!</span>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="papaz-help-dialog" class="modal dice-help-modal" aria-labelledby="papaz-help-title">
+    <button type="button" class="modal-close icon-button" data-close="papaz-help-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
+    <h2 id="papaz-help-title">🃏 Papaz Kimde 3D — Kurallar &amp; İpuçları</h2>
+    <p class="dice-help-lead">
+      Geleneksel 49 kartlı Türk Papaz Kimde oyunu! 3 Papaz çıkarılır, yalnızca <strong>♠K Kara Papaz</strong> kalır.
+    </p>
+    <div class="dice-help-grid">
+      <div class="dice-rule-card">
+        <strong>1. Açılış &amp; Çift Atma</strong>
+        <span>49 kart dağıtıldıktan sonra her oyuncu elindeki aynı değerli çiftleri (ör. 7♠ + 7♥) otomatik olarak ortaya indirir.</span>
+      </div>
+      <div class="dice-rule-card">
+        <strong>2. Solundan Kart Çekme</strong>
+        <span>Sırası gelen oyuncu aktif komşusunun 3D kapalı yelpazesinden 1 kart çeker. Çekilen kart elinde çift yaparsa 2 kart birden masaya düşer!</span>
+      </div>
+      <div class="dice-rule-card">
+        <strong>3. El Karıştır Taktiği</strong>
+        <span>Oyun boyunca <strong>🔀 Elimi Karıştır</strong> ile kartlarının sırasını değiştirerek Kara Papaz'ın yerini rakiplere şaşırtabilirsin!</span>
+      </div>
+      <div class="dice-rule-card dice-rule-hot">
+        <strong>4. Papaz Elinde Patlar!</strong>
+        <span>Elindeki kartları bitiren her oyuncu güvende kurtulur. En sona elinde <strong>♠K Kara Papaz</strong> kalan oyuncu turun kaybedenidir!</span>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="pisti-help-dialog" class="modal dice-help-modal" aria-labelledby="pisti-help-title">
+    <button type="button" class="modal-close icon-button" data-close="pisti-help-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
+    <h2 id="pisti-help-title">🂡 Pişti 3D — Gerçek Kurallar &amp; Puanlar</h2>
+    <p class="dice-help-lead">
+      52'lik desteyle 1v1 Tekli veya 2v2 Eşli oynanır. Ortaya ilk <strong>3 kapalı + 1 açık</strong> kart konur; hedef puan <strong>51 / 101 / 151</strong>.
+    </p>
+    <div class="dice-help-grid">
+      <div class="dice-rule-card">
+        <strong>Kart Toplama &amp; Vale (J)</strong>
+        <span>Ortadaki en üst kartla aynı değerde kart atarsan veya yerde en az 1 kart varken <strong>Vale (J)</strong> atarsan yerdeki tüm yığını alırsın!</span>
+      </div>
+      <div class="dice-rule-card dice-rule-hot">
+        <strong>✨ Pişti (+10) &amp; Vale Pişti (+20)</strong>
+        <span>Yerde yalnızca <strong>tek 1 kart</strong> varken aynı değeri atarsan <strong>+10 Pişti</strong>! Yerde tek Vale (J) varken Vale atarsan <strong>+20 Vale Pişti</strong> kazanırsın!</span>
+      </div>
+      <div class="dice-rule-card">
+        <strong>Resmi Kart Puanları</strong>
+        <span>Her As (A): <strong>+1</strong> · Her Vale (J): <strong>+1</strong> · <strong>Sinek 2 (2♣): +2</strong> · <strong>Karo 10 (10♦): +3</strong> · En çok kart alan: <strong>+3 Çoğunluk</strong>.</span>
+      </div>
+      <div class="dice-rule-card">
+        <strong>El Sonu &amp; Son Alan</strong>
+        <span>52 kart tamamen bittiğinde ortada sahipsiz kart kalırsa son kartı toplayan oyuncuya/takıma yazılır.</span>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="batak-help-dialog" class="modal dice-help-modal" aria-labelledby="batak-help-title">
+    <button type="button" class="modal-close icon-button" data-close="batak-help-dialog" aria-label="Pencereyi kapat">
+      ×
+    </button>
+    <h2 id="batak-help-title">♠ Batak 3D — İhaleli &amp; Koz Maça Kuralları</h2>
+    <p class="dice-help-lead">
+      4 kişiye 13'er kartla oynanır. Tüm hamlelerde resmi Türk Batak renk takibi ve yükseltme kuralları sunucu tarafından uygulanır.
+    </p>
+    <div class="dice-help-grid">
+      <div class="dice-rule-card">
+        <strong>İhale &amp; Koz Seçimi</strong>
+        <span><strong>İhaleli Mod:</strong> 5–13 teklif veya Pas de; 3 kişi Pas derse son oyuncu 4 ile alabilir (4 Pas = yeniden dağıtım). Kazanan Kozu (♠♥♦♣) seçer.<br /><strong>Koz Maça:</strong> Koz sabit ♠ Maça; herkes 1–13 el tahminini söyler.</span>
+      </div>
+      <div class="dice-rule-card">
+        <strong>Renk Takibi &amp; Büyütme</strong>
+        <span>İlk atılan renkten elinde varsa atmak ve koz çakılmadığı sürece <strong>yerdeki en büyükten büyüğünü</strong> atmak zorundasın!</span>
+      </div>
+      <div class="dice-rule-card">
+        <strong>Koz Çakma &amp; Koz Çıkışı</strong>
+        <span>İstenen renk elinde yoksa ve <strong>Kozun varsa çakmak</strong> zorundasın (başka koz varsa büyüğünü at). Koz yere inmeden elin tamamı koz değilse kozla el açılmaz.</span>
+      </div>
+      <div class="dice-rule-card dice-rule-hot">
+        <strong>Puanlama (Batma &amp; Kapalı)</strong>
+        <span>Taahhüt tutarsa: <strong>+(10×İhale + Fazla El)</strong>. Batarsa: <strong>−(10×İhale)</strong>. İhaleli Batak'ta 0 el alan oyuncu kapalı kalarak <strong>−(10×İhale)</strong> yer!</span>
       </div>
     </div>
   </dialog>

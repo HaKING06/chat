@@ -330,3 +330,25 @@ export function playSlotGamble(won) {
     tone({ freq: 280, endFreq: 130, duration: 0.16, gain: 0.045, type: "sawtooth" });
   }
 }
+
+export function playPistiFlash(isVale = false) {
+  const chord = isVale ? [587.33, 880, 1174.66, 1567.98] : [523.25, 659.25, 987.77, 1318.5];
+  chord.forEach((f, idx) => {
+    tone({ freq: f, duration: 0.15, gain: 0.05, type: "triangle", delay: idx * 0.045 });
+  });
+}
+
+export function playTrumpCut() {
+  tone({ freq: 190, endFreq: 120, duration: 0.09, gain: 0.055, type: "triangle" });
+  tone({ freq: 720, endFreq: 480, duration: 0.07, gain: 0.032, type: "sine", delay: 0.03 });
+}
+
+export function playCardCapture() {
+  tone({ freq: 420, endFreq: 680, duration: 0.075, gain: 0.036, type: "triangle" });
+  tone({ freq: 620, endFreq: 860, duration: 0.065, gain: 0.025, type: "sine", delay: 0.04 });
+}
+
+export function playPapazLost() {
+  tone({ freq: 310, endFreq: 140, duration: 0.19, gain: 0.05, type: "sawtooth", delay: 0 });
+  tone({ freq: 210, endFreq: 95, duration: 0.25, gain: 0.05, type: "triangle", delay: 0.12 });
+}
