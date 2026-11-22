@@ -8,6 +8,7 @@ import {
   createCardMesh,
   escHtml,
   getRelativeSeatAnchor,
+  stepCardFlight,
 } from "./card3d_common.mjs";
 import {
   playCard,
@@ -419,14 +420,7 @@ export class PistiArena {
       this.stage3d.stepCamera(dt);
 
       if (this.flyAnim) {
-        this.flyAnim.t += dt;
-        const p = Math.min(1, this.flyAnim.t / this.flyAnim.dur);
-        this.flyAnim.mesh.position.lerpVectors(this.flyAnim.from, this.flyAnim.to, p);
-        this.flyAnim.mesh.position.y += Math.sin(p * Math.PI) * 0.24;
-        if (p >= 1) {
-          this.stage3d.cardsGroup.remove(this.flyAnim.mesh);
-          this.flyAnim = null;
-        }
+        this.flyAnim = stepCardFlight(this.flyAnim, dt, this.stage3d.cardsGroup, 0.26);
       }
 
       if (!this.stage3d.force2D && !this.stage3d.webglFailed && this.stage3d.renderer) {

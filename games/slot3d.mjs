@@ -682,7 +682,7 @@ export class SlotArena {
         this.scene.add(gltf.scene);
       },
       undefined,
-      () => {},
+      () => { },
     );
   }
 
@@ -1280,83 +1280,89 @@ export class SlotArena {
       }
     }
 
-    // Coin shower fountain physics
+    // Coin shower fountain physics with chrome coin-tray bounce
     if (this.winCoins.length) {
       const keep = [];
       for (const c of this.winCoins) {
         c.life += dt;
-        c.vy -= 5.8 * dt;
+        c.vy -= 6.8 * dt;
         c.mesh.position.x += c.vx * dt;
         c.mesh.position.y += c.vy * dt;
         c.mesh.position.z += c.vz * dt;
+        if (c.mesh.position.y <= 0.14 && c.vy < 0 && c.mesh.position.z > 0.1) {
+          c.mesh.position.y = 0.14;
+          c.vy = Math.abs(c.vy) * 0.46;
+          c.vx *= 0.72;
+          c.vz *= 0.72;
+        }
         c.mesh.rotation.x += dt * 9;
         c.mesh.rotation.y += dt * 7;
-        if (c.life < c.maxLife && c.mesh.position.y > 0) {
-          keep.push(c);
-        } else {
-          this.coinsGroup?.remove(c.mesh);
+          if (c.life < c.maxLife && c.mesh.position.y > -0.25) {
+            keep.push(c);
+          } else {
+            this.coinsGroup?.remove(c.mesh);
+          }
+        }
+        this.winCoins = keep;
+      }
+    }
+
+    _render2DCanvas() {
+      const canvas = this.els.canvas2d;
+      if (!canvas || canvas.hidden) return;
+      const stage = this.root.querySelector(".slot-stage");
+      const w = Math.max(260, stage.clientWidth);
+      const h = Math.max(210, stage.clientHeight);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, w, h);
+
+      // Sleek 2D cabinet fallback
+      ctx.fillStyle = "#170e20";
+      ctx.fillRect(0, 0, w, h);
+      const gridW = Math.min(w - 28, h * 1.72);
+      const gridH = gridW * 0.56;
+      const ox = (w - gridW) * 0.5;
+      const oy = (h - gridH) * 0.5;
+      const cw = gridW / 5;
+      const ch = gridH / 3;
+
+      ctx.strokeStyle = "#e3b857";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(ox - 4, oy - 4, gridW + 8, gridH + 8);
+
+      const grid = this.hall?.myCabinet?.lastSpin?.grid || [
+        ["CHERRY", "BELL", "777", "BAR", "LEMON"],
+        ["WILD", "BAR", "777", "BELL", "SCATTER"],
+        ["ORANGE", "PLUM", "GRAPE", "CHERRY", "BELL"],
+      ];
+      for (let r = 0; r < 5; r += 1) {
+        for (let row = 0; row < 3; row += 1) {
+          const sym = this.reels[r]?.spinning
+            ? SYMBOL_ORDER[Math.floor((performance.now() / 80 + r * 3 + row) % SYMBOL_ORDER.length)]
+            : grid[row]?.[r] || "CHERRY";
+          ctx.save();
+          ctx.translate(ox + r * cw + cw * 0.5, oy + row * ch + ch * 0.5);
+          drawSlotIcon(ctx, sym, Math.min(cw, ch) * 0.9);
+          ctx.restore();
         }
       }
-      this.winCoins = keep;
+    }
+
+    getPaytableMeta() {
+      return { SYMBOL_LABELS, iconUrls: this.iconUrls };
+    }
+
+    dispose() {
+      this.disposed = true;
+      if (this.rafId) cancelAnimationFrame(this.rafId);
+      if (this._onKeyDown) window.removeEventListener("keydown", this._onKeyDown);
+      this._resizeObs?.disconnect?.();
+      this.controls?.dispose?.();
+      if (this.renderer) this.renderer.dispose();
+      this.container.innerHTML = "";
     }
   }
-
-  _render2DCanvas() {
-    const canvas = this.els.canvas2d;
-    if (!canvas || canvas.hidden) return;
-    const stage = this.root.querySelector(".slot-stage");
-    const w = Math.max(260, stage.clientWidth);
-    const h = Math.max(210, stage.clientHeight);
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
-    }
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, w, h);
-
-    // Sleek 2D cabinet fallback
-    ctx.fillStyle = "#170e20";
-    ctx.fillRect(0, 0, w, h);
-    const gridW = Math.min(w - 28, h * 1.72);
-    const gridH = gridW * 0.56;
-    const ox = (w - gridW) * 0.5;
-    const oy = (h - gridH) * 0.5;
-    const cw = gridW / 5;
-    const ch = gridH / 3;
-
-    ctx.strokeStyle = "#e3b857";
-    ctx.lineWidth = 4;
-    ctx.strokeRect(ox - 4, oy - 4, gridW + 8, gridH + 8);
-
-    const grid = this.hall?.myCabinet?.lastSpin?.grid || [
-      ["CHERRY", "BELL", "777", "BAR", "LEMON"],
-      ["WILD", "BAR", "777", "BELL", "SCATTER"],
-      ["ORANGE", "PLUM", "GRAPE", "CHERRY", "BELL"],
-    ];
-    for (let r = 0; r < 5; r += 1) {
-      for (let row = 0; row < 3; row += 1) {
-        const sym = this.reels[r]?.spinning
-          ? SYMBOL_ORDER[Math.floor((performance.now() / 80 + r * 3 + row) % SYMBOL_ORDER.length)]
-          : grid[row]?.[r] || "CHERRY";
-        ctx.save();
-        ctx.translate(ox + r * cw + cw * 0.5, oy + row * ch + ch * 0.5);
-        drawSlotIcon(ctx, sym, Math.min(cw, ch) * 0.9);
-        ctx.restore();
-      }
-    }
-  }
-
-  getPaytableMeta() {
-    return { SYMBOL_LABELS, iconUrls: this.iconUrls };
-  }
-
-  dispose() {
-    this.disposed = true;
-    if (this.rafId) cancelAnimationFrame(this.rafId);
-    if (this._onKeyDown) window.removeEventListener("keydown", this._onKeyDown);
-    this._resizeObs?.disconnect?.();
-    this.controls?.dispose?.();
-    if (this.renderer) this.renderer.dispose();
-    this.container.innerHTML = "";
-  }
-}

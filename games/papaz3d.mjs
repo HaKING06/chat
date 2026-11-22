@@ -11,6 +11,7 @@ import {
   createCardMesh,
   escHtml,
   getRelativeSeatAnchor,
+  stepCardFlight,
 } from "./card3d_common.mjs";
 import {
   playCard,
@@ -398,8 +399,8 @@ export class PapazArena {
         <span class="cg-donor-prompt">👆 <strong>${escHtml(donorSeat.name)}</strong> oyuncusundan 1 kart seç:</span>
         <div class="cg-donor-slots">
           ${Array.from({ length: donorSeat.cardCount }, (_, idx) =>
-            `<button type="button" class="cg-donor-card" data-pick-idx="${idx}" title="${idx + 1}. kartı çek"><span>🂠</span><small>#${idx + 1}</small></button>`,
-          ).join("")}
+        `<button type="button" class="cg-donor-card" data-pick-idx="${idx}" title="${idx + 1}. kartı çek"><span>🂠</span><small>#${idx + 1}</small></button>`,
+      ).join("")}
         </div>
       `;
       dStrip.hidden = false;
@@ -436,14 +437,7 @@ export class PapazArena {
       this.stage3d.stepCamera(dt);
 
       if (this.flyAnim) {
-        this.flyAnim.t += dt;
-        const p = Math.min(1, this.flyAnim.t / this.flyAnim.dur);
-        this.flyAnim.mesh.position.lerpVectors(this.flyAnim.from, this.flyAnim.to, p);
-        this.flyAnim.mesh.position.y += Math.sin(p * Math.PI) * 0.26;
-        if (p >= 1) {
-          this.stage3d.cardsGroup.remove(this.flyAnim.mesh);
-          this.flyAnim = null;
-        }
+        this.flyAnim = stepCardFlight(this.flyAnim, dt, this.stage3d.cardsGroup, 0.28);
       }
 
       if (!this.stage3d.force2D && !this.stage3d.webglFailed && this.stage3d.renderer) {

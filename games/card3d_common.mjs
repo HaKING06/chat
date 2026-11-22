@@ -426,6 +426,7 @@ export class CardTableStage3D {
           m.position.set(-ctr.x, -sbox.min.y + 0.02, -ctr.z - 1.78);
           this.scene.add(m);
 
+          const poseRig = {};
           const alignBone = (bKey, cKey, dirWorld) => {
             const bone = bones[bKey];
             const child = bones[cKey];
@@ -443,12 +444,17 @@ export class CardTableStage3D {
             if (bone.parent) bone.parent.getWorldQuaternion(pQ);
             bone.getWorldQuaternion(wQ);
             bone.quaternion.copy(pQ.clone().invert().multiply(delta.multiply(wQ)));
+            poseRig[bKey] = { bone, base: bone.quaternion.clone() };
           };
           alignBone("LeftArm", "LeftForeArm", new THREE.Vector3(0.32, -0.78, 0.52));
           alignBone("LeftForeArm", "LeftHand", new THREE.Vector3(-0.08, -0.18, 0.98));
           alignBone("RightArm", "RightForeArm", new THREE.Vector3(-0.32, -0.78, 0.52));
           alignBone("RightForeArm", "RightHand", new THREE.Vector3(0.08, -0.18, 0.98));
+          for (const key of ["Spine", "Spine1", "Spine2", "Neck", "Head"]) {
+            if (bones[key]) poseRig[key] = { bone: bones[key], base: bones[key].quaternion.clone() };
+          }
           this.dealerModel = m;
+          this.dealerRig = { root: m, poseRig, dealPulseUntil: 0 };
         },
         undefined,
         () => {},
@@ -533,6 +539,28 @@ export class CardTableStage3D {
       }
     }
     this.controls?.update();
+
+    // Subtle organic idle croupier breathing & table scan
+    if (this.dealerRig?.poseRig) {
+      const tSec = performance.now() * 0.001;
+      const { poseRig } = this.dealerRig;
+      if (poseRig.Spine1?.base) {
+        const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(tSec * 1.45) * 0.022, 0, 0));
+        poseRig.Spine1.bone.quaternion.copy(poseRig.Spine1.base).multiply(q);
+      }
+      if (poseRig.Neck?.base) {
+        const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.05, Math.sin(tSec * 0.45) * 0.14, 0));
+        poseRig.Neck.bone.quaternion.copy(poseRig.Neck.base).multiply(q);
+      }
+      if (poseRig.Head?.base) {
+        const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.06, Math.sin(tSec * 0.55) * 0.16, 0));
+        poseRig.Head.bone.quaternion.copy(poseRig.Head.base).multiply(q);
+      }
+      if (poseRig.RightArm?.base) {
+        const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(tSec * 1.35) * 0.025, 0, 0));
+        poseRig.RightArm.bone.quaternion.copy(poseRig.RightArm.base).multiply(q);
+      }
+    }
   }
 
   dispose() {
@@ -542,6 +570,22 @@ export class CardTableStage3D {
     this.controls?.dispose?.();
     this.renderer?.dispose?.();
   }
+}
+
+export function stepCardFlight(flyAnim, dt, cardsGroup, arcHeight = 0.25) {
+  if (!flyAnim) return null;
+  flyAnim.t += dt;
+  const p = Math.min(1, flyAnim.t / flyAnim.dur);
+  const ease = 1 - Math.pow(1 - p, 3);
+  flyAnim.mesh.position.lerpVectors(flyAnim.from, flyAnim.to, ease);
+  flyAnim.mesh.position.y += Math.sin(p * Math.PI) * arcHeight;
+  flyAnim.mesh.rotation.z = Math.sin(p * Math.PI) * 0.34;
+  flyAnim.mesh.rotation.x = -Math.sin(p * Math.PI) * 0.22;
+  if (p >= 1) {
+    cardsGroup?.remove(flyAnim.mesh);
+    return null;
+  }
+  return flyAnim;
 }
 
 export function cardHtmlChip(card, opts = {}) {
