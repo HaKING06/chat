@@ -352,3 +352,71 @@ export function playPapazLost() {
   tone({ freq: 310, endFreq: 140, duration: 0.19, gain: 0.05, type: "sawtooth", delay: 0 });
   tone({ freq: 210, endFreq: 95, duration: 0.25, gain: 0.05, type: "triangle", delay: 0.12 });
 }
+
+function noiseBurst({ duration = 0.22, gain = 0.11, cutoff = 1800, delay = 0 } = {}) {
+  const c = audioCtx();
+  if (!c) return;
+  const len = Math.max(256, Math.floor(c.sampleRate * duration));
+  const buf = c.createBuffer(1, len, c.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i += 1) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * 0.28));
+  }
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  const filter = c.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(cutoff, c.currentTime + delay);
+  const vol = c.createGain();
+  vol.gain.setValueAtTime(gain, c.currentTime + delay);
+  vol.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + delay + duration);
+  src.connect(filter);
+  filter.connect(vol);
+  vol.connect(c.destination);
+  src.start(c.currentTime + delay);
+}
+
+export function playTurnChime() {
+  tone({ freq: 587.33, endFreq: 783.99, duration: 0.09, gain: 0.04, type: "sine", delay: 0 });
+}
+
+export function playCountdownTick(final = false) {
+  tone({
+    freq: final ? 880 : 520,
+    endFreq: final ? 1174 : 440,
+    duration: final ? 0.18 : 0.07,
+    gain: final ? 0.065 : 0.04,
+    type: "triangle",
+  });
+}
+
+export function playLiarCall() {
+  tone({ freq: 145, endFreq: 92, duration: 0.28, gain: 0.08, type: "sawtooth", delay: 0 });
+  tone({ freq: 440, endFreq: 311, duration: 0.24, gain: 0.045, type: "triangle", delay: 0.02 });
+  tone({ freq: 220, endFreq: 110, duration: 0.34, gain: 0.06, type: "sine", delay: 0.14 });
+}
+
+export function playRevolverSpin() {
+  for (let i = 0; i < 6; i += 1) {
+    tone({
+      freq: 920 + i * 48,
+      endFreq: 520,
+      duration: 0.026,
+      gain: 0.032,
+      type: "triangle",
+      delay: i * 0.055,
+    });
+  }
+}
+
+export function playRevolverClick() {
+  tone({ freq: 1450, endFreq: 420, duration: 0.032, gain: 0.065, type: "square", delay: 0 });
+  tone({ freq: 520, endFreq: 210, duration: 0.05, gain: 0.04, type: "triangle", delay: 0.03 });
+}
+
+export function playRevolverShot() {
+  noiseBurst({ duration: 0.42, gain: 0.18, cutoff: 3400, delay: 0 });
+  tone({ freq: 145, endFreq: 36, duration: 0.36, gain: 0.12, type: "sawtooth", delay: 0 });
+  tone({ freq: 620, endFreq: 90, duration: 0.14, gain: 0.07, type: "square", delay: 0 });
+  noiseBurst({ duration: 0.55, gain: 0.07, cutoff: 820, delay: 0.12 });
+}
