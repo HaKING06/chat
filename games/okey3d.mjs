@@ -1146,6 +1146,27 @@ export class OkeyArena {
       }
     }
     box.append(h, p, seatsRow);
+
+    if (t.mySeat >= 0 && t.seatedCount < 4) {
+      const actionsRow = document.createElement("div");
+      actionsRow.className = "okey-wait-actions";
+      const addOneBot = this.makeBtn("🤖 +1 Bot Ekle", "button small secondary", () =>
+        this.cb.onFillBots?.(1),
+      );
+      const fillAllBots = this.makeBtn("🤖 Boşları Botla 4'le & Başlat", "button small primary", () =>
+        this.cb.onFillBots?.(null),
+      );
+      const inviteBtn = this.makeBtn("📩 Sohbete Davet At", "button small secondary", () =>
+        this.cb.onInvite?.(),
+      );
+      actionsRow.append(addOneBot, fillAllBots, inviteBtn);
+      if (t.seats?.some((s) => s && s.isBot)) {
+        actionsRow.append(
+          this.makeBtn("Botları Çıkar", "button small secondary", () => this.cb.onRemoveBots?.()),
+        );
+      }
+      box.append(actionsRow);
+    }
     this.waitOverlay.append(box);
   }
 

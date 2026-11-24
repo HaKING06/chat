@@ -7,7 +7,10 @@
   <meta name="theme-color" content="#101311" />
   <meta name="application-name" content="Haking Chat" />
   <meta name="apple-mobile-web-app-title" content="Haking Chat" />
-  <title>Haking Chat — Sohbet, Kod Paylaşımı ve 3D Oyun Arenası</title>
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Haking Chat — Sohbet, Sesli Kanallar ve 3D Oyun Arenası</title>
   <meta name="description"
     content="Haking Chat (chat.haking.tr): Türkçe geliştirici topluluğu. Gerçek zamanlı sohbet, kod paylaşımı, Klasik Okey 3D, 101 Okey 3D, 3D Satranç (İzle modu), Blackjack 21, Zar Düellosu ve XOX." />
   <link rel="canonical" href="https://chat.haking.tr/" />
@@ -27,8 +30,8 @@
   <meta name="twitter:description"
     content="Klasik Okey 3D, 101 Okey 3D, Satranç 3D, Blackjack, Zar Düellosu ve XOX — PC ve mobilde anında oyna." />
   <meta name="twitter:image" content="https://chat.haking.tr/assets/og-image.png" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="stylesheet" href="/vendor/highlight.css" />
@@ -46,41 +49,57 @@
   <a class="skip-link" href="#main">İçeriğe geç</a>
   <div class="workspace">
     <aside class="sidebar" id="sidebar" aria-label="Ana gezinme">
-      <a class="brand" href="/" aria-label="Haking Chat ana sayfa"><img src="/assets/mark.svg" alt="" width="38"
-          height="38" /><span>haking<span class="brand-light">chat</span><small>FİKİRLERİN BULUŞMA
-            NOKTASI</small></span></a>
-      <div class="space-label">
-        <span class="status-dot"></span> TOPLULUK ALANI
-        <span class="version">v2.0.2</span>
-      </div>
-      <nav class="navigation" aria-label="Kanallar">
-        <p class="nav-label">KANALLAR</p>
-        <button class="nav-item active" data-channel="general">
-          <span class="nav-symbol">#</span><span>genel-sohbet</span><span class="nav-badge"
-            data-unread-channel="general" hidden>0</span><i class="nav-dot"></i>
-        </button>
-        <button class="nav-item" data-channel="code">
-          <span class="nav-symbol">&lt;/&gt;</span><span>kod-paylaşımı</span><span class="nav-badge"
-            data-unread-channel="code" hidden>0</span>
-        </button>
-        <p class="nav-label second-label">OYUN</p>
-        <button class="nav-item" data-view="games">
-          <span class="nav-symbol game-symbol">×○</span><span>oyun-alanı<small>Rulet · Tavla · Okey ·
-              Satranç</small></span><span class="mini-badge">OYNA</span>
-        </button>
-      </nav>
-      <div class="sidebar-note">
-        <button class="text-link" id="guide-button">Topluluk rehberi</button>
-      </div>
-      <div class="sidebar-bottom">
-        <div class="avatar my-avatar" id="profile-avatar">?</div>
-        <div class="profile-text">
-          <strong id="profile-name">Henüz tanışmadık</strong><small id="profile-role">Bir merhaba de.</small>
-        </div>
-        <button id="profile-button" class="icon-button" aria-label="Giriş yap">
-          ↗
-        </button>
-      </div>
+            <a class="brand" href="/" aria-label="Haking Chat ana sayfa"><img src="/assets/logo.png" alt="Haking Chat"
+                width="40" height="40" class="brand-logo" /><span>haking<span
+                  class="brand-light">chat</span><small>FİKİRLERİN BULUŞMA
+                  NOKTASI</small></span></a>
+            <div class="space-label">
+              <span class="status-dot"></span> TOPLULUK ALANI
+              <span class="version">v2.3.0</span>
+            </div>
+            <nav class="navigation" aria-label="Kanallar">
+              <p class="nav-label">KANALLAR</p>
+              <button class="nav-item active" data-channel="general">
+                <span class="nav-symbol">#</span><span>genel-sohbet</span><span class="nav-badge"
+                  data-unread-channel="general" hidden>0</span><i class="nav-dot"></i>
+              </button>
+              <button class="nav-item" data-channel="code">
+                <span class="nav-symbol">&lt;/&gt;</span><span>kod-paylaşımı</span><span class="nav-badge"
+                  data-unread-channel="code" hidden>0</span>
+              </button>
+              <p class="nav-label second-label">OYUN</p>
+              <button class="nav-item" data-view="games">
+                    <span class="nav-symbol game-symbol">×○</span><span>oyun-alanı<small>Blöf · Okey · Tavla ·
+                        Satranç</small></span><span class="mini-badge">OYNA</span>
+              </button>
+              <div class="nav-label-row second-label">
+                <p class="voice-nav-label">SESLİ KANALLAR</p>
+                <button type="button" class="nav-add-btn" id="voice-create-open" title="Yeni sesli kanal oluştur"
+                  aria-label="Yeni sesli kanal oluştur">＋ Kanal</button>
+              </div>
+              <div id="voice-channels-list" class="voice-channels-list"></div>
+            </nav>
+            <div class="sidebar-note">
+              <div class="sidebar-app-tools">
+                <button type="button" class="app-install-btn" id="install-app-btn">
+                  <span class="install-btn-ico" aria-hidden="true">⬇</span>
+                  <span class="install-btn-text">Uygulamayı İndir</span>
+                </button>
+                <button type="button" class="notif-pill-btn" id="notif-toggle-btn" title="Sıra ve @etiket bildirimleri">
+                  🔔 Bildirimler
+                </button>
+              </div>
+              <button class="text-link" id="guide-button">Topluluk rehberi</button>
+            </div>
+            <div class="sidebar-bottom">
+              <div class="avatar my-avatar" id="profile-avatar">?</div>
+              <div class="profile-text">
+                <strong id="profile-name">Henüz tanışmadık</strong><small id="profile-role">Bir merhaba de.</small>
+              </div>
+              <button id="profile-button" class="icon-button" aria-label="Giriş yap">
+                ↗
+              </button>
+            </div>
     </aside>
     <div class="sidebar-scrim" id="sidebar-scrim" hidden></div>
     <div class="main-shell">
@@ -92,15 +111,17 @@
         </div>
         <div class="topbar-actions">
           <span class="connection" id="connection-status"><span
-              class="status-dot"></span><span>Bağlanmadı</span></span><button id="open-games"
-            class="button small secondary games-shortcut" aria-label="Oyun alanını aç">
-            ♠ Oyunlar</button><button id="theme-button" class="icon-button" aria-label="Açık temaya geç">
-            ☼</button><button id="moderators-button" class="button small secondary staff-trigger" hidden
-            aria-label="Moderatör yönetimini aç">
-            <span aria-hidden="true">♜</span><span class="staff-trigger-label">Moderatörler</span></button><button
-            id="join-top" class="button small primary">
-            Sohbete katıl <span>↗</span>
-          </button>
+            class="status-dot"></span><span>Bağlanmadı</span></span><button id="topbar-install-btn"
+              class="button small secondary topbar-install-btn" type="button" aria-label="Uygulamayı indir">
+              ⬇ İndir</button><button id="open-games" class="button small secondary games-shortcut"
+              aria-label="Oyun alanını aç">
+              ♠ Oyunlar</button><button id="theme-button" class="icon-button" aria-label="Açık temaya geç">
+              ☼</button><button id="moderators-button" class="button small secondary staff-trigger" hidden
+              aria-label="Moderatör yönetimini aç">
+              <span aria-hidden="true">♜</span><span class="staff-trigger-label">Moderatörler</span></button><button
+              id="join-top" class="button small primary">
+              Sohbete katıl <span>↗</span>
+            </button>
         </div>
       </header>
       <main id="main" tabindex="-1">
@@ -210,6 +231,41 @@
               </div>
               <div class="game-lobby" id="game-lobby"></div>
             </section>
+            <section class="tourney-dock" id="tourney-dock" aria-label="Mini Turnuvalar">
+              <div class="tourney-head">
+                <div class="tourney-title-wrap">
+                  <h3>🏆 Mini Turnuva <span class="tag">4–8 KİŞİ ELEME</span></h3>
+                  <small>Tavla 3D veya Satranç 3D eleme ağacı — otomatik eşleşme ve canlı şampiyonluk!</small>
+                </div>
+                <div class="tourney-create-bar">
+                  <select id="tourney-game" aria-label="Turnuva oyunu">
+                    <option value="tavla">⛀ Tavla 3D</option>
+                    <option value="chess">♔ Satranç 3D</option>
+                  </select>
+                  <select id="tourney-size" aria-label="Turnuva boyutu">
+                    <option value="4" selected>4 Kişi</option>
+                    <option value="8">8 Kişi</option>
+                  </select>
+                  <button type="button" class="button small primary" id="tourney-create-btn">
+                    + Turnuva Aç
+                  </button>
+                </div>
+              </div>
+              <div id="tourney-list" class="tourney-list"></div>
+            </section>
+            <div id="arena-social-bar" class="arena-social-bar" hidden>
+              <div class="arena-social-info">
+                <span class="arena-social-pill" id="arena-social-label">🎮 Aktif Masa</span>
+              </div>
+              <div class="arena-social-actions">
+                <button type="button" class="button small secondary" id="arena-voice-btn">
+                  🎙 Masa Sesine Katıl
+                </button>
+                <button type="button" class="button small secondary" id="arena-invite-btn">
+                  📩 Sohbete Davet At
+                </button>
+              </div>
+            </div>
             <div class="game-hub" id="game-intro">
               <article class="game-card game-card-blof">
                 <div class="game-card-top">
@@ -1335,6 +1391,74 @@
       </div>
     </div>
   </dialog>
+  <dialog id="voice-create-dialog" class="modal" aria-labelledby="voice-create-title">
+    <button type="button" class="modal-close icon-button" data-close="voice-create-dialog"
+      aria-label="Pencereyi kapat">×</button>
+    <p class="eyebrow">P2P WEBRTC SESLİ KANAL</p>
+    <h2 id="voice-create-title">🔊 Yeni Sesli Kanal Oluştur</h2>
+    <p class="modal-note">
+      Ses verisi oyuncular arasında doğrudan şifreli P2P akar. İzinli mod açıkken diğer kullanıcılar senin onayınla
+      katılabilir; <strong>Moderatörler ve Kurucu</strong> izin istemeden girebilir.
+    </p>
+    <form id="voice-create-form" class="modal-form">
+      <label class="field">
+        <span>Kanal adı</span>
+        <input id="voice-room-name" maxlength="28" required placeholder="Örn: Gece Blöf Masası, Kod Muhabbeti…" />
+      </label>
+      <label class="field">
+        <span>Maksimum kişi sayısı</span>
+        <select id="voice-room-max">
+          <option value="4">4 Kişi</option>
+          <option value="6">6 Kişi</option>
+          <option value="8" selected>8 Kişi (Maks.)</option>
+        </select>
+      </label>
+      <label class="voice-check-row">
+        <input type="checkbox" id="voice-room-approval" checked />
+        <span>🔒 Katılmak isteyenler için benim iznim gereksin</span>
+      </label>
+      <div class="modal-actions">
+        <button type="submit" class="button primary">Kanalı Oluştur &amp; Bağlan 🎙</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="install-guide-dialog" class="modal" aria-labelledby="install-guide-title">
+    <button type="button" class="modal-close icon-button" data-close="install-guide-dialog"
+      aria-label="Pencereyi kapat">×</button>
+    <div class="install-guide-hero">
+      <img src="/assets/logo.png" alt="Haking Chat" width="56" height="56" class="install-guide-logo" />
+      <div>
+        <p class="eyebrow">HAKING CHAT UYGULAMA</p>
+        <h2 id="install-guide-title">Uygulamayı Cihazına Kur</h2>
+      </div>
+    </div>
+    <div id="install-guide-body" class="install-guide-body"></div>
+  </dialog>
+  <aside id="voice-dock" class="voice-dock" hidden aria-label="Aktif sesli kanal kontrolleri">
+    <div class="voice-dock-top">
+      <div class="voice-dock-meta">
+        <span class="voice-live-dot"></span>
+        <strong id="voice-dock-name">Sesli Kanal</strong>
+        <small id="voice-dock-sub">P2P · 1 kişi</small>
+      </div>
+      <div class="voice-dock-controls">
+        <button type="button" class="voice-ctrl-btn" id="voice-ptt-toggle" title="Bas-Konuş modunu aç/kapat (V tuşu)">
+          Bas-Konuş
+        </button>
+        <button type="button" class="voice-ctrl-btn ptt-hold" id="voice-ptt-hold" hidden
+          title="Konuşmak için basılı tut veya V tuşuna bas">
+          🎙 Konuş (Basılı Tut)
+        </button>
+        <button type="button" class="voice-ctrl-btn" id="voice-mute-btn" title="Mikrofonu kapat/aç">🎤</button>
+        <button type="button" class="voice-ctrl-btn" id="voice-deafen-btn" title="Tüm sesleri kapat/aç">🎧</button>
+        <button type="button" class="voice-ctrl-btn" id="voice-lock-btn" hidden
+          title="İzinli giriş aç/kapat">🔒</button>
+        <button type="button" class="voice-ctrl-btn danger" id="voice-leave-btn" title="Sesli kanaldan ayrıl">✕</button>
+      </div>
+    </div>
+    <div id="voice-dock-members" class="voice-dock-members"></div>
+  </aside>
+  <div id="social-prompts" class="social-prompts" aria-live="polite"></div>
   <aside id="mini-chat-shell" class="mini-chat-shell" hidden aria-label="Masa içi mini sohbet">
     <div id="mini-chat-drawer" class="mini-chat-drawer" hidden>
       <div class="mini-chat-head">

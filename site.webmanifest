@@ -1,14 +1,15 @@
 {
-  "name": "Haking Chat — Sohbet, Kod ve 3D Oyun",
+  "name": "Haking Chat — Sohbet, Ses ve 3D Oyun Arenası",
   "short_name": "Haking Chat",
-  "description": "Gerçek zamanlı topluluk sohbeti, kod paylaşımı, 6 kişilik 3D Blackjack, 3D Zar Düellosu 5.000 ve Sonsuz XOX.",
+  "description": "Gerçek zamanlı topluluk sohbeti, WebRTC sesli kanallar, Blöf (Liar's Bar), Okey 101, Tavla, Satranç, Batak, Pişti, Rulet, Slot ve Mini Turnuvalar.",
   "lang": "tr",
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
-  "background_color": "#101311",
+  "background_color": "#0e1310",
   "theme_color": "#101311",
   "categories": [
     "social",
@@ -17,33 +18,42 @@
   ],
   "shortcuts": [
     {
-      "name": "Oyun Alanı (Blackjack · Zar · XOX)",
+      "name": "Oyun Alanı (Blöf · Okey · Tavla)",
       "short_name": "Oyunlar",
-      "url": "/?sayfa=oyunlar"
+      "url": "/?sayfa=oyunlar",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Kod Paylaşımı",
       "short_name": "Kod",
-      "url": "/?kanal=kod"
+      "url": "/?kanal=kod",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/assets/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     },
     {
       "src": "/assets/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

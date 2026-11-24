@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node scripts/dev-server.mjs",
     "vendor": "node scripts/vendor.mjs",
-    "check": "node --check app.js && node --check games/sfx.mjs && node --check games/xox.mjs && node --check games/blackjack3d.mjs && node --check games/dice3d.mjs && node --check games/chess3d.mjs && node --check games/okey3d.mjs && node --check games/tavla3d.mjs && node --check games/roulette3d.mjs && node --check games/slot3d.mjs && node --check games/card3d_common.mjs && node --check games/papaz3d.mjs && node --check games/pisti3d.mjs && node --check games/batak3d.mjs && node --check games/blof3d.mjs"
+    "check": "node --check app.js && node --check voice.mjs && node --check sw.js && node --check games/sfx.mjs && node --check games/xox.mjs && node --check games/blackjack3d.mjs && node --check games/dice3d.mjs && node --check games/chess3d.mjs && node --check games/okey3d.mjs && node --check games/tavla3d.mjs && node --check games/roulette3d.mjs && node --check games/slot3d.mjs && node --check games/card3d_common.mjs && node --check games/papaz3d.mjs && node --check games/pisti3d.mjs && node --check games/batak3d.mjs && node --check games/blof3d.mjs"
   },
   "devDependencies": {
     "@highlightjs/cdn-assets": "^11.11.1",
