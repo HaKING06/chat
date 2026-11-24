@@ -448,12 +448,29 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     }
   }
   let activeEmojiPopover = null;
+  let activeQuickReaction = null;
+  let emojiPopoverToken = 0;
+
+  function closeQuickReactionPicker() {
+    if (!activeQuickReaction) return;
+    activeQuickReaction.cleanup?.();
+    activeQuickReaction.el?.remove();
+    activeQuickReaction = null;
+  }
+
   function closeEmojiPopover() {
+    emojiPopoverToken += 1;
     if (!activeEmojiPopover) return;
     activeEmojiPopover.cleanup?.();
     activeEmojiPopover.el.remove();
     activeEmojiPopover = null;
   }
+
+  function closeAllEmojiPickers() {
+    closeQuickReactionPicker();
+    closeEmojiPopover();
+  }
+
   async function loadEmojiModules() {
     emojiModulePromise ||= Promise.all([
       import("./vendor/emoji/index.js"),
@@ -464,16 +481,35 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     }));
     return emojiModulePromise;
   }
-  async function openEmojiPopover(anchorEl, onSelect) {
+
+  async function openEmojiPopover(anchorEl, onSelect, titleText = "Emoji seç") {
+    closeQuickReactionPicker();
     if (activeEmojiPopover && activeEmojiPopover.anchor === anchorEl) {
       closeEmojiPopover();
       return;
     }
     closeEmojiPopover();
+    const openToken = ++emojiPopoverToken;
     try {
       const { tr } = await loadEmojiModules();
+      if (openToken !== emojiPopoverToken || !anchorEl?.isConnected) return;
+
       const wrap = document.createElement("div");
       wrap.className = "emoji-popover";
+      wrap.setAttribute("role", "dialog");
+      wrap.setAttribute("aria-label", titleText);
+
+      const head = document.createElement("div");
+      head.className = "emoji-popover-head";
+      const titleSpan = el("span", "emoji-popover-title", titleText);
+      const closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.className = "icon-button emoji-popover-close";
+      closeBtn.textContent = "×";
+      closeBtn.setAttribute("aria-label", "Emoji seçiciyi kapat");
+      closeBtn.addEventListener("click", () => closeEmojiPopover());
+      head.append(titleSpan, closeBtn);
+
       const picker = document.createElement("emoji-picker");
       picker.i18n = tr;
       picker.locale = "tr";
@@ -484,13 +520,17 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
         if (unicode) onSelect?.(unicode);
         closeEmojiPopover();
       });
-      wrap.append(picker);
+      wrap.append(head, picker);
       document.body.append(wrap);
 
       const positionPopover = () => {
+        if (!anchorEl.isConnected) {
+          closeEmojiPopover();
+          return;
+        }
         const rect = anchorEl.getBoundingClientRect();
         const pw = Math.min(352, window.innerWidth - 16);
-        const ph = Math.min(336, window.innerHeight - 108);
+        const ph = Math.min(376, window.innerHeight - 80);
         let left = rect.left;
         if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
         if (left < 8) left = 8;
@@ -503,26 +543,29 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       positionPopover();
 
       const onOutside = (e) => {
-        if (!wrap.contains(e.target) && !anchorEl.contains(e.target)) {
-          closeEmojiPopover();
-        }
+        const path = typeof e.composedPath === "function" ? e.composedPath() : [];
+        const inWrap = path.includes(wrap) || wrap.contains(e.target);
+        const inAnchor = path.includes(anchorEl) || anchorEl.contains(e.target);
+        if (!inWrap && !inAnchor) closeEmojiPopover();
       };
       const onEsc = (e) => {
         if (e.key === "Escape") closeEmojiPopover();
       };
-      setTimeout(() => {
-        document.addEventListener("pointerdown", onOutside, true);
-        document.addEventListener("keydown", onEsc);
-        window.addEventListener("resize", positionPopover);
-      }, 0);
+      const msgsEl = $("messages");
+      document.addEventListener("pointerdown", onOutside, true);
+      document.addEventListener("keydown", onEsc, true);
+      window.addEventListener("resize", positionPopover);
+      msgsEl?.addEventListener("scroll", positionPopover, { passive: true });
+
       activeEmojiPopover = {
         anchor: anchorEl,
         el: wrap,
         picker,
         cleanup: () => {
           document.removeEventListener("pointerdown", onOutside, true);
-          document.removeEventListener("keydown", onEsc);
+          document.removeEventListener("keydown", onEsc, true);
           window.removeEventListener("resize", positionPopover);
+          msgsEl?.removeEventListener("scroll", positionPopover);
         },
       };
     } catch {
@@ -1892,6 +1935,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
     } catch { }
   }
   function navigate(view, channel = state.channel) {
+    closeAllEmojiPickers();
     const safeChannel = channels[channel] ? channel : "general";
     if (state.user)
       state.socket.emit("typing", { channel: state.channel, isTyping: false });
@@ -2300,9 +2344,14 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
   function toggleReactions(parent, m, anchorBtn = null) {
     const previous = parent.querySelector(".emoji-picker");
     if (previous) {
-      previous.remove();
+      closeQuickReactionPicker();
       return;
     }
+    if (anchorBtn && activeEmojiPopover?.anchor === anchorBtn) {
+      closeAllEmojiPickers();
+      return;
+    }
+    closeAllEmojiPickers();
     const picker = el("div", "emoji-picker");
     for (const emoji of quickReactions)
       picker.append(
@@ -2310,8 +2359,8 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
           emoji,
           "",
           () => {
+            closeQuickReactionPicker();
             act("reactMessage", { msgId: m.id, emoji });
-            picker.remove();
           },
           emoji + " ekle",
         ),
@@ -2321,15 +2370,43 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       "reaction-add-more",
       () => {
         const anchor = anchorBtn || parent;
-        picker.remove();
-        openEmojiPopover(anchor, (emoji) =>
-          act("reactMessage", { msgId: m.id, emoji }),
+        closeQuickReactionPicker();
+        openEmojiPopover(
+          anchor,
+          (emoji) => act("reactMessage", { msgId: m.id, emoji }),
+          "Tepki seç",
         );
       },
       "Tüm emojilerden seç",
     );
-    picker.append(moreBtn);
+    const closeQuickBtn = button(
+      "×",
+      "reaction-close-btn",
+      () => closeQuickReactionPicker(),
+      "Tepki menüsünü kapat",
+    );
+    picker.append(moreBtn, closeQuickBtn);
     parent.append(picker);
+
+    const onOutside = (e) => {
+      const path = typeof e.composedPath === "function" ? e.composedPath() : [];
+      const inPicker = path.includes(picker) || picker.contains(e.target);
+      const inAnchor = anchorBtn && (path.includes(anchorBtn) || anchorBtn.contains(e.target));
+      if (!inPicker && !inAnchor) closeQuickReactionPicker();
+    };
+    const onEsc = (e) => {
+      if (e.key === "Escape") closeQuickReactionPicker();
+    };
+    document.addEventListener("pointerdown", onOutside, true);
+    document.addEventListener("keydown", onEsc, true);
+    activeQuickReaction = {
+      el: picker,
+      anchor: anchorBtn,
+      cleanup: () => {
+        document.removeEventListener("pointerdown", onOutside, true);
+        document.removeEventListener("keydown", onEsc, true);
+      },
+    };
   }
   async function copy(text) {
     try {
@@ -2541,6 +2618,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
   let sending = false;
   $("message-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    closeAllEmojiPickers();
     if (!requireUser() || sending) return;
     const value = $("message-input").value;
     if (!value.trim()) return;
@@ -4263,7 +4341,10 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       $("mini-chat-toggle")?.addEventListener("click", () =>
         setMiniChatOpen(!state.miniChatOpen),
       );
-      $("mini-chat-close")?.addEventListener("click", () => setMiniChatOpen(false));
+      $("mini-chat-close")?.addEventListener("click", () => {
+        closeAllEmojiPickers();
+        setMiniChatOpen(false);
+      });
       document.querySelectorAll("[data-mini-ch]").forEach((btn) => {
         btn.addEventListener("click", () => {
           state.miniChatChannel = btn.dataset.miniCh || "general";
@@ -4282,6 +4363,7 @@ import { renderXoxView, resetXoxSoundState } from "./games/xox.mjs";
       let sendingMini = false;
       $("mini-chat-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        closeAllEmojiPickers();
         if (!requireUser() || sendingMini) return;
         const inp = $("mini-chat-input");
         const msg = inp?.value || "";
