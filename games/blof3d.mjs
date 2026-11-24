@@ -27,14 +27,76 @@ const SEAT_POSITIONS = [
 const HIDE_EQUIP_RE = /^(1H_|2H_|.*Shield|.*Crossbow|Knife|Throwable|Spellbook|Mug)/i;
 
 const RANK_INFO = {
-  A: { title: "AS", symbol: "A", accent: "#fbbf24", sub: "ASLAR MASASI (MAX 4)", badge: "A" },
-  K: { title: "PAPAZ", symbol: "K", accent: "#f87171", sub: "PAPAZLAR MASASI (MAX 4)", badge: "K" },
-  Q: { title: "KIZ", symbol: "Q", accent: "#f472b6", sub: "KIZLAR MASASI (MAX 4)", badge: "Q" },
-  J: { title: "VALE", symbol: "J", accent: "#38bdf8", sub: "VALELER MASASI (MAX 4)", badge: "J" },
-  "10": { title: "ONLU", symbol: "10", accent: "#a8a29e", sub: "YEDEK BLÖF KARTI", badge: "10" },
-  JOKER: { title: "JOKER", symbol: "★", accent: "#34d399", sub: "HER KART YERİNE GEÇER", badge: "★" },
-  DEVIL: { title: "ŞEYTAN", symbol: "😈", accent: "#ef4444", sub: "YALNIZ TEK ATILIR!", badge: "😈" },
+  A: { title: "AS", symbol: "A", emblem: "♠", accent: "#fbbf24", sub: "ASLAR MASASI (6×)", badge: "A" },
+  K: { title: "PAPAZ", symbol: "K", emblem: "♔", accent: "#f87171", sub: "PAPAZLAR MASASI (6×)", badge: "K" },
+  Q: { title: "KIZ", symbol: "Q", emblem: "♕", accent: "#f472b6", sub: "KIZLAR MASASI (6×)", badge: "Q" },
+  JOKER: { title: "JOKER", symbol: "★", emblem: "🃏", accent: "#34d399", sub: "HER KART YERİNE GEÇER", badge: "★" },
+  DEVIL: { title: "ŞEYTAN", symbol: "😈", emblem: "🔥", accent: "#ef4444", sub: "YALNIZ TEK ATILIR!", badge: "😈" },
 };
+
+const CHAR_EMBLEMS = {
+  toren: "⚔️",
+  kuzgun: "🦊",
+  demir: "🛡️",
+  kemik: "💀",
+  alev: "🔮",
+};
+
+const CAMERA_MODE_LABELS = {
+  fps: "🎥 Gözden",
+  kose: "🎥 4 Koltuk",
+  genel: "🎥 Salon",
+};
+
+function createTableFeltTexture() {
+  const size = 512;
+  const cvs = document.createElement("canvas");
+  cvs.width = size;
+  cvs.height = size;
+  const ctx = cvs.getContext("2d");
+
+  const rad = ctx.createRadialGradient(size / 2, size / 2, 24, size / 2, size / 2, size * 0.52);
+  rad.addColorStop(0, "#631720");
+  rad.addColorStop(0.55, "#4a1017");
+  rad.addColorStop(1, "#2a070b");
+  ctx.fillStyle = rad;
+  ctx.fillRect(0, 0, size, size);
+
+  // Subtle dive-bar cloth grain
+  for (let i = 0; i < 2200; i += 1) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    ctx.fillStyle = i % 2 === 0 ? "rgba(255,215,160,0.025)" : "rgba(0,0,0,0.06)";
+    ctx.fillRect(x, y, 2, 2);
+  }
+
+  // Brass inlay rings & tavern crest
+  ctx.strokeStyle = "rgba(212, 164, 74, 0.35)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size * 0.39, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.setLineDash([8, 8]);
+  ctx.strokeStyle = "rgba(212, 164, 74, 0.25)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size * 0.19, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = "rgba(229, 189, 103, 0.16)";
+  ctx.font = "bold 24px Georgia, serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("LIAR'S DECK", size / 2, size / 2 - 46);
+  ctx.font = "bold 16px system-ui, sans-serif";
+  ctx.fillText("★ BLÖF BARI ★", size / 2, size / 2 + 48);
+
+  const tex = new THREE.CanvasTexture(cvs);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
 
 const ASSET_BASE = new URL("../assets/models/blof/", import.meta.url).href;
 const gltfLoader = new GLTFLoader();
@@ -139,15 +201,26 @@ function createBlofCardTexture(rank, faceUp = true) {
     ctx.strokeRect(10, 10, w - 20, h - 20);
 
     const ink = isDevil ? "#fca5a5" : isJoker ? "#a7f3d0" : "#1c130e";
+    ctx.strokeStyle = isDevil ? "rgba(248,113,113,0.45)" : isJoker ? "rgba(52,211,153,0.45)" : "rgba(168,130,76,0.45)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(22, 22, w - 44, h - 44);
+
+    // Top-left & bottom-right classic playing card indices
     ctx.fillStyle = ink;
-    ctx.font = "bold 44px Georgia, serif";
+    ctx.font = "bold 40px Georgia, serif";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(meta.badge, 24, 22);
+    ctx.fillText(meta.badge, 28, 26);
+
+    ctx.save();
+    ctx.translate(w - 28, h - 26);
+    ctx.rotate(Math.PI);
+    ctx.fillText(meta.badge, 0, 0);
+    ctx.restore();
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = rank === "10" ? "bold 88px Georgia, serif" : "bold 104px Georgia, serif";
+    ctx.font = "bold 100px Georgia, serif";
     ctx.fillStyle = isDevil
       ? "#ff4d5a"
       : isJoker
@@ -156,18 +229,16 @@ function createBlofCardTexture(rank, faceUp = true) {
           ? "#991b1b"
           : rank === "Q"
             ? "#86198f"
-            : rank === "J"
-              ? "#0369a1"
-              : "#1f2937";
-    ctx.fillText(meta.symbol, w / 2, h / 2 - 16);
+            : "#1c1917";
+    ctx.fillText(meta.emblem || meta.symbol, w / 2, h / 2 - 20);
 
-    ctx.font = "bold 30px Georgia, serif";
+    ctx.font = "bold 28px Georgia, serif";
     ctx.fillStyle = ink;
-    ctx.fillText(meta.title, w / 2, h / 2 + 64);
+    ctx.fillText(meta.title, w / 2, h / 2 + 56);
 
-    ctx.font = "bold 14px system-ui, sans-serif";
+    ctx.font = "bold 13px system-ui, sans-serif";
     ctx.fillStyle = isDevil || isJoker ? "rgba(255,255,255,0.72)" : "rgba(40,26,18,0.68)";
-    ctx.fillText(meta.sub, w / 2, h - 42);
+    ctx.fillText(meta.sub, w / 2, h - 46);
   }
 
   const tex = new THREE.CanvasTexture(cvs);
@@ -395,15 +466,18 @@ export class BlofArena {
     this.selectedIds = new Set();
     this.force2D = false;
     this.webglFailed = false;
-    this.cameraMode = "masadan";
+    this.cameraMode = "fps";
+    this._camInitialized = false;
     this.disposed = false;
     this._lastActionSeq = -1;
     this._lastPlaySeq = -1;
     this._lastShotSeq = -1;
     this._lastCountdownTick = -1;
     this._countdownRaf = null;
-    this._camPos = new THREE.Vector3(0, 3.15, 5.1);
-    this._camLook = new THREE.Vector3(0, 0.92, -0.1);
+    this._timerInterval = null;
+    this._selfDeathCamTimer = null;
+    this._camPos = new THREE.Vector3(0, 2.08, 3.05);
+    this._camLook = new THREE.Vector3(0, 1.0, -0.35);
     this._camGlide = false;
     this._shakeTimer = 0;
     this._shotAnim = {
@@ -424,21 +498,29 @@ export class BlofArena {
 
     // Top bar
     this.topBar = el("div", "blof-topbar");
-    const leftTop = el("div", "blof-top-group");
+    const leftTop = el("div", "blof-top-group blof-top-left");
     this.titleBadge = el("span", "blof-badge-main", "🔫 BLÖF");
-    this.modeBadge = el("span", "blof-pill", "KLASİK 20 KART");
+    this.modeBadge = el("span", "blof-pill blof-mode-pill", "KLASİK 6×");
     this.roundBadge = el("span", "blof-pill", "LOBİ");
     leftTop.append(this.titleBadge, this.modeBadge, this.roundBadge);
 
     this.tableTypeBanner = el("div", "blof-tabletype-pill", "MASA: BEKLENİYOR");
 
-    const rightTop = el("div", "blof-top-group");
+    const rightTop = el("div", "blof-top-group blof-top-right");
     this.pileBadge = el("span", "blof-pill", "Yığın: 0");
-    this.camBtn = el("button", "button secondary compact", "🎥 Açı");
-    this.viewBtn = el("button", "button secondary compact", "2D / 3D");
+    this.camBtn = el("button", "button secondary compact");
+    this.camBtn.innerHTML = `🎥 <span class="blof-btn-lbl">Gözden</span>`;
+    this.camBtn.title = "Kamera açısını değiştir (Gözden / 4 Koltuk / Salon)";
+    this.viewBtn = el("button", "button secondary compact");
+    this.viewBtn.innerHTML = `2D<span class="blof-hide-xs"> / 3D</span>`;
     this.sfxBtn = el("button", "button secondary compact", isSfxMuted() ? "🔇" : "🔊");
-    this.helpBtn = el("button", "button secondary compact", "? Kurallar");
-    this.leaveBtn = el("button", "button secondary compact danger-soft", "Masadan Kalk");
+    this.sfxBtn.title = "Sesi aç/kapat";
+    this.helpBtn = el("button", "button secondary compact");
+    this.helpBtn.innerHTML = `?<span class="blof-hide-xs"> Kurallar</span>`;
+    this.helpBtn.title = "Orijinal Liar's Bar Kuralları";
+    this.leaveBtn = el("button", "button secondary compact danger-soft");
+    this.leaveBtn.innerHTML = `<span class="blof-hide-xs">Masadan </span>Çık`;
+    this.leaveBtn.title = "Masadan Kalk";
     rightTop.append(
       this.pileBadge,
       this.camBtn,
@@ -455,8 +537,12 @@ export class BlofArena {
     this.canvas2d = el("canvas", "blof-canvas2d");
     this.canvas2d.hidden = true;
 
-    // Dramatic overlaid HUD inside stage
+    // Dramatic overlaid HUD inside stage (turn pill, action text & live countdown bar)
     this.turnBanner = el("div", "blof-stage-hud-top");
+    this.timerBarEl = el("div", "blof-stage-timer");
+    this.timerBarEl.hidden = true;
+    this.timerFillEl = el("div", "blof-stage-timer-fill");
+    this.timerBarEl.append(this.timerFillEl);
     this.shotToastEl = el("div", "blof-shot-overlay");
     this.shotToastEl.hidden = true;
     this.revealStripEl = el("div", "blof-reveal-strip");
@@ -476,6 +562,7 @@ export class BlofArena {
     this.stageWrap.append(
       this.canvas3d,
       this.canvas2d,
+      this.timerBarEl,
       this.turnBanner,
       this.revealStripEl,
       this.shotToastEl,
@@ -510,12 +597,14 @@ export class BlofArena {
     });
     this.viewBtn.addEventListener("click", () => {
       this.force2D = !this.force2D;
-      this.viewBtn.textContent = this.force2D ? "3D Sahne" : "2D / 3D";
+      this.viewBtn.innerHTML = this.force2D
+        ? `3D<span class="blof-hide-xs"> Sahne</span>`
+        : `2D<span class="blof-hide-xs"> / 3D</span>`;
       this._syncVisibility();
       if (this.force2D || this.webglFailed) this._draw2D();
     });
     this.camBtn.addEventListener("click", () => {
-      const order = ["masadan", "yakin", "genel"];
+      const order = ["fps", "kose", "genel"];
       const idx = (order.indexOf(this.cameraMode) + 1) % order.length;
       this.setCameraMode(order[idx], false);
     });
@@ -693,9 +782,10 @@ export class BlofArena {
     woodRim.castShadow = true;
     tableGroup.add(woodRim);
 
+    const velvetTex = createTableFeltTexture();
     const velvetTop = new THREE.Mesh(
       new THREE.CylinderGeometry(TABLE_RADIUS - 0.17, TABLE_RADIUS - 0.17, 0.025, 48),
-      new THREE.MeshStandardMaterial({ color: 0x4b1218, roughness: 0.9 }),
+      new THREE.MeshStandardMaterial({ map: velvetTex, roughness: 0.92 }),
     );
     velvetTop.position.y = TABLE_TOP_Y + 0.01;
     velvetTop.receiveShadow = true;
@@ -713,6 +803,19 @@ export class BlofArena {
     goldRing.rotation.x = -Math.PI * 0.5;
     goldRing.position.y = TABLE_TOP_Y + 0.024;
     tableGroup.add(goldRing);
+
+    // Active player coaster glow ring on felt
+    this.turnHaloMat = new THREE.MeshBasicMaterial({
+      color: 0xf59e0b,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this.turnHalo = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.34, 32), this.turnHaloMat);
+    this.turnHalo.rotation.x = -Math.PI * 0.5;
+    this.turnHalo.position.set(0, TABLE_TOP_Y + 0.027, 0);
+    tableGroup.add(this.turnHalo);
     this.scene.add(tableGroup);
 
     // Floating smoke motes drifting above bar table
@@ -776,8 +879,8 @@ export class BlofArena {
 
       const nameplateMat = new THREE.SpriteMaterial({ transparent: true, opacity: 0 });
       const nameplate = new THREE.Sprite(nameplateMat);
-      nameplate.position.set(0, 2.15, -0.22);
-      nameplate.scale.set(1.16, 0.28, 1);
+      nameplate.position.set(0, 1.88, -0.18);
+      nameplate.scale.set(1.06, 0.25, 1);
       grp.add(nameplate);
 
       const seatFill = new THREE.PointLight(0xffba73, 2.8, 3.8);
@@ -928,703 +1031,843 @@ export class BlofArena {
       .catch(() => { });
   }
 
-    _playSeatAnim(seatNode, clipName, loopForever = true, { forceReset = false } = {}) {
-      if (!seatNode?.mixer || !seatNode.actions) return;
-      const action =
-        seatNode.actions[clipName] ||
-        seatNode.actions.Sit_Chair_Idle ||
-        seatNode.actions.Idle ||
-        Object.values(seatNode.actions)[0];
-        if (!action) return;
-        if (!forceReset && seatNode.currentAction === action && action.isRunning()) return;
+  _playSeatAnim(seatNode, clipName, loopForever = true, { forceReset = false } = {}) {
+    if (!seatNode?.mixer || !seatNode.actions) return;
+    const action =
+      seatNode.actions[clipName] ||
+      seatNode.actions.Sit_Chair_Idle ||
+      seatNode.actions.Idle ||
+      Object.values(seatNode.actions)[0];
+    if (!action) return;
+    if (!forceReset && seatNode.currentAction === action && action.isRunning()) return;
 
-        seatNode.animToken = (seatNode.animToken || 0) + 1;
-        // Fade out any other playing clip cleanly without leaving stale weights stuck!
-        for (const a of Object.values(seatNode.actions)) {
-          if (a && a !== action) {
-            a.enabled = false;
-            a.stop();
-          }
-        }
-        action.enabled = true;
-        action.setEffectiveTimeScale(1);
-        action.setEffectiveWeight(1);
-        action.reset();
-        if (loopForever) {
-          action.setLoop(THREE.LoopRepeat, Infinity);
-          action.clampWhenFinished = false;
-        } else {
-          action.setLoop(THREE.LoopOnce, 1);
-          action.clampWhenFinished = true;
-        }
-        action.play();
-        seatNode.currentAction = action;
+    seatNode.animToken = (seatNode.animToken || 0) + 1;
+    // Fade out any other playing clip cleanly without leaving stale weights stuck!
+    for (const a of Object.values(seatNode.actions)) {
+      if (a && a !== action) {
+        a.enabled = false;
+        a.stop();
+      }
+    }
+    action.enabled = true;
+    action.setEffectiveTimeScale(1);
+    action.setEffectiveWeight(1);
+    action.reset();
+    if (loopForever) {
+      action.setLoop(THREE.LoopRepeat, Infinity);
+      action.clampWhenFinished = false;
+    } else {
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = true;
+    }
+    action.play();
+    seatNode.currentAction = action;
+  }
+
+  _pulseSeatAnim(seatNode, clipName, returnClip = "Sit_Chair_Idle") {
+    if (!seatNode?.mixer || !seatNode.actions) return;
+    if (seatNode.animState === "dead") return;
+    const action = seatNode.actions[clipName];
+    if (!action) return;
+
+    const token = ++seatNode.animToken;
+    for (const a of Object.values(seatNode.actions)) {
+      if (a && a !== action) {
+        a.enabled = false;
+        a.stop();
+      }
+    }
+    action.enabled = true;
+    action.setEffectiveTimeScale(1);
+    action.setEffectiveWeight(1);
+    action.reset();
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = false;
+    action.play();
+    seatNode.currentAction = action;
+    seatNode.animState = "pulse";
+
+    const durationMs = Math.min(1800, Math.max(350, (action.getClip()?.duration || 0.9) * 950));
+    clearTimeout(seatNode.pulseRestoreTimer);
+    seatNode.pulseRestoreTimer = setTimeout(() => {
+      if (this.disposed || seatNode.animToken !== token || seatNode.animState === "dead") return;
+      seatNode.animState = "idle";
+      this._playSeatAnim(seatNode, returnClip, true, { forceReset: true });
+    }, durationMs);
+  }
+
+  _syncSceneEntities() {
+    if (!this.scene || !this.table) return;
+    const t = this.table;
+    const myIdx = this.mySeatIndex();
+    const hideOwnFpsSeat = this.cameraMode === "fps" && myIdx >= 0 && t.seats[myIdx]?.alive;
+
+    if (!this._camInitialized) {
+      this._camInitialized = true;
+      const preferred = myIdx >= 0 && t.seats[myIdx]?.alive ? "fps" : "kose";
+      if (this.cameraMode !== preferred) {
+        this.setCameraMode(preferred, true);
+      }
+    }
+
+    for (let i = 0; i < 4; i += 1) {
+      const seat = t.seats[i];
+      const node = this.seatNodes[i];
+      this._ensureSeatCharacter(node, seat);
+
+      if (!seat) {
+        node.chairAnchor.visible = true;
+        node.handAnchor.clear();
+        node.collapsePivot.rotation.set(0, 0, 0);
+        node.deathProgress = 0;
+        node.deathAnimating = false;
+        node.animState = "idle";
+        node.wasAlive = true;
+        continue;
       }
 
-      _pulseSeatAnim(seatNode, clipName, returnClip = "Sit_Chair_Idle") {
-        if (!seatNode?.mixer || !seatNode.actions) return;
-        if (seatNode.animState === "dead") return;
-        const action = seatNode.actions[clipName];
-          if (!action) return;
+      // Hide own seated character/chair only in First-Person POV while alive so view across table is crystal clear!
+      const maskOwn = hideOwnFpsSeat && i === myIdx;
+      node.charAnchor.visible = !maskOwn;
+      node.chairAnchor.visible = !maskOwn;
 
-          const token = ++seatNode.animToken;
-          for (const a of Object.values(seatNode.actions)) {
-            if (a && a !== action) {
-              a.enabled = false;
-              a.stop();
-            }
-          }
-          action.enabled = true;
-          action.setEffectiveTimeScale(1);
-          action.setEffectiveWeight(1);
-          action.reset();
-          action.setLoop(THREE.LoopOnce, 1);
-          action.clampWhenFinished = false;
-          action.play();
-          seatNode.currentAction = action;
-          seatNode.animState = "pulse";
+      const isTurn = t.status === "playing" && t.turnSeatIndex === i;
+      const isTarget = t.status === "roulette" && t.rouletteTargetSeat === i;
+      const isCameraNearSeat = i === Math.max(0, myIdx);
+      node.nameplate.visible = !isCameraNearSeat;
+      if (!isCameraNearSeat) {
+        const newTex = createNameplateTexture(seat, isTurn, isTarget);
+        node.nameplate.material.map?.dispose();
+        node.nameplate.material.map = newTex;
+        node.nameplate.material.opacity = 1;
+        node.nameplate.material.needsUpdate = true;
+      }
 
-          const durationMs = Math.min(1800, Math.max(350, (action.getClip()?.duration || 0.9) * 950));
-          clearTimeout(seatNode.pulseRestoreTimer);
-          seatNode.pulseRestoreTimer = setTimeout(() => {
-            if (this.disposed || seatNode.animToken !== token || seatNode.animState === "dead") return;
-            seatNode.animState = "idle";
-            this._playSeatAnim(seatNode, returnClip, true, { forceReset: true });
-          }, durationMs);
+      if (!seat.alive) {
+        if (node.wasAlive) {
+          node.wasAlive = false;
+          node.animState = "dead";
+          clearTimeout(node.pulseRestoreTimer);
+          node.deathProgress = 0;
+          node.deathAnimating = true;
+          this._playSeatAnim(node, "Sit_Chair_Pose", true, { forceReset: true });
         }
+      } else {
+        if (!node.wasAlive) {
+          // Revived for Rematch / New Game -> stand back upright cleanly in chair!
+          node.wasAlive = true;
+          node.animState = "idle";
+          node.deathProgress = 0;
+          node.deathAnimating = false;
+          node.collapsePivot.rotation.set(0, 0, 0);
+          this._playSeatAnim(node, "Sit_Chair_Idle", true, { forceReset: true });
+        } else if (isTarget && node.animState !== "aim") {
+          node.animState = "aim";
+          this._playSeatAnim(node, "Sit_Chair_Pose", true, { forceReset: true });
+        } else if (!isTarget && node.animState === "aim") {
+          node.animState = "idle";
+          this._playSeatAnim(node, "Sit_Chair_Idle", true, { forceReset: true });
+        }
+      }
 
-        _syncSceneEntities() {
-          if (!this.scene || !this.table) return;
-          const t = this.table;
+      // Opponent card stack fan on table edge
+      node.handAnchor.clear();
+      const count = Math.min(5, seat.cardCount || 0);
+      for (let c = 0; c < count; c += 1) {
+        const mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(0.22, 0.006, 0.31),
+          new THREE.MeshStandardMaterial({ color: 0x5c141d, roughness: 0.65 }),
+        );
+        const offset = (c - (count - 1) / 2) * 0.075;
+        mesh.position.set(offset, c * 0.006, Math.abs(offset) * 0.14);
+        mesh.rotation.y = -offset * 0.45;
+        mesh.castShadow = true;
+        node.handAnchor.add(mesh);
+      }
+    }
 
-          for (let i = 0; i < 4; i += 1) {
-            const seat = t.seats[i];
-            const node = this.seatNodes[i];
-            this._ensureSeatCharacter(node, seat);
+    // Center pile cards / Challenge reveal
+    this.pileGroup.clear();
+    const revealCards = t.rouletteReveal?.cards;
+    if ((t.status === "roulette" || t.status === "shot_result") && revealCards?.length) {
+      revealCards.forEach((card, idx) => {
+        const tex = createBlofCardTexture(card.rank, true);
+        const mat = [
+          new THREE.MeshStandardMaterial({ color: 0x2a1812 }),
+          new THREE.MeshStandardMaterial({ color: 0x2a1812 }),
+          new THREE.MeshStandardMaterial({ map: tex, roughness: 0.45 }),
+          new THREE.MeshStandardMaterial({ color: 0x451218 }),
+          new THREE.MeshStandardMaterial({ color: 0x2a1812 }),
+          new THREE.MeshStandardMaterial({ color: 0x2a1812 }),
+        ];
+        const cardMesh = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.01, 0.58), mat);
+        const spread = (idx - (revealCards.length - 1) / 2) * 0.48;
+        cardMesh.position.set(spread, 0.035 + idx * 0.008, 0);
+        cardMesh.rotation.y = spread * 0.12;
+        cardMesh.rotation.x = Math.PI * (1 - this._revealAnimProgress);
+        cardMesh.castShadow = true;
+        this.pileGroup.add(cardMesh);
+      });
+    } else if (t.pileCount > 0) {
+      const backTex = createBlofCardTexture("A", false);
+      const backMat = new THREE.MeshStandardMaterial({ map: backTex, roughness: 0.55 });
+      const drawCount = Math.min(8, t.pileCount);
+      for (let i = 0; i < drawCount; i += 1) {
+        const cardMesh = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.008, 0.52), backMat);
+        cardMesh.position.set(
+          Math.sin(i * 2.1) * 0.14,
+          i * 0.009,
+          Math.cos(i * 1.7) * 0.14,
+        );
+        cardMesh.rotation.y = (i - drawCount / 2) * 0.34;
+        cardMesh.castShadow = true;
+        this.pileGroup.add(cardMesh);
+      }
+    }
 
-            if (!seat) {
-              node.handAnchor.clear();
-              node.collapsePivot.rotation.set(0, 0, 0);
-              node.deathProgress = 0;
-              node.deathAnimating = false;
-              node.animState = "idle";
-              node.wasAlive = true;
-              continue;
-            }
+    // Update brass chambers visual state for current roulette target or seat 0
+    const inspectSeat =
+      t.seats[t.rouletteTargetSeat >= 0 ? t.rouletteTargetSeat : Math.max(0, this.mySeatIndex())] ||
+      t.seats[0];
+    if (inspectSeat && this.revolver) {
+      const pulls = inspectSeat.triggerPulls || 0;
+      this.revolver.chambers.forEach((ch, idx) => {
+        ch.cap.material = idx < pulls ? ch.spentMat : ch.brassMat;
+      });
+    }
+  }
 
-            const isTurn = t.status === "playing" && t.turnSeatIndex === i;
-            const isTarget = t.status === "roulette" && t.rouletteTargetSeat === i;
-            const isCameraNearSeat = i === Math.max(0, this.mySeatIndex());
-            node.nameplate.visible = !isCameraNearSeat;
-            if (!isCameraNearSeat) {
-              const newTex = createNameplateTexture(seat, isTurn, isTarget);
-              node.nameplate.material.map?.dispose();
-              node.nameplate.material.map = newTex;
-              node.nameplate.material.opacity = 1;
-              node.nameplate.material.needsUpdate = true;
-            }
+  _spawnCardThrow(seatIndex, count = 1) {
+    if (!this.flyingGroup || !this.seatNodes?.[seatIndex]) return;
+    const node = this.seatNodes[seatIndex];
+    const origin = new THREE.Vector3();
+    node.handAnchor.getWorldPosition(origin);
+    const backTex = createBlofCardTexture("A", false);
+    const backMat = new THREE.MeshStandardMaterial({ map: backTex, roughness: 0.52 });
+    const n = Math.min(3, Math.max(1, count));
+    for (let i = 0; i < n; i += 1) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.008, 0.52), backMat);
+      mesh.position.copy(origin);
+      mesh.castShadow = true;
+      this.flyingGroup.add(mesh);
+      this.flyingCards.push({
+        mesh,
+        from: origin.clone(),
+        to: new THREE.Vector3(
+          (i - (n - 1) / 2) * 0.14,
+          TABLE_TOP_Y + 0.04 + i * 0.01,
+          (Math.random() - 0.5) * 0.12,
+        ),
+        delay: i * 0.075,
+        t: 0,
+        dur: 0.38,
+        spinY: (Math.random() - 0.5) * 3.8,
+      });
+    }
+  }
 
-              if (!seat.alive) {
-                if (node.wasAlive) {
-                  node.wasAlive = false;
-                  node.animState = "dead";
-                  clearTimeout(node.pulseRestoreTimer);
-                  node.deathProgress = 0;
-                  node.deathAnimating = true;
-                  this._playSeatAnim(node, "Sit_Chair_Pose", true, { forceReset: true });
-                }
-              } else {
-                if (!node.wasAlive) {
-                  // Revived for Rematch / New Game -> stand back upright cleanly in chair!
-                  node.wasAlive = true;
-                  node.animState = "idle";
-                  node.deathProgress = 0;
-                  node.deathAnimating = false;
-                  node.collapsePivot.rotation.set(0, 0, 0);
-                  this._playSeatAnim(node, "Sit_Chair_Idle", true, { forceReset: true });
-                } else if (isTarget && node.animState !== "aim") {
-                  node.animState = "aim";
-                  this._playSeatAnim(node, "Sit_Chair_Pose", true, { forceReset: true });
-                } else if (!isTarget && node.animState === "aim") {
-                  node.animState = "idle";
-                  this._playSeatAnim(node, "Sit_Chair_Idle", true, { forceReset: true });
-                }
-              }
+  _spawnMuzzleSparks() {
+    if (!this.flyingGroup || !this.revolver?.muzzleGroup) return;
+    const origin = new THREE.Vector3();
+    this.revolver.muzzleGroup.getWorldPosition(origin);
+    const sparkGeo = new THREE.SphereGeometry(0.022, 6, 6);
+    for (let i = 0; i < 24; i += 1) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: i % 3 === 0 ? 0xfef08a : i % 3 === 1 ? 0xf97316 : 0xef4444,
+        transparent: true,
+        opacity: 1,
+      });
+      const m = new THREE.Mesh(sparkGeo, mat);
+      m.position.copy(origin);
+      this.flyingGroup.add(m);
+      this.sparkParticles.push({
+        mesh: m,
+        vx: (Math.random() - 0.5) * 4.4,
+        vy: 1.2 + Math.random() * 2.8,
+        vz: (Math.random() - 0.5) * 4.4,
+        life: 0,
+        maxLife: 0.55 + Math.random() * 0.4,
+      });
+    }
+  }
 
-              // Opponent card stack fan on table edge
-              node.handAnchor.clear();
-              const count = Math.min(5, seat.cardCount || 0);
-              for (let c = 0; c < count; c += 1) {
-                const mesh = new THREE.Mesh(
-                  new THREE.BoxGeometry(0.22, 0.006, 0.31),
-                  new THREE.MeshStandardMaterial({ color: 0x5c141d, roughness: 0.65 }),
-                );
-                const offset = (c - (count - 1) / 2) * 0.075;
-                mesh.position.set(offset, c * 0.006, Math.abs(offset) * 0.14);
-                mesh.rotation.y = -offset * 0.45;
-                mesh.castShadow = true;
-                node.handAnchor.add(mesh);
-              }
-            }
+  _updateScene(dt, tSec) {
+    // Gentle hanging lamp sway + dust motes float + candle/torch flicker
+    if (this.lampGroup) {
+      this.lampGroup.rotation.z = Math.sin(tSec * 0.7) * 0.024;
+      this.lampGroup.rotation.x = Math.cos(tSec * 0.52) * 0.016;
+    }
+    if (this.smokePoints) {
+      this.smokePoints.rotation.y = tSec * 0.035;
+    }
+    for (const fl of this.flickerLights || []) {
+      fl.light.intensity = fl.base + Math.sin(tSec * 7.5 + fl.phase) * 0.38 + Math.sin(tSec * 14.3 + fl.phase) * 0.22;
+    }
 
-            // Center pile cards / Challenge reveal
-            this.pileGroup.clear();
-            const revealCards = t.rouletteReveal?.cards;
-            if ((t.status === "roulette" || t.status === "shot_result") && revealCards?.length) {
-              revealCards.forEach((card, idx) => {
-                const tex = createBlofCardTexture(card.rank, true);
-                const mat = [
-                  new THREE.MeshStandardMaterial({ color: 0x2a1812 }),
-                  new THREE.MeshStandardMaterial({ color: 0x2a1812 }),
-                  new THREE.MeshStandardMaterial({ map: tex, roughness: 0.45 }),
-                  new THREE.MeshStandardMaterial({ color: 0x451218 }),
-                  new THREE.MeshStandardMaterial({ color: 0x2a1812 }),
-                  new THREE.MeshStandardMaterial({ color: 0x2a1812 }),
-                ];
-                const cardMesh = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.01, 0.58), mat);
-                const spread = (idx - (revealCards.length - 1) / 2) * 0.48;
-                cardMesh.position.set(spread, 0.035 + idx * 0.008, 0);
-                cardMesh.rotation.y = spread * 0.12;
-                cardMesh.rotation.x = Math.PI * (1 - this._revealAnimProgress);
-                cardMesh.castShadow = true;
-                this.pileGroup.add(cardMesh);
-              });
-            } else if (t.pileCount > 0) {
-              const backTex = createBlofCardTexture("A", false);
-              const backMat = new THREE.MeshStandardMaterial({ map: backTex, roughness: 0.55 });
-              const drawCount = Math.min(8, t.pileCount);
-              for (let i = 0; i < drawCount; i += 1) {
-                const cardMesh = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.008, 0.52), backMat);
-                cardMesh.position.set(
-                  Math.sin(i * 2.1) * 0.14,
-                  i * 0.009,
-                  Math.cos(i * 1.7) * 0.14,
-                );
-                cardMesh.rotation.y = (i - drawCount / 2) * 0.34;
-                cardMesh.castShadow = true;
-                this.pileGroup.add(cardMesh);
-              }
-            }
+    // Challenge card flip ease-out
+    if (this._revealAnimProgress < 1 && this.pileGroup) {
+      this._revealAnimProgress = Math.min(1, this._revealAnimProgress + dt * 2.6);
+      const easeFlip = 1 - Math.pow(1 - this._revealAnimProgress, 3);
+      for (const child of this.pileGroup.children) {
+        child.rotation.x = Math.PI * (1 - easeFlip);
+        child.position.y = 0.035 + Math.sin(easeFlip * Math.PI) * 0.24;
+      }
+    }
 
-            // Update brass chambers visual state for current roulette target or seat 0
-            const inspectSeat =
-              t.seats[t.rouletteTargetSeat >= 0 ? t.rouletteTargetSeat : Math.max(0, this.mySeatIndex())] ||
-              t.seats[0];
-            if (inspectSeat && this.revolver) {
-              const pulls = inspectSeat.triggerPulls || 0;
-              this.revolver.chambers.forEach((ch, idx) => {
-                ch.cap.material = idx < pulls ? ch.spentMat : ch.brassMat;
-              });
-            }
+    // Parabolic flying card arcs onto the pile
+    if (this.flyingCards?.length) {
+      const keep = [];
+      for (const fc of this.flyingCards) {
+        if (fc.delay > 0) {
+          fc.delay -= dt;
+          keep.push(fc);
+          continue;
+        }
+        fc.t = Math.min(fc.dur, fc.t + dt);
+        const u = fc.t / fc.dur;
+        const ease = 1 - Math.pow(1 - u, 3);
+        fc.mesh.position.lerpVectors(fc.from, fc.to, ease);
+        fc.mesh.position.y += Math.sin(u * Math.PI) * 0.44;
+        fc.mesh.rotation.y = fc.spinY * ease;
+        fc.mesh.rotation.z = Math.sin(u * Math.PI) * 0.42;
+        if (u < 1) keep.push(fc);
+        else this.flyingGroup.remove(fc.mesh);
+      }
+      this.flyingCards = keep;
+    }
+
+    // Muzzle flash gunpowder sparks with gravity & table bounce
+    if (this.sparkParticles?.length) {
+      const keep = [];
+      for (const sp of this.sparkParticles) {
+        sp.life += dt;
+        sp.vy -= 12.5 * dt;
+        sp.mesh.position.x += sp.vx * dt;
+        sp.mesh.position.y += sp.vy * dt;
+        sp.mesh.position.z += sp.vz * dt;
+        if (sp.mesh.position.y <= TABLE_TOP_Y + 0.03 && sp.vy < 0 && Math.hypot(sp.mesh.position.x, sp.mesh.position.z) < TABLE_RADIUS) {
+          sp.mesh.position.y = TABLE_TOP_Y + 0.03;
+          sp.vy = Math.abs(sp.vy) * 0.44;
+          sp.vx *= 0.72;
+          sp.vz *= 0.72;
+        }
+        sp.mesh.material.opacity = Math.max(0, 1 - sp.life / sp.maxLife);
+        if (sp.life < sp.maxLife) keep.push(sp);
+        else {
+          this.flyingGroup.remove(sp.mesh);
+          sp.mesh.material.dispose();
+        }
+      }
+      this.sparkParticles = keep;
+    }
+
+    // Character skeletal animation mixers + active-turn lean + forward collapse onto table on death!
+    const turnIdx = this.table?.status === "playing" ? this.table.turnSeatIndex : -1;
+    for (let i = 0; i < (this.seatNodes || []).length; i += 1) {
+      const node = this.seatNodes[i];
+      node.mixer?.update(dt);
+      const seat = this.table?.seats?.[i];
+      if (seat && !seat.alive) {
+        if (node.deathAnimating || node.deathProgress < 1) {
+          node.deathProgress = Math.min(1, (node.deathProgress || 0) + dt * 1.9);
+          const u = node.deathProgress;
+          // Gravity acceleration forward followed by crisp bounce off the bar table felt!
+          let fall;
+          if (u < 0.62) {
+            const p = u / 0.62;
+            fall = p * p;
+          } else {
+            const b = (u - 0.62) / 0.38;
+            fall = 1 - Math.sin(b * Math.PI) * 0.14 * (1 - b);
           }
-
-          _spawnCardThrow(seatIndex, count = 1) {
-            if (!this.flyingGroup || !this.seatNodes?.[seatIndex]) return;
-            const node = this.seatNodes[seatIndex];
-            const origin = new THREE.Vector3();
-            node.handAnchor.getWorldPosition(origin);
-            const backTex = createBlofCardTexture("A", false);
-            const backMat = new THREE.MeshStandardMaterial({ map: backTex, roughness: 0.52 });
-            const n = Math.min(3, Math.max(1, count));
-            for (let i = 0; i < n; i += 1) {
-              const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.008, 0.52), backMat);
-              mesh.position.copy(origin);
-              mesh.castShadow = true;
-              this.flyingGroup.add(mesh);
-              this.flyingCards.push({
-                mesh,
-                from: origin.clone(),
-                to: new THREE.Vector3(
-                  (i - (n - 1) / 2) * 0.14,
-                  TABLE_TOP_Y + 0.04 + i * 0.01,
-                  (Math.random() - 0.5) * 0.12,
-                ),
-                delay: i * 0.075,
-                t: 0,
-                dur: 0.38,
-                spinY: (Math.random() - 0.5) * 3.8,
-              });
-            }
+          const rollDir = i % 2 === 0 ? 0.14 : -0.14;
+          node.collapsePivot.rotation.set(1.06 * fall, 0, rollDir * fall);
+          if (u >= 1) {
+            node.deathAnimating = false;
+            node.collapsePivot.rotation.set(1.06, 0, rollDir);
+            this._playSeatAnim(node, "Sit_Chair_Pose", true, { forceReset: true });
           }
+        }
+        node.charAnchor.rotation.x = 0;
+      } else {
+        const targetLean = i === turnIdx && seat?.alive ? 0.08 : 0;
+        if (node.charAnchor) {
+          node.charAnchor.rotation.x += (targetLean - node.charAnchor.rotation.x) * Math.min(1, dt * 6);
+        }
+      }
+    }
 
-          _spawnMuzzleSparks() {
-            if (!this.flyingGroup || !this.revolver?.muzzleGroup) return;
-            const origin = new THREE.Vector3();
-            this.revolver.muzzleGroup.getWorldPosition(origin);
-            const sparkGeo = new THREE.SphereGeometry(0.022, 6, 6);
-            for (let i = 0; i < 24; i += 1) {
-              const mat = new THREE.MeshBasicMaterial({
-                color: i % 3 === 0 ? 0xfef08a : i % 3 === 1 ? 0xf97316 : 0xef4444,
-                transparent: true,
-                opacity: 1,
-              });
-              const m = new THREE.Mesh(sparkGeo, mat);
-              m.position.copy(origin);
-              this.flyingGroup.add(m);
-              this.sparkParticles.push({
-                mesh: m,
-                vx: (Math.random() - 0.5) * 4.4,
-                vy: 1.2 + Math.random() * 2.8,
-                vz: (Math.random() - 0.5) * 4.4,
-                life: 0,
-                maxLife: 0.55 + Math.random() * 0.4,
-              });
-            }
+    // Revolver glide & firing sequence animation (quaternion slerp -> zero gimbal wrap!)
+    if (this.revolver && this.table) {
+      const t = this.table;
+      const rev = this.revolver;
+      if (!this._revRestPos) {
+        this._revRestPos = new THREE.Vector3(0.45, TABLE_TOP_Y + 0.09, 0.46);
+        this._revRestQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0.55, Math.PI * 0.48));
+        this._revTmpObj = new THREE.Object3D();
+      }
+      if (this._shotAnim.active) {
+        this._shotAnim.elapsed += dt;
+        const p = this._shotAnim.elapsed;
+        rev.hammerPivot.rotation.x = p < 0.09 ? -0.45 * (1 - p / 0.09) : 0;
+        rev.triggerPivot.rotation.x = p < 0.15 ? 0.32 : 0;
+        if (this._shotAnim.hit) {
+          // Explosive BANG recoil inside recoilPivot!
+          const kick = p < 0.16 ? Math.sin((p / 0.16) * Math.PI) * 0.48 : Math.max(0, 0.35 - p) * 0.6;
+          rev.recoilPivot.rotation.x = -kick;
+          const flashFade = Math.max(0, 1 - p / 0.18);
+          rev.flashMat.opacity = flashFade;
+          rev.flashLight.intensity = flashFade * 28;
+          const smokeFade = Math.max(0, 1 - Math.max(0, p - 0.04) / 0.75);
+          rev.smokeMat.opacity = smokeFade * 0.55;
+          const sScale = 0.6 + p * 3.8;
+          rev.smokeMesh.scale.setScalar(sScale);
+          rev.smokeMesh.position.y = p * 0.55;
+        } else {
+          // Dry click jitter
+          rev.recoilPivot.rotation.x = p < 0.12 ? -0.07 * Math.sin((p / 0.12) * Math.PI) : 0;
+          rev.flashMat.opacity = 0;
+          rev.flashLight.intensity = 0;
+          rev.smokeMat.opacity = 0;
+        }
+        if (p >= 1.0) {
+          this._shotAnim.active = false;
+          rev.recoilPivot.rotation.x = 0;
+          rev.flashMat.opacity = 0;
+          rev.flashLight.intensity = 0;
+          rev.smokeMat.opacity = 0;
+          rev.smokeMesh.position.y = 0;
+        }
+      } else if (t.status === "roulette" && t.rouletteTargetSeat >= 0) {
+        const targetSeatIdx = t.rouletteTargetSeat;
+        const sp = SEAT_POSITIONS[targetSeatIdx];
+        const fpsAimAtMe = this.cameraMode === "fps" && targetSeatIdx === this.mySeatIndex();
+        if (!this._revAimPos) this._revAimPos = new THREE.Vector3();
+        this._revAimPos.set(
+          sp.x * (fpsAimAtMe ? 0.36 : 0.52),
+          TABLE_TOP_Y + (fpsAimAtMe ? 0.54 : 0.58),
+          sp.z * (fpsAimAtMe ? 0.36 : 0.52),
+        );
+        rev.root.position.lerp(this._revAimPos, 1 - Math.exp(-8 * dt));
+        this._revTmpObj.position.copy(rev.root.position);
+        this._revTmpObj.lookAt(
+          sp.x * (fpsAimAtMe ? 1.12 : 1),
+          fpsAimAtMe ? 1.82 : TABLE_TOP_Y + 1.05,
+          sp.z * (fpsAimAtMe ? 1.12 : 1),
+        );
+        rev.root.quaternion.slerp(this._revTmpObj.quaternion, 1 - Math.exp(-10 * dt));
+        rev.recoilPivot.rotation.x = 0;
+        rev.cylinderPivot.rotation.z += dt * 15;
+        rev.hammerPivot.rotation.x = -0.38;
+      } else {
+        rev.root.position.lerp(this._revRestPos, 1 - Math.exp(-6 * dt));
+        rev.root.quaternion.slerp(this._revRestQuat, 1 - Math.exp(-6 * dt));
+        rev.recoilPivot.rotation.x *= 1 - Math.min(1, dt * 10);
+        rev.hammerPivot.rotation.x = 0;
+        rev.triggerPivot.rotation.x = 0;
+      }
+    }
+
+    // Active seat glow ring on the table felt
+    if (this.turnHalo && this.turnHaloMat && this.table) {
+      const t = this.table;
+      const focusIdx =
+        t.status === "roulette" && t.rouletteTargetSeat >= 0
+          ? t.rouletteTargetSeat
+          : t.status === "playing" && t.turnSeatIndex >= 0
+            ? t.turnSeatIndex
+            : -1;
+      if (focusIdx >= 0 && SEAT_POSITIONS[focusIdx]) {
+        const sp = SEAT_POSITIONS[focusIdx];
+        this.turnHalo.position.x = sp.x * 0.56;
+        this.turnHalo.position.z = sp.z * 0.56;
+        this.turnHaloMat.color.setHex(t.status === "roulette" ? 0xef4444 : 0xfbbf24);
+        this.turnHaloMat.opacity = 0.42 + Math.sin(tSec * (t.status === "roulette" ? 8 : 4.2)) * 0.22;
+        const s = 1 + Math.sin(tSec * 4) * 0.06;
+        this.turnHalo.scale.set(s, s, 1);
+      } else {
+        this.turnHaloMat.opacity = 0;
+      }
+    }
+
+    // Smooth camera glide + subtle shot recoil shake
+    if (this._camGlide) {
+      const k = 1 - Math.exp(-6.5 * dt);
+      this.camera.position.lerp(this._camPos, k);
+      this.controls.target.lerp(this._camLook, k);
+      if (this.camera.position.distanceToSquared(this._camPos) < 0.001) {
+        this._camGlide = false;
+      }
+    }
+    this.controls?.update();
+
+    if (this._shakeTimer > 0) {
+      this._shakeTimer = Math.max(0, this._shakeTimer - dt);
+      const amp = this._shakeTimer * 0.22;
+      this.camera.position.x += (Math.random() - 0.5) * amp;
+      this.camera.position.y += (Math.random() - 0.5) * amp;
+    }
+  }
+
+  setCameraMode(mode, immediate = false) {
+    const normalized = CAMERA_MODE_LABELS[mode] ? mode : "fps";
+    this.cameraMode = normalized;
+    if (this.camBtn) {
+      const lbl = (CAMERA_MODE_LABELS[normalized] || "🎥 Gözden").replace(/^🎥\s*/, "");
+      this.camBtn.innerHTML = `🎥 <span class="blof-btn-lbl">${esc(lbl)}</span>`;
+    }
+    if (!this.camera || !this.controls) return;
+
+    const aspect = this.camera.aspect || 1.6;
+    const portrait = aspect < 1.08;
+    const narrow = aspect < 1.28;
+    if (normalized === "fps") {
+      this.camera.fov = portrait ? 66 : narrow ? 60 : 49;
+    } else {
+      this.camera.fov = portrait ? 56 : narrow ? 50 : 44;
+    }
+    this.camera.updateProjectionMatrix();
+
+    const myIdx = Math.max(0, this.mySeatIndex());
+    const baseAngle = [0, -Math.PI * 0.5, Math.PI, Math.PI * 0.5][myIdx] || 0;
+
+    if (normalized === "fps") {
+      // Authentic Liar's Bar First-Person Table Perspective framing all 3 opponents (even on portrait phones!)
+      const camR = portrait ? 4.45 : narrow ? 3.85 : 3.05;
+      const height = portrait ? 2.52 : narrow ? 2.3 : 2.04;
+      const lookR = -0.28;
+      this._camPos.set(Math.sin(baseAngle) * camR, height, Math.cos(baseAngle) * camR);
+      this._camLook.set(Math.sin(baseAngle) * lookR, 0.96, Math.cos(baseAngle) * lookR);
+    } else if (normalized === "kose") {
+      // Diagonal corner unobstructed view showing all 4 seats cleanly!
+      const offAngle = baseAngle + 0.68;
+      const dist = narrow ? 5.65 : 4.8;
+      const height = narrow ? 3.55 : 3.15;
+      this._camPos.set(Math.sin(offAngle) * dist, height, Math.cos(offAngle) * dist);
+      this._camLook.set(0, 1.0, 0);
+    } else {
+      // Wide saloon overview
+      const offAngle = baseAngle + 0.52;
+      const dist = narrow ? 6.65 : 5.75;
+      const height = narrow ? 4.3 : 3.75;
+      this._camPos.set(Math.sin(offAngle) * dist, height, Math.cos(offAngle) * dist);
+      this._camLook.set(0, 1.0, 0);
+    }
+
+    // Immediately sync own FPS mesh/chair mask when toggling camera!
+    const t = this.table;
+    if (t && this.seatNodes?.[myIdx]) {
+      const s = t.seats?.[myIdx];
+      const maskOwn = normalized === "fps" && myIdx === this.mySeatIndex() && s?.alive;
+      if (s) {
+        this.seatNodes[myIdx].charAnchor.visible = !maskOwn;
+        this.seatNodes[myIdx].chairAnchor.visible = !maskOwn;
+      }
+    }
+
+    if (immediate) {
+      this._camGlide = false;
+      this.camera.position.copy(this._camPos);
+      this.controls.target.copy(this._camLook);
+      this.controls.update();
+    } else {
+      this._camGlide = true;
+    }
+  }
+
+  _resize() {
+    if (!this.renderer || !this.camera || this.webglFailed) return;
+    const w = Math.max(240, this.stageWrap.clientWidth);
+    const h = Math.max(180, this.stageWrap.clientHeight);
+    this.camera.aspect = w / h;
+    this.renderer.setSize(w, h, false);
+    this.setCameraMode(this.cameraMode, true);
+  }
+
+  _syncVisibility() {
+    const use2D = this.force2D || this.webglFailed;
+    this.canvas3d.hidden = use2D;
+    this.canvas2d.hidden = !use2D;
+  }
+
+  mySeatIndex() {
+    if (!this.table || !this.userId) return -1;
+    return (this.table.seats || []).findIndex((s) => s && s.id === this.userId);
+  }
+
+  update(table, userId, { spectator = false } = {}) {
+    this.table = table;
+    this.userId = userId;
+    this.spectator = spectator;
+    if (!table) return;
+
+    this._handleEventsAndSounds(table);
+    this._renderHUD();
+    this._renderLobbyAndFinish();
+    this._renderSeats();
+    this._renderHandAndActions();
+    this._syncSceneEntities();
+    if (this.force2D || this.webglFailed) this._draw2D();
+  }
+
+  _handleEventsAndSounds(t) {
+    if (this._lastRoundSeen !== undefined && this._lastRoundSeen !== t.round) {
+      // New round or rematch -> clear any lingering flying cards cleanly
+      for (const fc of this.flyingCards || []) this.flyingGroup?.remove(fc.mesh);
+      this.flyingCards = [];
+      this._revealAnimProgress = 1;
+    }
+    this._lastRoundSeen = t.round;
+
+    if (t.lastPlay && t.lastPlay.seq !== this._lastPlaySeq) {
+      const wasInitial = this._lastPlaySeq === -1;
+      this._lastPlaySeq = t.lastPlay.seq;
+      if (!wasInitial) {
+        playCard();
+        const node = this.seatNodes?.[t.lastPlay.seatIndex];
+        this._pulseSeatAnim(node, "Throw");
+        this._spawnCardThrow(t.lastPlay.seatIndex, t.lastPlay.count);
+      }
+    }
+
+    if (t.status === "roulette" && t.lastAction && t.lastAction.seq !== this._lastActionSeq) {
+      if (this._lastActionSeq !== -1 && t.rouletteReveal) {
+        this._revealAnimProgress = 0;
+        playLiarCall();
+        playRevolverSpin();
+      }
+    }
+
+    if (t.lastShot && t.lastShot.seq !== this._lastShotSeq) {
+      const wasInit = this._lastShotSeq === -1;
+      this._lastShotSeq = t.lastShot.seq;
+      if (!wasInit) {
+        this._shotAnim = {
+          active: true,
+          elapsed: 0,
+          hit: t.lastShot.hit,
+          targetSeat: t.lastShot.seatIndex,
+        };
+        if (t.lastShot.hit) {
+          this._shakeTimer = 0.45;
+          this._spawnMuzzleSparks();
+          playRevolverShot();
+          this._showShotFlash(`💥 PAT! ${t.lastShot.seatName} MASAYA YIĞILDI!`, "danger");
+          if (t.lastShot.seatIndex === this.mySeatIndex()) {
+              // Pull camera smoothly to wide bar panorama shortly after impact so player watches themselves slump onto the table!
+              clearTimeout(this._selfDeathCamTimer);
+              this._selfDeathCamTimer = setTimeout(() => {
+                if (!this.disposed) this.setCameraMode("genel", false);
+            }, 360);
           }
+        } else {
+          playRevolverClick();
+          this._showShotFlash(`💨 TIK! ${t.lastShot.seatName} KURTULDU (${t.lastShot.oddsLabel})`, "safe");
+          const node = this.seatNodes?.[t.lastShot.seatIndex];
+          this._pulseSeatAnim(node, "Cheer");
+        }
+      }
+    }
 
-          _updateScene(dt, tSec) {
-            // Gentle hanging lamp sway + dust motes float + candle/torch flicker
-            if (this.lampGroup) {
-              this.lampGroup.rotation.z = Math.sin(tSec * 0.7) * 0.024;
-              this.lampGroup.rotation.x = Math.cos(tSec * 0.52) * 0.016;
-            }
-            if (this.smokePoints) {
-              this.smokePoints.rotation.y = tSec * 0.035;
-            }
-            for (const fl of this.flickerLights || []) {
-              fl.light.intensity = fl.base + Math.sin(tSec * 7.5 + fl.phase) * 0.38 + Math.sin(tSec * 14.3 + fl.phase) * 0.22;
-            }
+    if (t.status === "playing" && t.lastAction?.seq !== this._lastActionSeq) {
+      const myIdx = this.mySeatIndex();
+      if (this._lastActionSeq !== -1 && myIdx >= 0 && t.turnSeatIndex === myIdx) {
+        playTurnChime();
+      }
+    }
+    if (t.status === "finished" && t.lastAction?.seq !== this._lastActionSeq) {
+      const myIdx = this.mySeatIndex();
+      if (this._lastActionSeq !== -1 && myIdx >= 0 && t.winnerSeatIndex === myIdx) {
+        playWin();
+      }
+    }
+    if (t.lastAction) this._lastActionSeq = t.lastAction.seq;
+  }
 
-            // Challenge card flip ease-out
-            if (this._revealAnimProgress < 1 && this.pileGroup) {
-              this._revealAnimProgress = Math.min(1, this._revealAnimProgress + dt * 2.6);
-              const easeFlip = 1 - Math.pow(1 - this._revealAnimProgress, 3);
-              for (const child of this.pileGroup.children) {
-                child.rotation.x = Math.PI * (1 - easeFlip);
-                child.position.y = 0.035 + Math.sin(easeFlip * Math.PI) * 0.24;
-              }
-            }
+  _showShotFlash(text, tone) {
+    this.shotToastEl.textContent = text;
+    this.shotToastEl.className = `blof-shot-overlay ${tone}`;
+    this.shotToastEl.hidden = false;
+    clearTimeout(this._shotHideTimer);
+    this._shotHideTimer = setTimeout(() => {
+      if (!this.disposed) this.shotToastEl.hidden = true;
+    }, 2400);
+  }
 
-            // Parabolic flying card arcs onto the pile
-            if (this.flyingCards?.length) {
-              const keep = [];
-              for (const fc of this.flyingCards) {
-                if (fc.delay > 0) {
-                  fc.delay -= dt;
-                  keep.push(fc);
-                  continue;
-                }
-                fc.t = Math.min(fc.dur, fc.t + dt);
-                const u = fc.t / fc.dur;
-                const ease = 1 - Math.pow(1 - u, 3);
-                fc.mesh.position.lerpVectors(fc.from, fc.to, ease);
-                fc.mesh.position.y += Math.sin(u * Math.PI) * 0.44;
-                fc.mesh.rotation.y = fc.spinY * ease;
-                fc.mesh.rotation.z = Math.sin(u * Math.PI) * 0.42;
-                if (u < 1) keep.push(fc);
-                else this.flyingGroup.remove(fc.mesh);
-              }
-              this.flyingCards = keep;
-            }
+  _renderHUD() {
+    const t = this.table;
+    this.modeBadge.textContent =
+    t.mode === "devil" ? "😈 ŞEYTAN 21" : "🔫 KLASİK 6×";
+    this.modeBadge.title =
+      t.mode === "devil"
+        ? "Şeytan Modu (21 Kart · 6× As/Papaz/Kız + 2 Joker + 1 Şeytan)"
+        : "Orijinal Liar's Deck (20 Kart · 6× As/Papaz/Kız + 2 Joker)";
+    this.roundBadge.textContent =
+      t.status === "waiting" || t.status === "countdown"
+        ? `LOBİ (${t.seats.filter(Boolean).length}/4)`
+        : `TUR ${t.round || 1}`;
+    this.pileBadge.textContent = `Yığın: ${t.pileCount || 0}`;
 
-            // Muzzle flash gunpowder sparks with gravity & table bounce
-            if (this.sparkParticles?.length) {
-              const keep = [];
-              for (const sp of this.sparkParticles) {
-                sp.life += dt;
-                sp.vy -= 12.5 * dt;
-                sp.mesh.position.x += sp.vx * dt;
-                sp.mesh.position.y += sp.vy * dt;
-                sp.mesh.position.z += sp.vz * dt;
-                if (sp.mesh.position.y <= TABLE_TOP_Y + 0.03 && sp.vy < 0 && Math.hypot(sp.mesh.position.x, sp.mesh.position.z) < TABLE_RADIUS) {
-                  sp.mesh.position.y = TABLE_TOP_Y + 0.03;
-                  sp.vy = Math.abs(sp.vy) * 0.44;
-                  sp.vx *= 0.72;
-                  sp.vz *= 0.72;
-                }
-                sp.mesh.material.opacity = Math.max(0, 1 - sp.life / sp.maxLife);
-                if (sp.life < sp.maxLife) keep.push(sp);
-                else {
-                  this.flyingGroup.remove(sp.mesh);
-                  sp.mesh.material.dispose();
-                }
-              }
-              this.sparkParticles = keep;
-            }
+    const meta = RANK_INFO[t.tableType] || RANK_INFO.A;
+    this.tableTypeBanner.innerHTML =
+      t.status === "waiting" || t.status === "countdown"
+        ? `<span>🎭 Karakter Seç &amp; Hazır Ol</span>`
+                    : `<span class="blof-tt-lbl">MASA:</span> <strong style="color:${meta.accent}">${meta.emblem || ""} ${meta.title} (${meta.symbol})</strong>`;
 
-            // Character skeletal animation mixers + active-turn lean + forward collapse onto table on death!
-            const turnIdx = this.table?.status === "playing" ? this.table.turnSeatIndex : -1;
-            for (let i = 0; i < (this.seatNodes || []).length; i += 1) {
-              const node = this.seatNodes[i];
-              node.mixer?.update(dt);
-                const seat = this.table?.seats?.[i];
-                if (seat && !seat.alive) {
-                  if (node.deathAnimating || node.deathProgress < 1) {
-                    node.deathProgress = Math.min(1, (node.deathProgress || 0) + dt * 1.9);
-                    const u = node.deathProgress;
-                    // Gravity acceleration forward followed by crisp bounce off the bar table felt!
-                    let fall;
-                    if (u < 0.62) {
-                      const p = u / 0.62;
-                      fall = p * p;
-                    } else {
-                      const b = (u - 0.62) / 0.38;
-                      fall = 1 - Math.sin(b * Math.PI) * 0.14 * (1 - b);
-                    }
-                    const rollDir = i % 2 === 0 ? 0.14 : -0.14;
-                    node.collapsePivot.rotation.set(1.06 * fall, 0, rollDir * fall);
-                    if (u >= 1) {
-                      node.deathAnimating = false;
-                      node.collapsePivot.rotation.set(1.06, 0, rollDir);
-                      this._playSeatAnim(node, "Sit_Chair_Pose", true, { forceReset: true });
-                    }
-                  }
-                  node.charAnchor.rotation.x = 0;
-                } else {
-                  const targetLean = i === turnIdx && seat?.alive ? 0.08 : 0;
-                  if (node.charAnchor) {
-                    node.charAnchor.rotation.x += (targetLean - node.charAnchor.rotation.x) * Math.min(1, dt * 6);
-                  }
-                }
-              }
+    // Turn / Reveal top banner + live countdown
+    let bannerHtml = "";
+    const deadline =
+      t.status === "playing"
+        ? t.turnDeadlineAt
+        : t.status === "roulette"
+          ? t.rouletteDeadlineAt
+          : null;
+    const totalMs = t.status === "roulette" ? 20000 : 30000;
+    const remSec = deadline ? Math.max(0, Math.ceil((deadline - Date.now()) / 1000)) : null;
+    const timerBadge =
+      remSec !== null
+        ? `<span class="blof-timer-pill ${remSec <= 7 ? "hot" : ""}" data-blof-sec>${remSec}s</span>`
+        : "";
 
-              // Revolver glide & firing sequence animation (quaternion slerp -> zero gimbal wrap!)
-              if (this.revolver && this.table) {
-                const t = this.table;
-                const rev = this.revolver;
-                if (!this._revRestPos) {
-                  this._revRestPos = new THREE.Vector3(0.45, TABLE_TOP_Y + 0.09, 0.46);
-                  this._revRestQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0.55, Math.PI * 0.48));
-                  this._revTmpObj = new THREE.Object3D();
-                }
-                if (this._shotAnim.active) {
-                  this._shotAnim.elapsed += dt;
-                  const p = this._shotAnim.elapsed;
-                  rev.hammerPivot.rotation.x = p < 0.09 ? -0.45 * (1 - p / 0.09) : 0;
-                  rev.triggerPivot.rotation.x = p < 0.15 ? 0.32 : 0;
-                  if (this._shotAnim.hit) {
-                    // Explosive BANG recoil inside recoilPivot!
-                    const kick = p < 0.16 ? Math.sin((p / 0.16) * Math.PI) * 0.48 : Math.max(0, 0.35 - p) * 0.6;
-                    rev.recoilPivot.rotation.x = -kick;
-                    const flashFade = Math.max(0, 1 - p / 0.18);
-                    rev.flashMat.opacity = flashFade;
-                    rev.flashLight.intensity = flashFade * 28;
-                    const smokeFade = Math.max(0, 1 - Math.max(0, p - 0.04) / 0.75);
-                    rev.smokeMat.opacity = smokeFade * 0.55;
-                    const sScale = 0.6 + p * 3.8;
-                    rev.smokeMesh.scale.setScalar(sScale);
-                    rev.smokeMesh.position.y = p * 0.55;
-                  } else {
-                    // Dry click jitter
-                    rev.recoilPivot.rotation.x = p < 0.12 ? -0.07 * Math.sin((p / 0.12) * Math.PI) : 0;
-                    rev.flashMat.opacity = 0;
-                    rev.flashLight.intensity = 0;
-                    rev.smokeMat.opacity = 0;
-                  }
-                    if (p >= 1.0) {
-                      this._shotAnim.active = false;
-                      rev.recoilPivot.rotation.x = 0;
-                      rev.flashMat.opacity = 0;
-                      rev.flashLight.intensity = 0;
-                      rev.smokeMat.opacity = 0;
-                      rev.smokeMesh.position.y = 0;
-                    }
-                  } else if (t.status === "roulette" && t.rouletteTargetSeat >= 0) {
-                    const sp = SEAT_POSITIONS[t.rouletteTargetSeat];
-                    const aimPos = new THREE.Vector3(sp.x * 0.52, TABLE_TOP_Y + 0.58, sp.z * 0.52);
-                    rev.root.position.lerp(aimPos, 1 - Math.exp(-8 * dt));
-                    this._revTmpObj.position.copy(rev.root.position);
-                    this._revTmpObj.lookAt(sp.x, TABLE_TOP_Y + 1.05, sp.z);
-                    rev.root.quaternion.slerp(this._revTmpObj.quaternion, 1 - Math.exp(-10 * dt));
-                    rev.recoilPivot.rotation.x = 0;
-                    rev.cylinderPivot.rotation.z += dt * 15;
-                    rev.hammerPivot.rotation.x = -0.38;
-                  } else {
-                    rev.root.position.lerp(this._revRestPos, 1 - Math.exp(-6 * dt));
-                    rev.root.quaternion.slerp(this._revRestQuat, 1 - Math.exp(-6 * dt));
-                    rev.recoilPivot.rotation.x *= 1 - Math.min(1, dt * 10);
-                    rev.hammerPivot.rotation.x = 0;
-                    rev.triggerPivot.rotation.x = 0;
-                  }
-                }
+    if (t.status === "playing") {
+      const activeSeat = t.seats[t.turnSeatIndex];
+      const mine = activeSeat && activeSeat.id === this.userId;
+      bannerHtml = `<span class="blof-turn-tag ${mine ? "mine" : ""}">${mine ? "🔥 SIRA SENDE" : `⏳ ${esc(activeSeat?.name || "")}`
+        }</span>${timerBadge}<span class="blof-last-msg">${esc(t.lastAction?.text || "")}</span>`;
+    } else if (t.status === "roulette") {
+      const target = t.seats[t.rouletteTargetSeat];
+      const mine = target && target.id === this.userId;
+      bannerHtml = `<span class="blof-turn-tag danger">🔫 RULET · ${mine ? "SENİN SIRAN!" : esc(target?.name || "")
+        }</span>${timerBadge}<span class="blof-last-msg">${esc(t.lastAction?.text || "")}</span>`;
+    } else {
+      bannerHtml = `<span class="blof-last-msg">${esc(t.lastAction?.text || "Lobi hazırlanıyor...")}</span>`;
+    }
+    this.turnBanner.innerHTML = bannerHtml;
+    this._syncTimerBar(deadline, totalMs);
 
-                // Smooth camera glide + subtle shot recoil shake
-                if (this._camGlide) {
-                  const k = 1 - Math.exp(-6.5 * dt);
-                  this.camera.position.lerp(this._camPos, k);
-                  this.controls.target.lerp(this._camLook, k);
-                  if (this.camera.position.distanceToSquared(this._camPos) < 0.001) {
-                    this._camGlide = false;
-                  }
-                }
-                this.controls?.update();
+    // Reveal Strip when cards flip during Yalancı! challenge
+    if ((t.status === "roulette" || t.status === "shot_result") && t.rouletteReveal?.cards?.length) {
+      const rev = t.rouletteReveal;
+      const verdictText =
+        rev.outcome === "devil"
+          ? "😈 ŞEYTAN KARTI AÇILDI! DİĞERLERİ TETİĞİ ÇEKİYOR!"
+          : rev.outcome === "bluff"
+            ? "🚨 YALAN YAKALANDI!"
+            : "✅ DOĞRU SÖYLEDİ — SUÇLAYAN YANDI!";
+      const cardsHtml = rev.cards
+        .map((c) => {
+          const rm = RANK_INFO[c.rank] || RANK_INFO.A;
+          const isTruth = c.rank === rev.tableType || c.rank === "JOKER";
+          return `<span class="blof-rev-chip ${c.rank === "DEVIL" ? "devil" : isTruth ? "truth" : "lie"}">${rm.badge} ${rm.title}</span>`;
+        })
+        .join("");
+      this.revealStripEl.innerHTML = `<div class="blof-rev-title">${verdictText}</div><div class="blof-rev-cards">${cardsHtml}</div>`;
+      this.revealStripEl.hidden = false;
+    } else {
+      this.revealStripEl.hidden = true;
+    }
+  }
 
-                if (this._shakeTimer > 0) {
-                  this._shakeTimer = Math.max(0, this._shakeTimer - dt);
-                  const amp = this._shakeTimer * 0.22;
-                  this.camera.position.x += (Math.random() - 0.5) * amp;
-                  this.camera.position.y += (Math.random() - 0.5) * amp;
-                }
-              }
+  _syncTimerBar(deadlineAt, totalMs = 30000) {
+    clearInterval(this._timerInterval);
+    this._timerInterval = null;
+    if (!deadlineAt || !this.timerBarEl || !this.timerFillEl) {
+      if (this.timerBarEl) this.timerBarEl.hidden = true;
+      return;
+    }
+    this.timerBarEl.hidden = false;
+    const updateFill = () => {
+      if (this.disposed) return;
+      const rem = Math.max(0, deadlineAt - Date.now());
+      const pct = Math.max(0, Math.min(100, (rem / totalMs) * 100));
+      const sec = Math.max(0, Math.ceil(rem / 1000));
+      this.timerFillEl.style.width = `${pct.toFixed(1)}%`;
+      this.timerFillEl.classList.toggle("hot", sec <= 7);
+      const secEl = this.turnBanner?.querySelector("[data-blof-sec]");
+      if (secEl) {
+        secEl.textContent = `${sec}s`;
+        secEl.classList.toggle("hot", sec <= 7);
+      }
+      if (rem <= 0) {
+        clearInterval(this._timerInterval);
+        this._timerInterval = null;
+      }
+    };
+    updateFill();
+    this._timerInterval = setInterval(updateFill, 200);
+  }
 
-              setCameraMode(mode, immediate = false) {
-                this.cameraMode = mode;
-                if (!this.camera || !this.controls) return;
-                const narrow = (this.camera.aspect || 1.6) < 1.25;
-                const myIdx = Math.max(0, this.mySeatIndex());
-                const baseAngle = [0, -Math.PI * 0.5, Math.PI, Math.PI * 0.5][myIdx] || 0;
-                const offAngle = baseAngle + 0.36; // Classic Liar's Bar over-the-shoulder perspective!
-                const dist = mode === "yakin" ? (narrow ? 3.85 : 3.2) : mode === "genel" ? (narrow ? 6.6 : 5.8) : narrow ? 5.6 : 4.75;
-                const height = mode === "yakin" ? (narrow ? 2.85 : 2.35) : mode === "genel" ? (narrow ? 4.4 : 3.85) : narrow ? 3.7 : 3.2;
+  _renderLobbyAndFinish() {
+    const t = this.table;
+    if (t.status === "waiting" || t.status === "countdown") {
+      this.lobbyOverlay.hidden = false;
+      this.finishOverlay.hidden = true;
 
-                this._camPos.set(Math.sin(offAngle) * dist, height, Math.cos(offAngle) * dist);
-                this._camLook.set(0, 1.0, 0);
-                if (immediate) {
-                  this._camGlide = false;
-                  this.camera.position.copy(this._camPos);
-                  this.controls.target.copy(this._camLook);
-                  this.controls.update();
-                } else {
-                  this._camGlide = true;
-                }
-              }
+      const mySeat = this.mySeatIndex() >= 0 ? t.seats[this.mySeatIndex()] : null;
+      const isHost = t.hostId === this.userId;
+      const seatedCount = t.seats.filter(Boolean).length;
+      const readyCount = t.seats.filter((s) => s && s.ready).length;
 
-              _resize() {
-                if (!this.renderer || !this.camera || this.webglFailed) return;
-                const w = Math.max(240, this.stageWrap.clientWidth);
-                const h = Math.max(200, this.stageWrap.clientHeight);
-                this.camera.aspect = w / h;
-                this.camera.fov = w / h < 1.2 ? 50 : 44;
-                this.camera.updateProjectionMatrix();
-                this.renderer.setSize(w, h, false);
-                this.setCameraMode(this.cameraMode, true);
-              }
+      let countdownHtml = "";
+      if (t.status === "countdown" && t.countdownEndsAt) {
+        const remMs = Math.max(0, t.countdownEndsAt - Date.now());
+        const sec = Math.max(1, Math.ceil(remMs / 1000));
+        if (sec !== this._lastCountdownTick) {
+          this._lastCountdownTick = sec;
+          playCountdownTick(sec <= 1);
+        }
+        countdownHtml = `<div class="blof-countdown-box"><div class="blof-countdown-num">${sec}</div><div>HERKES HAZIR — OYUN BAŞLIYOR!</div></div>`;
+        clearTimeout(this._countdownRaf);
+        this._countdownRaf = setTimeout(() => {
+          if (!this.disposed && this.table?.status === "countdown") {
+            this._renderLobbyAndFinish();
+          }
+        }, 180);
+      } else {
+        this._lastCountdownTick = -1;
+      }
 
-              _syncVisibility() {
-                const use2D = this.force2D || this.webglFailed;
-                this.canvas3d.hidden = use2D;
-                this.canvas2d.hidden = !use2D;
-              }
-
-              mySeatIndex() {
-                if (!this.table || !this.userId) return -1;
-                return (this.table.seats || []).findIndex((s) => s && s.id === this.userId);
-              }
-
-              update(table, userId, { spectator = false } = {}) {
-                this.table = table;
-                this.userId = userId;
-                this.spectator = spectator;
-                if (!table) return;
-
-                this._handleEventsAndSounds(table);
-                this._renderHUD();
-                this._renderLobbyAndFinish();
-                this._renderSeats();
-                this._renderHandAndActions();
-                this._syncSceneEntities();
-                if (this.force2D || this.webglFailed) this._draw2D();
-              }
-
-              _handleEventsAndSounds(t) {
-                if (this._lastRoundSeen !== undefined && this._lastRoundSeen !== t.round) {
-                  // New round or rematch -> clear any lingering flying cards cleanly
-                  for (const fc of this.flyingCards || []) this.flyingGroup?.remove(fc.mesh);
-                  this.flyingCards = [];
-                  this._revealAnimProgress = 1;
-                }
-                this._lastRoundSeen = t.round;
-
-                if (t.lastPlay && t.lastPlay.seq !== this._lastPlaySeq) {
-                  const wasInitial = this._lastPlaySeq === -1;
-                  this._lastPlaySeq = t.lastPlay.seq;
-                  if (!wasInitial) {
-                    playCard();
-                    const node = this.seatNodes?.[t.lastPlay.seatIndex];
-                    this._pulseSeatAnim(node, "Throw");
-                    this._spawnCardThrow(t.lastPlay.seatIndex, t.lastPlay.count);
-                  }
-                }
-
-                if (t.status === "roulette" && t.lastAction && t.lastAction.seq !== this._lastActionSeq) {
-                  if (this._lastActionSeq !== -1 && t.rouletteReveal) {
-                    this._revealAnimProgress = 0;
-                    playLiarCall();
-                    playRevolverSpin();
-                  }
-                }
-
-                if (t.lastShot && t.lastShot.seq !== this._lastShotSeq) {
-                  const wasInit = this._lastShotSeq === -1;
-                  this._lastShotSeq = t.lastShot.seq;
-                  if (!wasInit) {
-                    this._shotAnim = {
-                      active: true,
-                      elapsed: 0,
-                      hit: t.lastShot.hit,
-                      targetSeat: t.lastShot.seatIndex,
-                    };
-                    if (t.lastShot.hit) {
-                      this._shakeTimer = 0.45;
-                      this._spawnMuzzleSparks();
-                      playRevolverShot();
-                      this._showShotFlash(`💥 PAT! ${t.lastShot.seatName} MASAYA YIĞILDI!`, "danger");
-                      if (t.lastShot.seatIndex === this.mySeatIndex()) {
-                        // Pull camera to wide angle shortly after impact so player watches themselves slump onto the table!
-                        setTimeout(() => {
-                          if (!this.disposed) this.setCameraMode("genel", false);
-                        }, 420);
-                      }
-                    } else {
-                      playRevolverClick();
-                      this._showShotFlash(`💨 TIK! ${t.lastShot.seatName} KURTULDU (${t.lastShot.oddsLabel})`, "safe");
-                      const node = this.seatNodes?.[t.lastShot.seatIndex];
-                      this._pulseSeatAnim(node, "Cheer");
-                    }
-                  }
-                }
-
-                if (t.status === "playing" && t.lastAction?.seq !== this._lastActionSeq) {
-                  const myIdx = this.mySeatIndex();
-                  if (this._lastActionSeq !== -1 && myIdx >= 0 && t.turnSeatIndex === myIdx) {
-                    playTurnChime();
-                  }
-                }
-                if (t.status === "finished" && t.lastAction?.seq !== this._lastActionSeq) {
-                  const myIdx = this.mySeatIndex();
-                  if (this._lastActionSeq !== -1 && myIdx >= 0 && t.winnerSeatIndex === myIdx) {
-                    playWin();
-                  }
-                }
-                if (t.lastAction) this._lastActionSeq = t.lastAction.seq;
-              }
-
-              _showShotFlash(text, tone) {
-                this.shotToastEl.textContent = text;
-                this.shotToastEl.className = `blof-shot-overlay ${tone}`;
-                this.shotToastEl.hidden = false;
-                clearTimeout(this._shotHideTimer);
-                this._shotHideTimer = setTimeout(() => {
-                  if (!this.disposed) this.shotToastEl.hidden = true;
-                }, 2400);
-              }
-
-              _renderHUD() {
-                const t = this.table;
-                this.modeBadge.textContent =
-                  t.mode === "devil" ? "😈 ŞEYTAN MODU (21 KART)" : "🔫 KLASİK (20 KART)";
-                this.roundBadge.textContent =
-                  t.status === "waiting" || t.status === "countdown"
-                    ? `LOBİ (${t.seats.filter(Boolean).length}/4)`
-                    : `TUR ${t.round || 1}`;
-                this.pileBadge.textContent = `Yığın: ${t.pileCount || 0} Kart`;
-
-                const meta = RANK_INFO[t.tableType] || RANK_INFO.A;
-                this.tableTypeBanner.innerHTML =
-                  t.status === "waiting" || t.status === "countdown"
-                    ? `<span>🎭 Karakter Seç &amp; Hazır Ol</span>`
-                    : `<span class="blof-tt-lbl">MASA KARTI:</span> <strong style="color:${meta.accent}">${meta.title} (${meta.symbol})</strong>`;
-
-                // Turn / Reveal top banner
-                let bannerHtml = "";
-                if (t.status === "playing") {
-                  const activeSeat = t.seats[t.turnSeatIndex];
-                  const mine = activeSeat && activeSeat.id === this.userId;
-                  bannerHtml = `<span class="blof-turn-tag ${mine ? "mine" : ""}">${mine ? "🔥 SIRA SENDE" : `⏳ Sıra: ${esc(activeSeat?.name || "")}`
-                    }</span><span class="blof-last-msg">${esc(t.lastAction?.text || "")}</span>`;
-                } else if (t.status === "roulette") {
-                  const target = t.seats[t.rouletteTargetSeat];
-                  const mine = target && target.id === this.userId;
-                  bannerHtml = `<span class="blof-turn-tag danger">🔫 RUS RULETİ · ${mine ? "SENİN SIRAN!" : esc(target?.name || "")
-                    }</span><span class="blof-last-msg">${esc(t.lastAction?.text || "")}</span>`;
-                } else {
-                  bannerHtml = `<span class="blof-last-msg">${esc(t.lastAction?.text || "Lobi hazırlanıyor...")}</span>`;
-                }
-                this.turnBanner.innerHTML = bannerHtml;
-
-                // Reveal Strip when cards flip during Yalancı! challenge
-                if ((t.status === "roulette" || t.status === "shot_result") && t.rouletteReveal?.cards?.length) {
-                  const rev = t.rouletteReveal;
-                  const verdictText =
-                    rev.outcome === "devil"
-                      ? "😈 ŞEYTAN KARTI AÇILDI! DİĞERLERİ TETİĞİ ÇEKİYOR!"
-                      : rev.outcome === "bluff"
-                        ? "🚨 YALAN YAKALANDI!"
-                        : "✅ DOĞRU SÖYLEDİ — SUÇLAYAN YANDI!";
-                  const cardsHtml = rev.cards
-                    .map((c) => {
-                      const rm = RANK_INFO[c.rank] || RANK_INFO.A;
-                      const isTruth = c.rank === rev.tableType || c.rank === "JOKER";
-                      return `<span class="blof-rev-chip ${c.rank === "DEVIL" ? "devil" : isTruth ? "truth" : "lie"}">${rm.badge} ${rm.title}</span>`;
-                    })
-                    .join("");
-                  this.revealStripEl.innerHTML = `<div class="blof-rev-title">${verdictText}</div><div class="blof-rev-cards">${cardsHtml}</div>`;
-                  this.revealStripEl.hidden = false;
-                } else {
-                  this.revealStripEl.hidden = true;
-                }
-              }
-
-              _renderLobbyAndFinish() {
-                const t = this.table;
-                if (t.status === "waiting" || t.status === "countdown") {
-                  this.lobbyOverlay.hidden = false;
-                  this.finishOverlay.hidden = true;
-
-                  const mySeat = this.mySeatIndex() >= 0 ? t.seats[this.mySeatIndex()] : null;
-                  const isHost = t.hostId === this.userId;
-                  const seatedCount = t.seats.filter(Boolean).length;
-                  const readyCount = t.seats.filter((s) => s && s.ready).length;
-
-                  let countdownHtml = "";
-                  if (t.status === "countdown" && t.countdownEndsAt) {
-                    const remMs = Math.max(0, t.countdownEndsAt - Date.now());
-                    const sec = Math.max(1, Math.ceil(remMs / 1000));
-                    if (sec !== this._lastCountdownTick) {
-                      this._lastCountdownTick = sec;
-                      playCountdownTick(sec <= 1);
-                    }
-                    countdownHtml = `<div class="blof-countdown-box"><div class="blof-countdown-num">${sec}</div><div>HERKES HAZIR — OYUN BAŞLIYOR!</div></div>`;
-                    clearTimeout(this._countdownRaf);
-                    this._countdownRaf = setTimeout(() => {
-                      if (!this.disposed && this.table?.status === "countdown") {
-                        this._renderLobbyAndFinish();
-                      }
-                    }, 180);
-                  } else {
-                    this._lastCountdownTick = -1;
-                  }
-
-                  const seatsHtml = [0, 1, 2, 3]
-                    .map((i) => {
-                      const s = t.seats[i];
-                      if (!s) {
-                        return `<div class="blof-lobby-seat empty"><span>Koltuk ${i + 1}</span><small>Boş Koltuk</small></div>`;
-                      }
-                      const isMe = s.id === this.userId;
-                      return `<div class="blof-lobby-seat filled ${isMe ? "me" : ""}" style="border-color:${s.color}">
+      const seatsHtml = [0, 1, 2, 3]
+        .map((i) => {
+          const s = t.seats[i];
+          if (!s) {
+            return `<div class="blof-lobby-seat empty"><span>Koltuk ${i + 1}</span><small>Boş Koltuk</small></div>`;
+          }
+          const isMe = s.id === this.userId;
+          return `<div class="blof-lobby-seat filled ${isMe ? "me" : ""}" style="border-color:${s.color}">
             <div class="blof-lseat-top">
               <strong>${esc(s.name)}</strong>
               <span class="blof-ready-dot ${s.ready ? "ok" : ""}">${s.ready ? "✅ Hazır" : "⏳ Seçiyor"}</span>
             </div>
             <small style="color:${s.color}">${esc(s.characterName)} · ${esc(s.characterTitle)}</small>
           </div>`;
-                    })
-                    .join("");
+        })
+        .join("");
 
-                  const charsHtml = (t.characters || [])
-                    .map((ch) => {
-                      const owner = t.seats.find((s) => s && s.characterId === ch.id);
-                      const pickedByMe = mySeat && mySeat.characterId === ch.id;
-                      const lockedByOther = owner && (!mySeat || owner.id !== mySeat.id);
-                      return `<button type="button" class="blof-char-card ${pickedByMe ? "active" : ""} ${lockedByOther ? "taken" : ""}" data-char-id="${esc(ch.id)}" ${lockedByOther || !mySeat ? "disabled" : ""} style="--char-accent:${ch.color}">
-            <div class="blof-char-name">${esc(ch.name)}</div>
+      const charsHtml = (t.characters || [])
+        .map((ch) => {
+          const owner = t.seats.find((s) => s && s.characterId === ch.id);
+          const pickedByMe = mySeat && mySeat.characterId === ch.id;
+          const lockedByOther = owner && (!mySeat || owner.id !== mySeat.id);
+          const emblem = CHAR_EMBLEMS[ch.id] || "🎭";
+          return `<button type="button" class="blof-char-card ${pickedByMe ? "active" : ""} ${lockedByOther ? "taken" : ""}" data-char-id="${esc(ch.id)}" ${lockedByOther || !mySeat ? "disabled" : ""} style="--char-accent:${ch.color}">
+            <div class="blof-char-head"><span class="blof-char-emblem" aria-hidden="true">${emblem}</span><span class="blof-char-name">${esc(ch.name)}</span></div>
             <div class="blof-char-sub">${esc(ch.title)}</div>
             <div class="blof-char-tag">${esc(ch.tagline)}</div>
             <div class="blof-char-status">${pickedByMe
-                          ? "✓ SEÇİLDİ"
-                          : lockedByOther
-                            ? `🔒 ${esc(owner.name)}`
-                            : "Seç"
-                        }</div>
+              ? "✓ SEÇİLDİ"
+              : lockedByOther
+                ? `🔒 ${esc(owner.name)}`
+                : "Seç"
+            }</div>
           </button>`;
-                    })
-                    .join("");
+        })
+        .join("");
 
-                  const hasBots = t.seats.some((s) => s && s.isBot);
-                  const canFill = seatedCount < 4;
+      const hasBots = t.seats.some((s) => s && s.isBot);
+      const canFill = seatedCount < 4;
 
-                  this.lobbyCard.innerHTML = `
+      this.lobbyCard.innerHTML = `
         <div class="blof-lobby-head">
           <h2>🥃 BLÖF BARI · KARAKTER LOBİSİ</h2>
           <span class="blof-pill">Hazır: ${readyCount} / ${seatedCount} (Hedef 4 Kişi)</span>
@@ -1635,60 +1878,60 @@ export class BlofArena {
         <div class="blof-char-grid">${charsHtml}</div>
         <div class="blof-lobby-actions">
           ${mySeat
-                      ? `<button type="button" class="button ${mySeat.ready ? "secondary" : "primary"} blof-ready-btn" data-act="ready">
+          ? `<button type="button" class="button ${mySeat.ready ? "secondary" : "primary"} blof-ready-btn" data-act="ready">
                   ${mySeat.ready ? "✅ Hazırsın (İptal Et)" : "✋ HAZIR VER (Oyun Başlasın)"}
                  </button>`
-                      : `<span class="blof-pill">İzleyici Modu</span>`
-                    }
+          : `<span class="blof-pill">İzleyici Modu</span>`
+        }
           ${isHost && t.status === "waiting"
-                      ? `<button type="button" class="button secondary" data-act="mode">${t.mode === "devil" ? "Mod: 😈 Şeytan (Değiştir)" : "Mod: 🃏 Klasik (Değiştir)"
-                      }</button>`
-                      : ""
-                    }
+          ? `<button type="button" class="button secondary" data-act="mode">${t.mode === "devil" ? "Mod: 😈 Şeytan (Değiştir)" : "Mod: 🃏 Klasik (Değiştir)"
+          }</button>`
+          : ""
+        }
           ${mySeat && t.status === "waiting" && canFill
-                      ? `<button type="button" class="button secondary" data-act="fillBots">🤖 Boşları Botla 4'le</button>`
-                      : ""
-                    }
+          ? `<button type="button" class="button secondary" data-act="fillBots">🤖 Boşları Botla 4'le</button>`
+          : ""
+        }
           ${isHost && t.status === "waiting" && hasBots
-                      ? `<button type="button" class="button secondary" data-act="removeBots">Botları Çıkar</button>`
-                      : ""
-                    }
+          ? `<button type="button" class="button secondary" data-act="removeBots">Botları Çıkar</button>`
+          : ""
+        }
         </div>
         <p class="blof-lobby-hint">Masadaki tüm oyuncular <strong>Hazır</strong> dediğinde oyun otomatik olarak <strong>3 saniye içinde</strong> başlar.</p>
       `;
 
-                  this.lobbyCard.querySelectorAll("[data-char-id]").forEach((btn) => {
-                    btn.addEventListener("click", () => {
-                      this.cb.onSelectCharacter?.(btn.dataset.charId);
-                    });
-                  });
-                  this.lobbyCard.querySelector("[data-act='ready']")?.addEventListener("click", () => {
-                    this.cb.onReady?.(!mySeat?.ready);
-                  });
-                  this.lobbyCard.querySelector("[data-act='fillBots']")?.addEventListener("click", () => {
-                    this.cb.onConfig?.("fillBots");
-                  });
-                  this.lobbyCard.querySelector("[data-act='removeBots']")?.addEventListener("click", () => {
-                    this.cb.onConfig?.("removeBots");
-                  });
-                  this.lobbyCard.querySelector("[data-act='mode']")?.addEventListener("click", () => {
-                    this.cb.onConfig?.("setMode", t.mode === "devil" ? "classic" : "devil");
-                  });
-                } else if (t.status === "finished") {
-                  this.lobbyOverlay.hidden = true;
-                  this.finishOverlay.hidden = false;
-                  const winSeat = t.seats[t.winnerSeatIndex];
-                  const rowsHtml = t.seats
-                    .filter(Boolean)
-                    .map(
-                      (s) => `<div class="blof-fin-row ${s.alive ? "winner" : "dead"}">
+      this.lobbyCard.querySelectorAll("[data-char-id]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          this.cb.onSelectCharacter?.(btn.dataset.charId);
+        });
+      });
+      this.lobbyCard.querySelector("[data-act='ready']")?.addEventListener("click", () => {
+        this.cb.onReady?.(!mySeat?.ready);
+      });
+      this.lobbyCard.querySelector("[data-act='fillBots']")?.addEventListener("click", () => {
+        this.cb.onConfig?.("fillBots");
+      });
+      this.lobbyCard.querySelector("[data-act='removeBots']")?.addEventListener("click", () => {
+        this.cb.onConfig?.("removeBots");
+      });
+      this.lobbyCard.querySelector("[data-act='mode']")?.addEventListener("click", () => {
+        this.cb.onConfig?.("setMode", t.mode === "devil" ? "classic" : "devil");
+      });
+    } else if (t.status === "finished") {
+      this.lobbyOverlay.hidden = true;
+      this.finishOverlay.hidden = false;
+      const winSeat = t.seats[t.winnerSeatIndex];
+      const rowsHtml = t.seats
+        .filter(Boolean)
+        .map(
+          (s) => `<div class="blof-fin-row ${s.alive ? "winner" : "dead"}">
             <span>${s.alive ? "🏆" : "💀"} <strong>${esc(s.name)}</strong> (${esc(s.characterName)})</span>
             <span>Kovan: ${s.triggerPulls}/6 · Blöf Avı: ${s.bluffsWon || 0}</span>
           </div>`,
-                    )
-                    .join("");
+        )
+        .join("");
 
-                  this.finishCard.innerHTML = `
+      this.finishCard.innerHTML = `
         <h2>🏆 HAYATTA KALAN ŞAMPİYON</h2>
         <div class="blof-winner-name" style="color:${winSeat?.color || "#fbbf24"}">${esc(winSeat?.name || "Kazanan")}</div>
         <p>${esc(winSeat?.characterName || "")} mermilerden kurtularak masanın tek hakimi oldu!</p>
@@ -1698,180 +1941,190 @@ export class BlofArena {
           <button type="button" class="button secondary" data-act="leave">Lobiden Ayrıl</button>
         </div>
       `;
-                  this.finishCard.querySelector("[data-act='rematch']")?.addEventListener("click", () => {
-                    this.cb.onRematch?.();
-                  });
-                  this.finishCard.querySelector("[data-act='leave']")?.addEventListener("click", () => {
-                    this.cb.onLeave?.();
-                  });
-                } else {
-                  this.lobbyOverlay.hidden = true;
-                  this.finishOverlay.hidden = true;
-                }
-              }
+      this.finishCard.querySelector("[data-act='rematch']")?.addEventListener("click", () => {
+        this.cb.onRematch?.();
+      });
+      this.finishCard.querySelector("[data-act='leave']")?.addEventListener("click", () => {
+        this.cb.onLeave?.();
+      });
+    } else {
+      this.lobbyOverlay.hidden = true;
+      this.finishOverlay.hidden = true;
+    }
+    this.rootEl?.classList.toggle("has-overlay", !this.lobbyOverlay.hidden || !this.finishOverlay.hidden);
+  }
 
-              _renderSeats() {
-                const t = this.table;
-                this.seatsBar.replaceChildren();
-                for (let i = 0; i < 4; i += 1) {
-                  const s = t.seats[i];
-                  if (!s) continue;
-                  const isTurn = t.status === "playing" && t.turnSeatIndex === i;
-                  const isRoulette = t.status === "roulette" && t.rouletteTargetSeat === i;
-                  const isMe = s.id === this.userId;
-                  const chip = el(
-                    "div",
-                    `blof-seat-chip ${isTurn ? "turn" : ""} ${isRoulette ? "roulette" : ""} ${!s.alive ? "eliminated" : ""} ${isMe ? "me" : ""}`,
-                  );
-                  chip.style.setProperty("--seat-accent", s.color || "#fbbf24");
-                  chip.innerHTML = `
+  _renderSeats() {
+    const t = this.table;
+    this.seatsBar.replaceChildren();
+    for (let i = 0; i < 4; i += 1) {
+      const s = t.seats[i];
+      if (!s) continue;
+      const isTurn = t.status === "playing" && t.turnSeatIndex === i;
+      const isRoulette = t.status === "roulette" && t.rouletteTargetSeat === i;
+      const isMe = s.id === this.userId;
+      const pulls = Math.min(6, Math.max(0, s.triggerPulls || 0));
+      const chambersHtml = Array.from({ length: 6 }, (_, idx) => {
+        const spent = idx < pulls;
+        const lethal = !s.alive && idx === pulls - 1;
+        return `<span class="blof-cyl-dot ${lethal ? "lethal" : spent ? "spent" : ""}"></span>`;
+      }).join("");
+      const chip = el(
+        "div",
+        `blof-seat-chip ${isTurn ? "turn" : ""} ${isRoulette ? "roulette" : ""} ${!s.alive ? "eliminated" : ""} ${isMe ? "me" : ""}`,
+      );
+      chip.style.setProperty("--seat-accent", s.color || "#fbbf24");
+      chip.innerHTML = `
         <div class="blof-schip-top">
           <strong>${s.alive ? "" : "💀 "}${esc(s.name)}</strong>
           <span class="blof-odds-pill">${esc(s.revolverOdds)}</span>
         </div>
         <div class="blof-schip-sub">
-          <span>${esc(s.characterName)}</span>
-          <span>${s.alive ? `🃏 ${s.cardCount}` : "ELENDİ"}</span>
+          <span class="blof-schip-char">${esc(s.characterName)}</span>
+          <span class="blof-cyl-dots" aria-hidden="true">${chambersHtml}</span>
+          <span>${s.alive ? `🃏${s.cardCount}` : "ELENDİ"}</span>
         </div>
       `;
-                  this.seatsBar.append(chip);
-                }
-              }
+      this.seatsBar.append(chip);
+    }
+  }
 
-              _renderHandAndActions() {
-                const t = this.table;
-                const myIdx = this.mySeatIndex();
-                const mySeat = myIdx >= 0 ? t.seats[myIdx] : null;
-                const myHand = mySeat?.hand || [];
+  _renderHandAndActions() {
+    const t = this.table;
+    const myIdx = this.mySeatIndex();
+    const mySeat = myIdx >= 0 ? t.seats[myIdx] : null;
+    const myHand = mySeat?.hand || [];
 
-                // Prune stale selected IDs that are no longer in hand
-                const validSet = new Set(myHand.map((c) => c.id));
-                for (const id of Array.from(this.selectedIds)) {
-                  if (!validSet.has(id)) this.selectedIds.delete(id);
-                }
+    // Prune stale selected IDs that are no longer in hand
+    const validSet = new Set(myHand.map((c) => c.id));
+    for (const id of Array.from(this.selectedIds)) {
+      if (!validSet.has(id)) this.selectedIds.delete(id);
+    }
 
-                const isMyTurn = t.status === "playing" && t.turnSeatIndex === myIdx && mySeat?.alive;
-                const isMyRoulette = t.status === "roulette" && t.rouletteTargetSeat === myIdx && mySeat?.alive;
+    const isMyTurn = t.status === "playing" && t.turnSeatIndex === myIdx && mySeat?.alive;
+    const isMyRoulette = t.status === "roulette" && t.rouletteTargetSeat === myIdx && mySeat?.alive;
 
-                this.handWrap.replaceChildren();
-                if (!mySeat) {
-                  this.handWrap.append(el("span", "blof-hand-note", "👁 İzleyici olarak izliyorsunuz"));
-                } else if (!mySeat.alive) {
-                  this.handWrap.append(el("span", "blof-hand-note dead", "💀 Vuruldunuz — turun sonunu izliyorsunuz"));
-                } else if (myHand.length === 0) {
-                  this.handWrap.append(
-                    el(
-                      "span",
-                      "blof-hand-note safe",
-                      t.status === "playing" ? "✅ Elin bitti — bu tur güvendesin!" : "Kartlar dağıtılmayı bekliyor...",
-                    ),
-                  );
-                } else {
-                  for (const card of myHand) {
-                    const meta = RANK_INFO[card.rank] || RANK_INFO.A;
-                    const selected = this.selectedIds.has(card.id);
-                    const matchesTable = card.rank === t.tableType || card.rank === "JOKER";
-                    const btn = document.createElement("button");
-                    btn.type = "button";
-                    btn.className = `blof-hand-card ${card.rank.toLowerCase()} ${selected ? "selected" : ""} ${matchesTable ? "truth" : ""}`;
-                    btn.disabled = !isMyTurn || t.mustCallLiar;
-                    btn.innerHTML = `
+    this.handWrap.replaceChildren();
+    if (!mySeat) {
+      this.handWrap.append(el("span", "blof-hand-note", "👁 İzleyici olarak izliyorsunuz"));
+    } else if (!mySeat.alive) {
+      this.handWrap.append(el("span", "blof-hand-note dead", "💀 Vuruldunuz — turun sonunu izliyorsunuz"));
+    } else if (myHand.length === 0) {
+      this.handWrap.append(
+        el(
+          "span",
+          "blof-hand-note safe",
+          t.status === "playing" ? "✅ Elin bitti — bu tur güvendesin!" : "Kartlar dağıtılmayı bekliyor...",
+        ),
+      );
+    } else {
+      for (const card of myHand) {
+        const meta = RANK_INFO[card.rank] || RANK_INFO.A;
+        const selected = this.selectedIds.has(card.id);
+        const matchesTable = card.rank === t.tableType || card.rank === "JOKER";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `blof-hand-card ${card.rank.toLowerCase()} ${selected ? "selected" : ""} ${matchesTable ? "truth" : ""}`;
+        btn.disabled = !isMyTurn || t.mustCallLiar;
+        btn.innerHTML = `
+          ${card.rank === "DEVIL" ? `<span class="blof-hc-tag devil">TEK AT</span>` : matchesTable ? `<span class="blof-hc-tag truth">DOĞRU</span>` : `<span class="blof-hc-tag bluff">BLÖF</span>`}
           <span class="blof-hc-rank">${esc(meta.badge)}</span>
           <span class="blof-hc-title">${esc(meta.title)}</span>
-          ${card.rank === "DEVIL" ? `<span class="blof-hc-tag devil">TEK AT</span>` : matchesTable ? `<span class="blof-hc-tag truth">DOĞRU</span>` : `<span class="blof-hc-tag bluff">BLÖF</span>`}
         `;
-                    btn.addEventListener("click", () => {
-                      if (!isMyTurn || t.mustCallLiar) return;
-                      if (this.selectedIds.has(card.id)) {
-                        this.selectedIds.delete(card.id);
-                      } else {
-                        if (card.rank === "DEVIL") {
-                          this.selectedIds.clear();
-                          this.selectedIds.add(card.id);
-                        } else {
-                          // Deselect Devil if picking normal cards, enforce max 3 cards
-                          for (const existingId of Array.from(this.selectedIds)) {
-                            const cObj = myHand.find((x) => x.id === existingId);
-                            if (cObj?.rank === "DEVIL") this.selectedIds.delete(existingId);
-                          }
-                          if (this.selectedIds.size >= 3) {
-                            const first = this.selectedIds.values().next().value;
-                            this.selectedIds.delete(first);
-                          }
-                          this.selectedIds.add(card.id);
-                        }
-                      }
-                      this._renderHandAndActions();
-                    });
-                    this.handWrap.append(btn);
-                  }
-                }
-
-                // Action buttons state
-                const selCount = this.selectedIds.size;
-                const meta = RANK_INFO[t.tableType] || RANK_INFO.A;
-                this.playBtn.hidden = isMyRoulette;
-                this.liarBtn.hidden = isMyRoulette;
-                this.triggerBtn.hidden = !isMyRoulette;
-
-                this.playBtn.disabled = !isMyTurn || t.mustCallLiar || selCount < 1;
-                this.playBtn.textContent =
-                  t.mustCallLiar
-                    ? "Son Kalan Sensin!"
-                    : selCount > 0
-                      ? `🃏 ${selCount}× ${meta.title} At`
-                      : `🃏 Kart Seç (1–3)`;
-
-                this.liarBtn.disabled = !(isMyTurn && t.canCallLiar);
-                this.liarBtn.textContent = t.mustCallLiar ? "🚨 YALANCI! (ZORUNLU)" : "🚨 YALANCI!";
-
-                if (isMyRoulette) {
-                  this.triggerBtn.disabled = false;
-                  this.triggerBtn.textContent = `🔫 TETİĞİ ÇEK! (${mySeat?.revolverOdds || "1/6"})`;
-                }
+        btn.addEventListener("click", () => {
+          if (!isMyTurn || t.mustCallLiar) return;
+          if (this.selectedIds.has(card.id)) {
+            this.selectedIds.delete(card.id);
+          } else {
+            if (card.rank === "DEVIL") {
+              this.selectedIds.clear();
+              this.selectedIds.add(card.id);
+            } else {
+              // Deselect Devil if picking normal cards, enforce max 3 cards
+              for (const existingId of Array.from(this.selectedIds)) {
+                const cObj = myHand.find((x) => x.id === existingId);
+                if (cObj?.rank === "DEVIL") this.selectedIds.delete(existingId);
               }
-
-              _draw2D() {
-                const t = this.table;
-                if (!t || !this.canvas2d) return;
-                const w = Math.max(300, this.stageWrap.clientWidth);
-                const h = Math.max(200, this.stageWrap.clientHeight);
-                this.canvas2d.width = w;
-                this.canvas2d.height = h;
-                const ctx = this.canvas2d.getContext("2d");
-
-                const bg = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, Math.max(w, h) * 0.7);
-                bg.addColorStop(0, "#4b1218");
-                bg.addColorStop(0.55, "#230c0d");
-                bg.addColorStop(1, "#0d0605");
-                ctx.fillStyle = bg;
-                ctx.fillRect(0, 0, w, h);
-
-                ctx.strokeStyle = "#c9963a";
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.ellipse(w / 2, h / 2, w * 0.34, h * 0.32, 0, 0, Math.PI * 2);
-                ctx.stroke();
-
-                ctx.fillStyle = "#faf5ea";
-                ctx.font = "bold 20px Georgia, serif";
-                ctx.textAlign = "center";
-                ctx.fillText(`2D Modu · Masa: ${t.tableTypeLabel} · Yığın: ${t.pileCount}`, w / 2, h / 2 - 8);
-                ctx.font = "600 14px system-ui, sans-serif";
-                ctx.fillStyle = "#d6c3a5";
-                ctx.fillText(t.lastAction?.text || "", w / 2, h / 2 + 22);
+              if (this.selectedIds.size >= 3) {
+                const first = this.selectedIds.values().next().value;
+                this.selectedIds.delete(first);
               }
-
-              dispose() {
-                this.disposed = true;
-                clearTimeout(this._shotHideTimer);
-                clearTimeout(this._countdownRaf);
-                for (const node of this.seatNodes || []) {
-                  clearTimeout(node.pulseRestoreTimer);
-                }
-                if (this.rafId) cancelAnimationFrame(this.rafId);
-                this._resizeObs?.disconnect?.();
-                this.controls?.dispose?.();
-                this.renderer?.dispose?.();
-              }
+              this.selectedIds.add(card.id);
             }
+          }
+          this._renderHandAndActions();
+        });
+        this.handWrap.append(btn);
+      }
+    }
+
+    // Action buttons state
+    const selCount = this.selectedIds.size;
+    const meta = RANK_INFO[t.tableType] || RANK_INFO.A;
+    this.playBtn.hidden = isMyRoulette;
+    this.liarBtn.hidden = isMyRoulette;
+    this.triggerBtn.hidden = !isMyRoulette;
+
+    this.playBtn.disabled = !isMyTurn || t.mustCallLiar || selCount < 1;
+    this.playBtn.textContent =
+      t.mustCallLiar
+        ? "Son Kalan Sensin!"
+        : selCount > 0
+          ? `🃏 ${selCount}× ${meta.title} At`
+          : `🃏 Kart Seç (1–3)`;
+
+    this.liarBtn.disabled = !(isMyTurn && t.canCallLiar);
+    this.liarBtn.textContent = t.mustCallLiar ? "🚨 YALANCI! (ZORUNLU)" : "🚨 YALANCI!";
+
+    if (isMyRoulette) {
+      this.triggerBtn.disabled = false;
+      this.triggerBtn.textContent = `🔫 TETİĞİ ÇEK! (${mySeat?.revolverOdds || "1/6"})`;
+    }
+  }
+
+  _draw2D() {
+    const t = this.table;
+    if (!t || !this.canvas2d) return;
+    const w = Math.max(300, this.stageWrap.clientWidth);
+    const h = Math.max(200, this.stageWrap.clientHeight);
+    this.canvas2d.width = w;
+    this.canvas2d.height = h;
+    const ctx = this.canvas2d.getContext("2d");
+
+    const bg = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, Math.max(w, h) * 0.7);
+    bg.addColorStop(0, "#4b1218");
+    bg.addColorStop(0.55, "#230c0d");
+    bg.addColorStop(1, "#0d0605");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = "#c9963a";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(w / 2, h / 2, w * 0.34, h * 0.32, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = "#faf5ea";
+    ctx.font = "bold 20px Georgia, serif";
+    ctx.textAlign = "center";
+    ctx.fillText(`2D Modu · Masa: ${t.tableTypeLabel} · Yığın: ${t.pileCount}`, w / 2, h / 2 - 8);
+    ctx.font = "600 14px system-ui, sans-serif";
+    ctx.fillStyle = "#d6c3a5";
+    ctx.fillText(t.lastAction?.text || "", w / 2, h / 2 + 22);
+  }
+
+  dispose() {
+    this.disposed = true;
+    clearTimeout(this._shotHideTimer);
+    clearTimeout(this._countdownRaf);
+    clearTimeout(this._selfDeathCamTimer);
+    clearInterval(this._timerInterval);
+    for (const node of this.seatNodes || []) {
+      clearTimeout(node.pulseRestoreTimer);
+    }
+    if (this.rafId) cancelAnimationFrame(this.rafId);
+    this._resizeObs?.disconnect?.();
+    this.controls?.dispose?.();
+    this.renderer?.dispose?.();
+  }
+}

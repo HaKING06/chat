@@ -5822,31 +5822,78 @@ body.in-blackjack .games-view {
 .blof-stage-wrap {
   position: relative;
   width: 100%;
-  height: clamp(320px, 50dvh, 470px);
+  height: clamp(340px, 52dvh, 490px);
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(212, 164, 74, 0.28);
   background: #0b0604;
 }
 
+.blof-arena.has-overlay .blof-stage-wrap {
+  height: auto;
+  min-height: clamp(430px, 72dvh, 620px);
+}
+
 .blof-canvas3d,
 .blof-canvas2d {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
 }
 
+.blof-stage-timer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+  background: rgba(255, 255, 255, 0.08);
+  z-index: 6;
+  pointer-events: none;
+}
+
+.blof-stage-timer-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  transition: width 0.2s linear;
+}
+
+.blof-stage-timer-fill.hot {
+  background: linear-gradient(90deg, #dc2626, #f87171);
+}
+
 .blof-stage-hud-top {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  right: 8px;
+  top: 9px;
+  left: 9px;
+  right: 9px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   pointer-events: none;
   z-index: 4;
+}
+
+.blof-timer-pill {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(18, 12, 10, 0.88);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  color: #fde68a;
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.blof-timer-pill.hot {
+  background: rgba(153, 27, 27, 0.94);
+  border-color: #fca5a5;
+  color: #fff;
+  animation: blofPulse 0.7s ease-in-out infinite alternate;
 }
 
 .blof-turn-tag {
@@ -5946,15 +5993,25 @@ body.in-blackjack .games-view {
 }
 
 .blof-lobby-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(10, 6, 5, 0.86);
+  position: relative;
+  min-height: inherit;
+  background: rgba(10, 6, 5, 0.84);
   backdrop-filter: blur(6px);
   display: grid;
   place-items: center;
   padding: 12px;
   z-index: 10;
-  overflow-y: auto;
+}
+
+.blof-char-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.blof-char-emblem {
+  font-size: 15px;
+  line-height: 1;
 }
 
 .blof-lobby-card {
@@ -6177,6 +6234,37 @@ body.in-blackjack .games-view {
   font-size: 11px;
 }
 
+.blof-schip-char {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.blof-cyl-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.blof-cyl-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(212, 164, 74, 0.35);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+}
+
+.blof-cyl-dot.spent {
+  background: #f59e0b;
+  border-color: #fde68a;
+}
+
+.blof-cyl-dot.lethal {
+  background: #ef4444;
+  border-color: #fca5a5;
+  box-shadow: 0 0 6px #ef4444;
+}
+
 .blof-odds-pill {
   padding: 1px 6px;
   border-radius: 999px;
@@ -6191,33 +6279,42 @@ body.in-blackjack .games-view {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(212, 164, 74, 0.22);
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(212, 164, 74, 0.25);
 }
 
 .blof-hand-wrap {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 7px;
-  min-height: 76px;
+  gap: 8px;
+  padding: 10px 4px 2px;
+  min-height: 92px;
 }
 
 .blof-hand-card {
   position: relative;
-  width: 64px;
-  height: 86px;
-  border-radius: 10px;
+  width: 68px;
+  height: 96px;
+  border-radius: 11px;
   border: 2px solid #a8824c;
-  background: linear-gradient(170deg, #f7eedb, #dfcfaf);
+  background: linear-gradient(170deg, #f8efe0, #dfd0b1);
   color: #1e130c;
   cursor: pointer;
-  display: grid;
-  place-items: center;
-  padding: 5px;
-  transition: transform 0.14s, box-shadow 0.14s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 4px 7px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.38);
+  transition: transform 0.14s, box-shadow 0.14s, border-color 0.14s;
+  flex-shrink: 0;
+}
+
+.blof-hand-card.truth {
+  border-color: rgba(16, 185, 129, 0.78);
 }
 
 .blof-hand-card.joker {
@@ -6233,33 +6330,33 @@ body.in-blackjack .games-view {
 }
 
 .blof-hand-card.selected {
-  transform: translateY(-10px);
+  transform: translateY(-9px);
   box-shadow: 0 0 0 3px #fbbf24, 0 10px 18px rgba(0, 0, 0, 0.55);
 }
 
 .blof-hand-card:disabled {
-  opacity: 0.65;
+  opacity: 0.68;
   cursor: default;
 }
 
 .blof-hc-rank {
-  font-size: 26px;
+  font-size: 27px;
   font-weight: 900;
   line-height: 1;
 }
 
 .blof-hc-title {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 800;
+  letter-spacing: 0.03em;
 }
 
 .blof-hc-tag {
-  position: absolute;
-  top: -7px;
-  padding: 1px 6px;
+  padding: 1.5px 6px;
   border-radius: 999px;
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 900;
+  letter-spacing: 0.02em;
 }
 
 .blof-hc-tag.truth { background: #10b981; color: #022c22; }
@@ -6322,44 +6419,169 @@ body.in-blackjack .games-view {
 }
 
 @media (max-width: 820px) {
+  body.in-card-game .games-head,
+  body.in-card-game .lobby-toolbar,
+  body.in-card-game .game-hub {
+    margin-bottom: 4px;
+  }
   .blof-arena {
     padding: 7px;
     gap: 6px;
+    border-radius: 13px;
   }
   .blof-topbar {
+    gap: 5px;
+  }
+  .blof-top-left {
+    flex: 1 1 auto;
+  }
+  .blof-mode-pill {
+    display: none;
+  }
+  .blof-tabletype-pill {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  .blof-top-right {
+    width: 100%;
+    flex-wrap: nowrap;
+    justify-content: space-between;
     gap: 4px;
   }
+  .blof-top-right .blof-pill {
+    white-space: nowrap;
+    padding: 3px 7px;
+    font-size: 10.5px;
+  }
   .blof-topbar .button.compact {
-    padding: 4px 8px;
+    padding: 5px 8px;
     font-size: 11px;
+    min-height: 30px;
+    white-space: nowrap;
+  }
+  .blof-hide-xs {
+    display: none;
+  }
+  .blof-lobby-card {
+    padding: 11px 12px;
+    gap: 8px;
+  }
+  .blof-lobby-head h2 {
+    font-size: 14.5px;
   }
   .blof-lobby-seats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .blof-char-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .blof-char-card {
+    padding: 7px 8px;
+  }
+  .blof-arena.has-overlay .blof-stage-wrap {
+    min-height: clamp(460px, 74dvh, 660px);
+  }
+  .blof-stage-wrap {
+    height: clamp(275px, 43dvh, 390px);
+  }
+  .blof-stage-hud-top {
+    top: 7px;
+    left: 7px;
+    right: 7px;
+    gap: 4px;
+  }
+  .blof-turn-tag {
+    font-size: 11px;
+    padding: 3px 9px;
+  }
+  .blof-last-msg {
+    font-size: 11px;
+    padding: 3px 8px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .blof-reveal-strip {
+    bottom: 8px;
+    padding: 6px 10px;
+    max-width: 95%;
+  }
+  .blof-rev-title {
+    font-size: 11.5px;
+  }
+  .blof-shot-overlay {
+    width: max-content;
+    max-width: 90%;
+    text-align: center;
+    font-size: clamp(14px, 4.2vw, 19px);
+    padding: 9px 14px;
   }
   .blof-seats-bar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
-  }
-  .blof-seat-chip {
-    padding: 4px 8px;
-  }
-  .blof-stage-wrap {
-    height: clamp(195px, 28dvh, 240px);
-  }
-  .blof-controls-bar {
-    padding: 6px 8px;
-    gap: 6px;
-  }
-  .blof-hand-wrap {
-    min-height: 64px;
     gap: 5px;
   }
+  .blof-seat-chip {
+    padding: 5px 8px;
+  }
+  .blof-cyl-dots {
+    display: none;
+  }
+  .blof-controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 7px 8px 8px;
+    gap: 8px;
+  }
+  .blof-hand-wrap {
+    justify-content: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    min-height: 86px;
+    padding: 10px 4px 2px;
+    gap: 6px;
+  }
   .blof-hand-card {
-    width: 48px;
-    height: 66px;
+    width: 56px;
+    height: 78px;
+    padding: 4px 3px 6px;
+  }
+  .blof-hc-rank {
+    font-size: 22px;
+  }
+  .blof-hc-title {
+    font-size: 8.5px;
+  }
+  .blof-actions-wrap {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 7px;
+    width: 100%;
+  }
+  .blof-actions-wrap .button {
+    min-height: 44px;
+    font-size: 13.5px;
+    justify-content: center;
+    width: 100%;
+  }
+  .blof-trigger-btn {
+    grid-column: 1 / -1;
+    min-height: 48px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .blof-stage-wrap {
+    height: clamp(255px, 40dvh, 340px);
+  }
+  .blof-hand-card {
+    width: 52px;
+    height: 74px;
+  }
+  .blof-hc-rank {
+    font-size: 20px;
   }
 }
 
