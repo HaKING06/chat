@@ -1,4 +1,4 @@
-const CACHE_NAME = "haking-chat-v3";
+const CACHE_NAME = "haking-chat-v4";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -15,7 +15,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS).catch(() => {}))
+      .then((cache) => cache.addAll(STATIC_ASSETS).catch(() => { }))
       .then(() => self.skipWaiting()),
   );
 });
@@ -52,7 +52,7 @@ self.addEventListener("fetch", (event) => {
         .then((res) => {
           if (res.ok) {
             const copy = res.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
+            caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => { });
           }
           return res;
         })
@@ -68,7 +68,7 @@ self.addEventListener("fetch", (event) => {
         .then((res) => {
           if (res.ok) {
             const copy = res.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
+            caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => { });
           }
           return res;
         })
